@@ -1,0 +1,2355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vapt Vupt — Reposição Inteligente de Estoque</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#0057FF;--blue-dark:#0040CC;--blue-light:#E8F0FF;--blue-mid:#3373FF;
+  --white:#FFFFFF;--off-white:#F5F7FF;--gray-50:#F8F9FC;--gray-100:#EEF1F8;
+  --gray-200:#D8DCE9;--gray-400:#9CA3B8;--gray-600:#636B85;--gray-800:#2D3352;
+  --gray-900:#141928;--success:#00B97D;--warning:#FF9500;--danger:#FF3B30;
+  --shadow-sm:0 1px 3px rgba(0,0,255,.06),0 1px 2px rgba(0,0,255,.04);
+  --shadow-md:0 4px 16px rgba(0,40,160,.1),0 2px 6px rgba(0,40,160,.06);
+  --shadow-lg:0 16px 48px rgba(0,40,160,.14),0 4px 16px rgba(0,40,160,.08);
+  --radius-sm:6px;--radius-md:10px;--radius-lg:16px;--radius-xl:24px;
+  --font-display:'DM Serif Display',serif;
+  --font-body:'DM Sans',sans-serif;
+  --transition:all .2s cubic-bezier(.4,0,.2,1);
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:var(--font-body);color:var(--gray-900);background:var(--white);overflow-x:hidden;line-height:1.6}
+h1,h2,h3,h4{line-height:1.2;font-weight:600}
+a{color:inherit;text-decoration:none}
+button{cursor:pointer;border:none;font-family:inherit}
+input,select,textarea{font-family:inherit;font-size:1rem;outline:none}
+img{max-width:100%}
+
+/* ── Utilities ── */
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+.hidden{display:none!important}
+.flex{display:flex}
+.grid{display:grid}
+.gap-4{gap:1rem}
+.gap-6{gap:1.5rem}
+.gap-8{gap:2rem}
+.text-center{text-align:center}
+.mt-2{margin-top:.5rem}
+.mt-4{margin-top:1rem}
+.mt-6{margin-top:1.5rem}
+.mb-4{margin-bottom:1rem}
+.mb-6{margin-bottom:1.5rem}
+
+/* ── Page system ── */
+.page{display:none;min-height:100vh;animation:fadeIn .3s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;padding:.75rem 1.5rem;border-radius:var(--radius-md);font-size:.9375rem;font-weight:500;transition:var(--transition);cursor:pointer;white-space:nowrap}
+.btn-primary{background:var(--blue);color:#fff;border:2px solid var(--blue)}
+.btn-primary:hover{background:var(--blue-dark);border-color:var(--blue-dark);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.btn-primary:active{transform:translateY(0)}
+.btn-secondary{background:transparent;color:var(--blue);border:2px solid var(--blue)}
+.btn-secondary:hover{background:var(--blue-light);transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--gray-600);border:2px solid var(--gray-200)}
+.btn-ghost:hover{background:var(--gray-100);color:var(--gray-900)}
+.btn-danger{background:var(--danger);color:#fff;border:2px solid var(--danger)}
+.btn-success{background:var(--success);color:#fff;border:2px solid var(--success)}
+.btn-sm{padding:.5rem 1rem;font-size:.875rem}
+.btn-lg{padding:1rem 2rem;font-size:1.0625rem}
+.btn-xl{padding:1.125rem 2.5rem;font-size:1.125rem;border-radius:var(--radius-lg)}
+.btn-block{width:100%}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+
+/* ── Forms ── */
+.form-group{margin-bottom:1.25rem}
+.form-label{display:block;font-size:.875rem;font-weight:500;color:var(--gray-800);margin-bottom:.375rem}
+.form-hint{font-size:.8125rem;color:var(--gray-400);margin-top:.25rem}
+.form-input{width:100%;padding:.75rem 1rem;border:1.5px solid var(--gray-200);border-radius:var(--radius-md);font-size:.9375rem;color:var(--gray-900);background:var(--white);transition:var(--transition)}
+.form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,87,255,.1)}
+.form-input:hover{border-color:var(--gray-400)}
+.form-input.error{border-color:var(--danger)}
+.form-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239CA3B8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.form-textarea{resize:vertical;min-height:100px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:600px){.form-row{grid-template-columns:1fr}}
+.form-error{font-size:.8125rem;color:var(--danger);margin-top:.25rem}
+
+/* ── Chips / Tags ── */
+.chip{display:inline-flex;align-items:center;gap:.375rem;padding:.3125rem .75rem;border-radius:100px;font-size:.8125rem;font-weight:500;border:1.5px solid;cursor:default}
+.chip-blue{background:var(--blue-light);color:var(--blue-dark);border-color:rgba(0,87,255,.2)}
+.chip-green{background:#E8FFF5;color:#007A52;border-color:rgba(0,185,125,.2)}
+.chip-orange{background:#FFF5E8;color:#A05A00;border-color:rgba(255,149,0,.2)}
+.chip-red{background:#FFF0EF;color:#CC2419;border-color:rgba(255,59,48,.2)}
+.chip-gray{background:var(--gray-100);color:var(--gray-600);border-color:var(--gray-200)}
+.badge{display:inline-flex;align-items:center;justify-content:center;padding:.2rem .6rem;border-radius:100px;font-size:.75rem;font-weight:600}
+.badge-blue{background:var(--blue);color:#fff}
+.badge-red{background:var(--danger);color:#fff}
+.badge-green{background:var(--success);color:#fff}
+.badge-orange{background:var(--warning);color:#fff}
+
+/* ── Cards ── */
+.card{background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-lg);padding:1.5rem;box-shadow:var(--shadow-sm);transition:var(--transition)}
+.card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.card-flat{background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-lg);padding:1.5rem}
+.card-blue{background:linear-gradient(135deg,var(--blue),var(--blue-mid));color:#fff;border:none}
+.card-stat{padding:1.25rem;text-align:center}
+.stat-label{font-size:.8125rem;color:var(--gray-400);font-weight:500;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.375rem}
+.stat-value{font-size:2rem;font-weight:700;line-height:1}
+.stat-change{font-size:.8125rem;margin-top:.375rem}
+
+/* ── Nav ── */
+.nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--gray-100);padding:.875rem 0}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:0 24px}
+.nav-logo{display:flex;align-items:center;gap:.625rem;font-weight:700;font-size:1.25rem;color:var(--blue);cursor:pointer}
+.nav-logo-icon{width:36px;height:36px;background:var(--blue);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.875rem;letter-spacing:-.02em}
+.nav-links{display:flex;align-items:center;gap:1.5rem}
+.nav-link{font-size:.9375rem;color:var(--gray-600);font-weight:500;transition:var(--transition);cursor:pointer}
+.nav-link:hover{color:var(--gray-900)}
+.nav-actions{display:flex;align-items:center;gap:.75rem}
+@media(max-width:768px){.nav-links{display:none}}
+
+/* ── Dashboard Layout ── */
+.dashboard{display:flex;min-height:100vh}
+.sidebar{width:256px;background:var(--gray-900);color:#fff;flex-shrink:0;display:flex;flex-direction:column;transition:var(--transition)}
+.sidebar-logo{padding:1.5rem;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo .logo-text{font-weight:700;font-size:1.1875rem;color:#fff}
+.sidebar-logo .logo-sub{font-size:.75rem;color:rgba(255,255,255,.4);margin-top:.125rem}
+.sidebar-nav{padding:1rem;flex:1;overflow-y:auto}
+.sidebar-section{font-size:.6875rem;font-weight:600;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;padding:.75rem .75rem .375rem}
+.sidebar-item{display:flex;align-items:center;gap:.75rem;padding:.6875rem .75rem;border-radius:var(--radius-md);color:rgba(255,255,255,.6);font-size:.9375rem;font-weight:500;cursor:pointer;transition:var(--transition);margin-bottom:.125rem}
+.sidebar-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.sidebar-item.active{background:var(--blue);color:#fff}
+.sidebar-item-icon{width:20px;height:20px;flex-shrink:0}
+.sidebar-footer{padding:1rem;border-top:1px solid rgba(255,255,255,.08)}
+.sidebar-user{display:flex;align-items:center;gap:.75rem}
+.sidebar-avatar{width:36px;height:36px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:.875rem;font-weight:600;color:#fff;flex-shrink:0}
+.sidebar-user-info{flex:1;min-width:0}
+.sidebar-user-name{font-size:.875rem;font-weight:500;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-user-role{font-size:.75rem;color:rgba(255,255,255,.4)}
+.main-content{flex:1;overflow-y:auto;background:var(--gray-50)}
+.content-header{background:var(--white);border-bottom:1px solid var(--gray-100);padding:1.25rem 2rem}
+.content-header h1{font-size:1.375rem;font-weight:700;color:var(--gray-900)}
+.content-header p{font-size:.9375rem;color:var(--gray-400);margin-top:.25rem}
+.content-body{padding:2rem}
+
+/* Hamburger mobile */
+.mobile-menu-btn{display:none;background:none;border:none;color:var(--gray-600);padding:.5rem;cursor:pointer}
+@media(max-width:900px){
+  .mobile-menu-btn{display:block}
+  .sidebar{position:fixed;left:-256px;top:0;height:100%;z-index:200;transition:left .3s ease}
+  .sidebar.open{left:0}
+  .main-content{margin-left:0!important}
+  .content-body{padding:1rem}
+}
+
+/* ── Landing Page ── */
+.hero{padding:6rem 0 5rem;overflow:hidden;position:relative}
+.hero-bg{position:absolute;inset:0;background:linear-gradient(160deg,var(--off-white) 0%,var(--white) 60%);z-index:0}
+.hero-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.4;z-index:0}
+.hero-blob-1{width:600px;height:600px;background:radial-gradient(circle,rgba(0,87,255,.12),transparent);top:-200px;right:-200px}
+.hero-blob-2{width:400px;height:400px;background:radial-gradient(circle,rgba(51,115,255,.08),transparent);bottom:-100px;left:-100px}
+.hero-content{position:relative;z-index:1;max-width:700px}
+.hero-tag{display:inline-flex;align-items:center;gap:.5rem;background:var(--blue-light);color:var(--blue-dark);border:1px solid rgba(0,87,255,.15);border-radius:100px;padding:.4375rem 1rem;font-size:.875rem;font-weight:600;margin-bottom:2rem}
+.hero-tag::before{content:'';width:8px;height:8px;background:var(--blue);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:.6}}
+.hero-title{font-family:var(--font-display);font-size:clamp(2.5rem,5vw,3.75rem);font-weight:400;line-height:1.1;color:var(--gray-900);margin-bottom:1.5rem}
+.hero-title em{color:var(--blue);font-style:italic}
+.hero-sub{font-size:1.1875rem;color:var(--gray-600);line-height:1.7;max-width:560px;margin-bottom:2.5rem}
+.hero-ctas{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.hero-trust{display:flex;align-items:center;gap:1.5rem;margin-top:2.5rem;padding-top:2rem;border-top:1px solid var(--gray-100)}
+.hero-trust-item{display:flex;align-items:center;gap:.5rem;font-size:.875rem;color:var(--gray-400)}
+.hero-trust-icon{width:16px;height:16px;color:var(--success)}
+.hero-visual{position:absolute;right:-40px;top:50%;transform:translateY(-50%);width:500px;opacity:.9}
+@media(max-width:1100px){.hero-visual{display:none}}
+@media(max-width:768px){.hero{padding:4rem 0 3rem}}
+
+/* Stats section */
+.stats-section{padding:3rem 0;border-bottom:1px solid var(--gray-100)}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2rem;text-align:center}
+.stat-item-num{font-family:var(--font-display);font-size:2.5rem;color:var(--blue);font-weight:400}
+.stat-item-label{font-size:.9375rem;color:var(--gray-400);margin-top:.25rem}
+@media(max-width:768px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* How it works */
+.section{padding:5rem 0}
+.section-tag{display:inline-flex;background:var(--blue-light);color:var(--blue-dark);padding:.3125rem .875rem;border-radius:100px;font-size:.8125rem;font-weight:600;margin-bottom:1rem}
+.section-title{font-family:var(--font-display);font-size:clamp(1.875rem,3.5vw,2.75rem);font-weight:400;line-height:1.15;margin-bottom:1rem;color:var(--gray-900)}
+.section-sub{font-size:1.0625rem;color:var(--gray-400);max-width:560px;line-height:1.7}
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;margin-top:3.5rem;position:relative}
+.steps-grid::before{content:'';position:absolute;top:3rem;left:calc(16.66% + 1rem);right:calc(16.66% + 1rem);height:2px;background:linear-gradient(90deg,var(--blue-light),var(--blue),var(--blue-light));z-index:0}
+.step-card{text-align:center;padding:2rem;position:relative;z-index:1}
+.step-num{width:56px;height:56px;border-radius:50%;background:var(--blue);color:#fff;font-weight:700;font-size:1.1875rem;display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;box-shadow:0 0 0 8px var(--blue-light)}
+.step-title{font-size:1.125rem;font-weight:600;margin-bottom:.625rem;color:var(--gray-900)}
+.step-desc{font-size:.9375rem;color:var(--gray-400);line-height:1.6}
+@media(max-width:768px){.steps-grid{grid-template-columns:1fr}.steps-grid::before{display:none}.step-card{padding:1.5rem 1rem}}
+
+/* For whom */
+.segments-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1.5rem;margin-top:3rem}
+.segment-card{padding:1.75rem 1.5rem;border-radius:var(--radius-lg);background:var(--white);border:1.5px solid var(--gray-100);text-align:center;transition:var(--transition);cursor:default}
+.segment-card:hover{border-color:var(--blue);transform:translateY(-4px);box-shadow:var(--shadow-md)}
+.segment-icon{font-size:2.5rem;margin-bottom:.875rem;display:block}
+.segment-name{font-size:1rem;font-weight:600;color:var(--gray-900)}
+
+/* Differentials */
+.diff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:3rem}
+.diff-card{padding:2rem;border-radius:var(--radius-lg);background:var(--white);border:1.5px solid var(--gray-100);transition:var(--transition)}
+.diff-card:hover{border-color:var(--blue-mid);box-shadow:var(--shadow-md)}
+.diff-icon{width:48px;height:48px;border-radius:var(--radius-md);background:var(--blue-light);display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;font-size:1.375rem}
+.diff-title{font-size:1.0625rem;font-weight:600;margin-bottom:.5rem;color:var(--gray-900)}
+.diff-desc{font-size:.9375rem;color:var(--gray-400);line-height:1.6}
+@media(max-width:900px){.diff-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.diff-grid{grid-template-columns:1fr}}
+
+/* Testimonials */
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:3rem}
+.testi-card{padding:1.75rem;border-radius:var(--radius-lg);background:var(--white);border:1.5px solid var(--gray-100)}
+.testi-stars{color:var(--warning);font-size:1rem;margin-bottom:.875rem;letter-spacing:.1em}
+.testi-text{font-size:.9375rem;color:var(--gray-600);line-height:1.7;margin-bottom:1.125rem;font-style:italic}
+.testi-author{display:flex;align-items:center;gap:.75rem}
+.testi-avatar{width:40px;height:40px;border-radius:50%;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:.875rem;font-weight:700;color:var(--blue-dark)}
+.testi-name{font-size:.9375rem;font-weight:600;color:var(--gray-900)}
+.testi-role{font-size:.8125rem;color:var(--gray-400)}
+@media(max-width:900px){.testi-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.testi-grid{grid-template-columns:1fr}}
+
+/* FAQ */
+.faq-list{max-width:720px;margin:3rem auto 0}
+.faq-item{border-bottom:1px solid var(--gray-100)}
+.faq-question{display:flex;align-items:center;justify-content:space-between;padding:1.25rem 0;cursor:pointer;font-size:1rem;font-weight:500;color:var(--gray-900);gap:1rem}
+.faq-question:hover{color:var(--blue)}
+.faq-chevron{width:20px;height:20px;flex-shrink:0;transition:transform .2s;color:var(--gray-400)}
+.faq-item.open .faq-chevron{transform:rotate(180deg)}
+.faq-answer{max-height:0;overflow:hidden;transition:max-height .3s ease,padding .2s}
+.faq-item.open .faq-answer{max-height:200px;padding-bottom:1.25rem}
+.faq-answer p{font-size:.9375rem;color:var(--gray-400);line-height:1.7}
+
+/* CTA Section */
+.cta-section{background:linear-gradient(135deg,var(--gray-900) 0%,#1a1f40 100%);color:#fff;padding:5rem 0;text-align:center;position:relative;overflow:hidden}
+.cta-section .hero-blob{opacity:.15}
+.cta-section-title{font-family:var(--font-display);font-size:clamp(2rem,4vw,3rem);font-weight:400;margin-bottom:1.25rem;position:relative;z-index:1}
+.cta-section-sub{font-size:1.0625rem;color:rgba(255,255,255,.6);margin-bottom:2.5rem;max-width:480px;margin-left:auto;margin-right:auto;position:relative;z-index:1}
+.cta-section .btn-primary{background:#fff;color:var(--blue);border-color:#fff;position:relative;z-index:1}
+.cta-section .btn-primary:hover{background:var(--blue-light)}
+.cta-section .btn-secondary{color:#fff;border-color:rgba(255,255,255,.3);position:relative;z-index:1}
+.cta-section .btn-secondary:hover{background:rgba(255,255,255,.1)}
+
+/* Footer */
+.footer{background:var(--gray-900);color:rgba(255,255,255,.5);padding:4rem 0 2rem}
+.footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:3rem;margin-bottom:3rem}
+.footer-brand .logo-text{font-size:1.25rem;font-weight:700;color:#fff;margin-bottom:.75rem}
+.footer-tagline{font-size:.9375rem;line-height:1.7;color:rgba(255,255,255,.4)}
+.footer-heading{font-size:.875rem;font-weight:600;color:#fff;margin-bottom:1rem;text-transform:uppercase;letter-spacing:.06em}
+.footer-links{list-style:none}
+.footer-links li{margin-bottom:.625rem}
+.footer-links a{font-size:.9375rem;color:rgba(255,255,255,.4);transition:var(--transition);cursor:pointer}
+.footer-links a:hover{color:#fff}
+.footer-bottom{border-top:1px solid rgba(255,255,255,.08);padding-top:2rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:gap;gap:1rem}
+.footer-legal{font-size:.8125rem}
+@media(max-width:900px){.footer-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.footer-grid{grid-template-columns:1fr}}
+
+/* ── Auth pages ── */
+.auth-page{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+.auth-left{background:linear-gradient(160deg,var(--gray-900),#1a1f40);padding:3rem;display:flex;flex-direction:column;justify-content:space-between;color:#fff;position:relative;overflow:hidden}
+.auth-left-content{position:relative;z-index:1}
+.auth-tagline{font-family:var(--font-display);font-size:clamp(1.75rem,3vw,2.5rem);font-weight:400;line-height:1.2;margin:2rem 0 1rem}
+.auth-tagline em{color:var(--blue-mid)}
+.auth-features{list-style:none;margin-top:2rem}
+.auth-features li{display:flex;align-items:flex-start;gap:.75rem;font-size:.9375rem;color:rgba(255,255,255,.7);margin-bottom:1rem}
+.auth-features li::before{content:'✓';background:var(--blue);color:#fff;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0;margin-top:.125rem}
+.auth-right{display:flex;align-items:center;justify-content:center;padding:3rem;background:var(--off-white)}
+.auth-form-container{width:100%;max-width:440px;background:var(--white);border-radius:var(--radius-xl);padding:2.5rem;box-shadow:var(--shadow-lg)}
+.auth-form-title{font-size:1.625rem;font-weight:700;color:var(--gray-900);margin-bottom:.5rem}
+.auth-form-sub{font-size:.9375rem;color:var(--gray-400);margin-bottom:2rem}
+.auth-tabs{display:flex;gap:.5rem;background:var(--gray-100);border-radius:var(--radius-md);padding:.25rem;margin-bottom:2rem}
+.auth-tab{flex:1;padding:.625rem;text-align:center;border-radius:var(--radius-sm);font-size:.875rem;font-weight:500;cursor:pointer;transition:var(--transition);color:var(--gray-400)}
+.auth-tab.active{background:var(--white);color:var(--gray-900);box-shadow:var(--shadow-sm)}
+.auth-divider{display:flex;align-items:center;gap:1rem;margin:1.5rem 0;color:var(--gray-400);font-size:.875rem}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--gray-200)}
+.auth-type-selector{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:2rem}
+.auth-type-btn{padding:1rem;border-radius:var(--radius-md);border:2px solid var(--gray-200);background:var(--white);cursor:pointer;transition:var(--transition);text-align:center}
+.auth-type-btn.selected{border-color:var(--blue);background:var(--blue-light)}
+.auth-type-btn .type-icon{font-size:1.75rem;margin-bottom:.5rem;display:block}
+.auth-type-btn .type-label{font-size:.875rem;font-weight:600;color:var(--gray-900)}
+.auth-type-btn .type-desc{font-size:.75rem;color:var(--gray-400);margin-top:.25rem}
+@media(max-width:768px){.auth-page{grid-template-columns:1fr}.auth-left{display:none}.auth-right{padding:1.5rem;align-items:flex-start}}
+
+/* ── Onboarding ── */
+.onboarding-page{min-height:100vh;background:var(--off-white);padding:2rem 1rem}
+.onboarding-container{max-width:680px;margin:0 auto}
+.onboarding-header{text-align:center;margin-bottom:2.5rem}
+.onboarding-logo{display:flex;align-items:center;justify-content:center;gap:.625rem;font-weight:700;font-size:1.25rem;color:var(--blue);margin-bottom:1.5rem;cursor:pointer}
+.progress-bar-container{margin-bottom:.75rem}
+.progress-track{height:6px;background:var(--gray-200);border-radius:100px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--blue-mid));border-radius:100px;transition:width .4s cubic-bezier(.4,0,.2,1)}
+.progress-steps{display:flex;justify-content:space-between;margin-top:.5rem}
+.progress-step-label{font-size:.75rem;color:var(--gray-400)}
+.progress-step-label.active{color:var(--blue);font-weight:500}
+.onboarding-card{background:var(--white);border-radius:var(--radius-xl);padding:2.5rem;box-shadow:var(--shadow-md)}
+.onboarding-step-header{margin-bottom:2rem}
+.onboarding-step-num{font-size:.8125rem;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.375rem}
+.onboarding-step-title{font-size:1.5rem;font-weight:700;color:var(--gray-900);margin-bottom:.375rem}
+.onboarding-step-desc{font-size:.9375rem;color:var(--gray-400)}
+.option-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.75rem}
+.option-card{padding:1rem;border-radius:var(--radius-md);border:2px solid var(--gray-200);cursor:pointer;transition:var(--transition);text-align:center}
+.option-card:hover{border-color:var(--blue-mid);background:var(--blue-light)}
+.option-card.selected{border-color:var(--blue);background:var(--blue-light)}
+.option-card .option-icon{font-size:1.5rem;margin-bottom:.375rem;display:block}
+.option-card .option-label{font-size:.875rem;font-weight:500;color:var(--gray-900)}
+.option-card.selected .option-label{color:var(--blue-dark)}
+.checkbox-group{display:flex;flex-direction:column;gap:.625rem}
+.checkbox-item{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:var(--radius-md);border:1.5px solid var(--gray-200);cursor:pointer;transition:var(--transition)}
+.checkbox-item:hover{border-color:var(--blue-mid);background:var(--blue-light)}
+.checkbox-item input[type=checkbox]{width:18px;height:18px;accent-color:var(--blue);cursor:pointer}
+.checkbox-item label{font-size:.9375rem;font-weight:500;color:var(--gray-900);cursor:pointer;flex:1}
+.onboarding-nav{display:flex;align-items:center;justify-content:space-between;margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--gray-100)}
+
+/* ── Dashboard Components ── */
+.dash-panel{display:none}
+.dash-panel.active{display:block;animation:fadeIn .25s ease}
+
+/* Overview cards */
+.overview-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.25rem;margin-bottom:2rem}
+@media(max-width:900px){.overview-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:500px){.overview-grid{grid-template-columns:1fr}}
+.kpi-card{background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-lg);padding:1.25rem;transition:var(--transition)}
+.kpi-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.kpi-icon{width:40px;height:40px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;font-size:1.125rem;margin-bottom:.875rem}
+.kpi-icon-blue{background:var(--blue-light)}
+.kpi-icon-green{background:#E8FFF5}
+.kpi-icon-orange{background:#FFF5E8}
+.kpi-icon-red{background:#FFF0EF}
+.kpi-label{font-size:.8125rem;color:var(--gray-400);font-weight:500;margin-bottom:.25rem}
+.kpi-value{font-size:1.625rem;font-weight:700;color:var(--gray-900);line-height:1}
+.kpi-change{font-size:.8125rem;margin-top:.375rem}
+.kpi-change.up{color:var(--success)}
+.kpi-change.down{color:var(--danger)}
+
+/* Stock health */
+.health-bar{height:8px;border-radius:100px;background:var(--gray-100);overflow:hidden;margin:1rem 0}
+.health-bar-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--danger),var(--warning),var(--success))}
+
+/* Critical items */
+.critical-list{display:flex;flex-direction:column;gap:.625rem}
+.critical-item{display:flex;align-items:center;gap:1rem;padding:.875rem 1rem;background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-md);transition:var(--transition)}
+.critical-item:hover{border-color:var(--gray-200);box-shadow:var(--shadow-sm)}
+.critical-item.urgent{border-left:3px solid var(--danger);padding-left:calc(1rem - 1px)}
+.critical-item.warning{border-left:3px solid var(--warning);padding-left:calc(1rem - 1px)}
+.critical-item-name{flex:1;font-size:.9375rem;font-weight:500;color:var(--gray-900)}
+.critical-item-info{font-size:.8125rem;color:var(--gray-400)}
+.critical-item-stock{display:flex;flex-direction:column;align-items:flex-end;gap:.25rem}
+
+/* Promotions */
+.promo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.25rem}
+.promo-card{background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-lg);overflow:hidden;transition:var(--transition)}
+.promo-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.promo-header{padding:1rem 1.25rem;background:linear-gradient(135deg,var(--blue-light),rgba(51,115,255,.08))}
+.promo-tag{display:flex;justify-content:space-between;align-items:center;margin-bottom:.375rem}
+.promo-name{font-size:1rem;font-weight:600;color:var(--gray-900);margin-bottom:.25rem}
+.promo-supplier{font-size:.8125rem;color:var(--gray-400)}
+.promo-body{padding:1rem 1.25rem}
+.promo-price-row{display:flex;align-items:baseline;gap:.75rem;margin-bottom:.75rem}
+.promo-price-old{font-size:.875rem;color:var(--gray-400);text-decoration:line-through}
+.promo-price-new{font-size:1.375rem;font-weight:700;color:var(--blue)}
+.promo-discount{background:var(--success);color:#fff;border-radius:100px;padding:.1875rem .5rem;font-size:.75rem;font-weight:700}
+.promo-footer{padding:.875rem 1.25rem;border-top:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between}
+.promo-timer{display:flex;align-items:center;gap:.375rem;font-size:.8125rem;color:var(--danger);font-weight:500}
+
+/* Quotation */
+.quote-card{background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:1rem;transition:var(--transition)}
+.quote-card:hover{box-shadow:var(--shadow-sm)}
+.quote-header{padding:1.125rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray-100);cursor:pointer}
+.quote-header:hover{background:var(--gray-50)}
+.quote-id{font-size:.9375rem;font-weight:600;color:var(--gray-900)}
+.quote-meta{font-size:.8125rem;color:var(--gray-400);margin-top:.1875rem}
+.quote-status{display:flex;align-items:center;gap:.75rem}
+.quote-body{padding:1.5rem;display:none}
+.quote-card.open .quote-body{display:block}
+.quote-items-table{width:100%;border-collapse:collapse;font-size:.875rem}
+.quote-items-table th{text-align:left;padding:.625rem .875rem;background:var(--gray-50);color:var(--gray-400);font-weight:600;font-size:.8125rem;text-transform:uppercase;letter-spacing:.04em}
+.quote-items-table td{padding:.75rem .875rem;border-bottom:1px solid var(--gray-100);color:var(--gray-900)}
+.quote-items-table tr:last-child td{border-bottom:none}
+.offers-table{width:100%;border-collapse:collapse;font-size:.875rem;margin-top:1.5rem}
+.offers-table th{text-align:left;padding:.625rem .875rem;background:var(--gray-50);color:var(--gray-400);font-weight:600;font-size:.8125rem}
+.offers-table td{padding:.875rem;border-bottom:1px solid var(--gray-100)}
+.offers-table tr.best-offer{background:linear-gradient(135deg,rgba(0,185,125,.04),rgba(0,185,125,.02))}
+.best-badge{display:inline-flex;align-items:center;gap:.25rem;background:var(--success);color:#fff;border-radius:100px;padding:.1875rem .5rem;font-size:.6875rem;font-weight:700}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--gray-200);border-radius:var(--radius-lg);padding:3rem 2rem;text-align:center;cursor:pointer;transition:var(--transition);background:var(--gray-50)}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--blue);background:var(--blue-light)}
+.upload-icon{font-size:2.5rem;margin-bottom:1rem;display:block}
+.upload-title{font-size:1.0625rem;font-weight:600;color:var(--gray-900);margin-bottom:.375rem}
+.upload-desc{font-size:.9375rem;color:var(--gray-400)}
+.upload-btn-label{font-size:.875rem;color:var(--blue);font-weight:500;text-decoration:underline;cursor:pointer}
+
+/* Cart */
+.cart-item{display:flex;align-items:center;gap:1rem;padding:.875rem;border:1.5px solid var(--gray-100);border-radius:var(--radius-md);margin-bottom:.625rem;transition:var(--transition)}
+.cart-item:hover{border-color:var(--gray-200)}
+.cart-item-name{flex:1;font-size:.9375rem;font-weight:500;color:var(--gray-900)}
+.cart-item-cat{font-size:.8125rem;color:var(--gray-400);margin-top:.125rem}
+.qty-control{display:flex;align-items:center;gap:.5rem}
+.qty-btn{width:28px;height:28px;border-radius:var(--radius-sm);background:var(--gray-100);border:none;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;font-weight:600;transition:var(--transition);color:var(--gray-900)}
+.qty-btn:hover{background:var(--blue-light);color:var(--blue)}
+.qty-num{width:40px;text-align:center;font-size:.9375rem;font-weight:600;color:var(--gray-900)}
+.cart-remove{width:28px;height:28px;border-radius:var(--radius-sm);background:none;border:none;cursor:pointer;color:var(--gray-400);transition:var(--transition);display:flex;align-items:center;justify-content:center}
+.cart-remove:hover{background:#FFF0EF;color:var(--danger)}
+
+/* Empty states */
+.empty-state{text-align:center;padding:4rem 2rem;color:var(--gray-400)}
+.empty-state-icon{font-size:3.5rem;margin-bottom:1.25rem;display:block;opacity:.5}
+.empty-state-title{font-size:1.125rem;font-weight:600;color:var(--gray-600);margin-bottom:.5rem}
+.empty-state-desc{font-size:.9375rem;margin-bottom:1.75rem;max-width:360px;margin-left:auto;margin-right:auto}
+
+/* Catalog search */
+.catalog-search{position:relative}
+.catalog-search-input{padding-left:2.75rem}
+.catalog-search-icon{position:absolute;left:.875rem;top:50%;transform:translateY(-50%);color:var(--gray-400);font-size:1rem;pointer-events:none}
+.catalog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;margin-top:1rem}
+.catalog-item{padding:1rem;border-radius:var(--radius-md);border:1.5px solid var(--gray-100);background:var(--white);display:flex;align-items:center;gap:.875rem;transition:var(--transition);cursor:pointer}
+.catalog-item:hover{border-color:var(--blue-mid);background:var(--blue-light)}
+.catalog-item-icon{width:40px;height:40px;border-radius:var(--radius-sm);background:var(--gray-100);display:flex;align-items:center;justify-content:center;font-size:1.125rem;flex-shrink:0}
+.catalog-item-name{font-size:.9375rem;font-weight:500;color:var(--gray-900);flex:1}
+.catalog-item-meta{font-size:.8125rem;color:var(--gray-400);margin-top:.125rem}
+.catalog-add-btn{width:28px;height:28px;border-radius:50%;background:var(--blue-light);border:none;cursor:pointer;color:var(--blue);font-size:1.125rem;display:flex;align-items:center;justify-content:center;transition:var(--transition);flex-shrink:0}
+.catalog-add-btn:hover{background:var(--blue);color:#fff}
+
+/* Category filter */
+.cat-filters{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.cat-filter{padding:.375rem .875rem;border-radius:100px;font-size:.8125rem;font-weight:500;border:1.5px solid var(--gray-200);background:var(--white);cursor:pointer;transition:var(--transition);color:var(--gray-600)}
+.cat-filter:hover{border-color:var(--blue-mid);color:var(--blue)}
+.cat-filter.active{background:var(--blue);border-color:var(--blue);color:#fff}
+
+/* Tabs */
+.tab-bar{display:flex;gap:0;border-bottom:2px solid var(--gray-100);margin-bottom:1.5rem}
+.tab{padding:.75rem 1.25rem;font-size:.9375rem;font-weight:500;color:var(--gray-400);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:var(--transition)}
+.tab:hover{color:var(--gray-900)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+/* Notification / Toast */
+.toast-container{position:fixed;bottom:2rem;right:2rem;z-index:1000;display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+.toast{background:var(--gray-900);color:#fff;padding:.875rem 1.25rem;border-radius:var(--radius-md);font-size:.9375rem;display:flex;align-items:center;gap:.75rem;box-shadow:var(--shadow-lg);pointer-events:auto;animation:slideUp .3s ease;max-width:360px}
+.toast.success{background:#0A3D25;border-left:3px solid var(--success)}
+.toast.error{background:#3D0A0A;border-left:3px solid var(--danger)}
+.toast.info{background:#0A1D3D;border-left:3px solid var(--blue)}
+@keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Misc */
+.divider{height:1px;background:var(--gray-100);margin:1.5rem 0}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
+.section-header h2{font-size:1.1875rem;font-weight:700;color:var(--gray-900)}
+.loading-spinner{width:20px;height:20px;border:2px solid var(--gray-200);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.skeleton{background:linear-gradient(90deg,var(--gray-100) 25%,var(--gray-200) 50%,var(--gray-100) 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:var(--radius-md)}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+/* Supplier area */
+.supplier-profile{background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-lg);padding:2rem}
+.supplier-header{display:flex;align-items:flex-start;gap:1.25rem;margin-bottom:2rem}
+.supplier-logo{width:64px;height:64px;border-radius:var(--radius-md);background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:var(--blue-dark)}
+
+/* Scroll reveal animation */
+[data-reveal]{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
+[data-reveal].revealed{opacity:1;transform:translateY(0)}
+
+/* Custom scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--gray-200);border-radius:100px}
+::-webkit-scrollbar-thumb:hover{background:var(--gray-400)}
+
+/* Floating logo */
+.floating-logo{position:fixed;bottom:1.5rem;left:1.5rem;z-index:50;background:var(--blue);color:#fff;border-radius:var(--radius-lg);padding:.625rem 1rem;font-size:.8125rem;font-weight:700;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:.5rem;cursor:pointer;transition:var(--transition)}
+.floating-logo:hover{background:var(--blue-dark);transform:translateY(-2px)}
+</style>
+</head>
+<body>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE: LANDING
+═══════════════════════════════════════════ -->
+<div id="page-landing" class="page active">
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="nav-logo" onclick="showPage('page-landing')">
+        <div class="nav-logo-icon">VV</div>
+        <span>Vapt Vupt</span>
+      </div>
+      <div class="nav-links">
+        <span class="nav-link" onclick="scrollTo('como-funciona')">Como funciona</span>
+        <span class="nav-link" onclick="scrollTo('para-quem')">Para quem</span>
+        <span class="nav-link" onclick="scrollTo('diferenciais')">Diferenciais</span>
+        <span class="nav-link" onclick="scrollTo('faq')">FAQ</span>
+      </div>
+      <div class="nav-actions">
+        <button class="btn btn-ghost btn-sm" onclick="showPage('page-login')">Entrar</button>
+        <button class="btn btn-primary btn-sm" onclick="showPage('page-cadastro')">Criar conta grátis</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero" id="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-blob hero-blob-1"></div>
+    <div class="hero-blob hero-blob-2"></div>
+    <div class="container">
+      <div class="hero-content" data-reveal>
+        <div class="hero-tag">✦ Cotação inteligente para comércio</div>
+        <h1 class="hero-title">Seu estoque avisa.<br><em>O Vapt Vupt cota.</em><br>Você repõe melhor.</h1>
+        <p class="hero-sub">Conectamos farmácias, adegas, bares e restaurantes aos melhores fornecedores — com cotação automática, alertas de estoque e promoções exclusivas.</p>
+        <div class="hero-ctas">
+          <button class="btn btn-primary btn-xl" onclick="showPage('page-cadastro')">Comece grátis hoje</button>
+          <button class="btn btn-secondary btn-xl" onclick="openDemoModal()">Ver demonstração</button>
+        </div>
+        <div class="hero-trust">
+          <div class="hero-trust-item">
+            <svg class="hero-trust-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Grátis para estabelecimentos
+          </div>
+          <div class="hero-trust-item">
+            <svg class="hero-trust-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            Dados protegidos por LGPD
+          </div>
+          <div class="hero-trust-item">
+            <svg class="hero-trust-icon" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            Cotação em minutos
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <section class="stats-section">
+    <div class="container">
+      <div class="stats-grid" data-reveal>
+        <div>
+          <div class="stat-item-num">73%</div>
+          <div class="stat-item-label">menos rupturas de estoque</div>
+        </div>
+        <div>
+          <div class="stat-item-num">12min</div>
+          <div class="stat-item-label">para gerar uma cotação completa</div>
+        </div>
+        <div>
+          <div class="stat-item-num">18%</div>
+          <div class="stat-item-label">de economia média em compras</div>
+        </div>
+        <div>
+          <div class="stat-item-num">500+</div>
+          <div class="stat-item-label">estabelecimentos ativos</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Como funciona -->
+  <section class="section" id="como-funciona">
+    <div class="container">
+      <div class="text-center" data-reveal>
+        <div class="section-tag">Como funciona</div>
+        <h2 class="section-title">Do estoque à oferta<br>em três passos</h2>
+        <p class="section-sub" style="margin:0 auto">Sem planilha complicada, sem ligação pra fornecedor. Você define o que precisa — a gente resolve o resto.</p>
+      </div>
+      <div class="steps-grid" data-reveal>
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <h3 class="step-title">Envie ou monte</h3>
+          <p class="step-desc">Suba sua planilha de estoque (baixe nosso modelo) ou selecione os produtos direto do catálogo. Leva menos de 5 minutos.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <h3 class="step-title">Inteligência atua</h3>
+          <p class="step-desc">O sistema identifica o que está acabando, calcula a quantidade ideal de reposição e envia a cotação para fornecedores qualificados.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <h3 class="step-title">Você escolhe</h3>
+          <p class="step-desc">Receba as ofertas comparadas lado a lado — preço, prazo, condições. Escolha a melhor e confirme. Sem negociação, sem stress.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Para quem -->
+  <section class="section" id="para-quem" style="background:var(--off-white)">
+    <div class="container">
+      <div class="text-center" data-reveal>
+        <div class="section-tag">Para quem é</div>
+        <h2 class="section-title">Feito para quem vende de tudo</h2>
+        <p class="section-sub" style="margin:0 auto">Se você tem estoque, você precisa do Vapt Vupt.</p>
+      </div>
+      <div class="segments-grid" data-reveal>
+        <div class="segment-card"><span class="segment-icon">💊</span><div class="segment-name">Farmácias</div></div>
+        <div class="segment-card"><span class="segment-icon">🍷</span><div class="segment-name">Adegas</div></div>
+        <div class="segment-card"><span class="segment-icon">🍺</span><div class="segment-name">Bares</div></div>
+        <div class="segment-card"><span class="segment-icon">🍽️</span><div class="segment-name">Restaurantes</div></div>
+        <div class="segment-card"><span class="segment-icon">🛒</span><div class="segment-name">Mercados</div></div>
+        <div class="segment-card"><span class="segment-icon">☕</span><div class="segment-name">Cafeterias</div></div>
+        <div class="segment-card"><span class="segment-icon">🐾</span><div class="segment-name">Pet Shops</div></div>
+        <div class="segment-card"><span class="segment-icon">🏪</span><div class="segment-name">Conveniências</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Diferenciais -->
+  <section class="section" id="diferenciais">
+    <div class="container">
+      <div class="text-center" data-reveal>
+        <div class="section-tag">O que torna único</div>
+        <h2 class="section-title">Mais que uma cotação.<br>Uma central de compras.</h2>
+      </div>
+      <div class="diff-grid" data-reveal>
+        <div class="diff-card">
+          <div class="diff-icon">🔔</div>
+          <h3 class="diff-title">Alertas antes da falta</h3>
+          <p class="diff-desc">Defina seus pontos de reposição. O sistema avisa com antecedência quando um item está chegando no limite — por e-mail ou WhatsApp.</p>
+        </div>
+        <div class="diff-card">
+          <div class="diff-icon">⚡</div>
+          <h3 class="diff-title">Promoções inéditas</h3>
+          <p class="diff-desc">Fornecedores enviam ofertas relâmpago para exatamente quem precisa do produto. Você vê desconto real, no item que falta.</p>
+        </div>
+        <div class="diff-card">
+          <div class="diff-icon">📊</div>
+          <h3 class="diff-title">Comparação transparente</h3>
+          <p class="diff-desc">Todas as ofertas lado a lado: preço unitário, frete, prazo de entrega, condição de pagamento. Sem pegadinha.</p>
+        </div>
+        <div class="diff-card">
+          <div class="diff-icon">🤖</div>
+          <h3 class="diff-title">Reposição automática</h3>
+          <p class="diff-desc">Com base no seu histórico de compras, o sistema sugere quantidades certas para não faltar nem sobrar. Você aprova ou ajusta.</p>
+        </div>
+        <div class="diff-card">
+          <div class="diff-icon">📋</div>
+          <h3 class="diff-title">Planilha ou catálogo</h3>
+          <p class="diff-desc">Trabalha com planilha de controle? Sobe aqui e a gente lê tudo. Prefere buscar produto a produto? Catálogo completo disponível.</p>
+        </div>
+        <div class="diff-card">
+          <div class="diff-icon">🔒</div>
+          <h3 class="diff-title">Seguro e em conformidade</h3>
+          <p class="diff-desc">Seus dados e os dados dos seus clientes estão protegidos. Conformidade total com a LGPD, autenticação robusta e criptografia.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Depoimentos -->
+  <section class="section" style="background:var(--off-white)">
+    <div class="container">
+      <div class="text-center" data-reveal>
+        <div class="section-tag">Depoimentos</div>
+        <h2 class="section-title">Quem usa, recomenda</h2>
+      </div>
+      <div class="testi-grid" data-reveal>
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-text">"Antes eu ligava pra 4 fornecedores toda semana. Hoje abro o sistema, faço a cotação em 10 minutos e já tenho o melhor preço."</p>
+          <div class="testi-author">
+            <div class="testi-avatar">MR</div>
+            <div>
+              <div class="testi-name">Marcos Ribeiro</div>
+              <div class="testi-role">Gerente — Farmácia Saúde & Vida</div>
+            </div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-text">"O alerta de estoque salvou meu final de semana mais de uma vez. Cerveja quase acabando em plena sexta? O sistema avisou na quinta."</p>
+          <div class="testi-author">
+            <div class="testi-avatar">PS</div>
+            <div>
+              <div class="testi-name">Patricia Souza</div>
+              <div class="testi-role">Proprietária — Adega do Bairro</div>
+            </div>
+          </div>
+        </div>
+        <div class="testi-card">
+          <div class="testi-stars">★★★★★</div>
+          <p class="testi-text">"Nunca pensei que ia economizar 22% só organizando melhor minhas compras. As promoções aparecem na hora certa, para o que eu realmente preciso."</p>
+          <div class="testi-author">
+            <div class="testi-avatar">JC</div>
+            <div>
+              <div class="testi-name">João Costa</div>
+              <div class="testi-role">Dono — Restaurante Sabor Caseiro</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section" id="faq">
+    <div class="container">
+      <div class="text-center" data-reveal>
+        <div class="section-tag">Dúvidas frequentes</div>
+        <h2 class="section-title">Perguntas que todo mundo faz</h2>
+      </div>
+      <div class="faq-list" data-reveal>
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">O Vapt Vupt é gratuito para estabelecimentos?
+            <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </div>
+          <div class="faq-answer"><p>Sim! Para estabelecimentos (farmácias, bares, restaurantes, adegas etc.) o acesso é gratuito. Nosso modelo de receita é baseado em fornecedores que pagam para ter acesso à demanda qualificada da nossa plataforma.</p></div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">Preciso ter sistema de gestão para usar?
+            <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </div>
+          <div class="faq-answer"><p>Não. Você pode subir uma planilha simples do Excel ou usar o catálogo manual do sistema para montar sua cotação do zero. Não precisa de ERP, nenhum sistema externo ou integração.</p></div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">Como funciona a cotação? Os fornecedores veem meus dados?
+            <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </div>
+          <div class="faq-answer"><p>Os fornecedores recebem a lista de itens e quantidades que você precisa, mas seus dados pessoais só são revelados depois que você escolher uma oferta. Sua CNPJ e localidade são compartilhados para fins de entrega.</p></div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">Qual formato de planilha é aceito?
+            <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </div>
+          <div class="faq-answer"><p>Aceitamos .xlsx e .csv. O mais fácil é baixar nosso modelo padrão (disponível no painel), que já vem com as colunas certas e exemplos. Se sua planilha atual tiver um formato diferente, pode adaptar ou falar com nosso suporte.</p></div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">Em quanto tempo os fornecedores respondem?
+            <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </div>
+          <div class="faq-answer"><p>Fornecedores parceiros são notificados imediatamente. O tempo médio de resposta é de 2 a 4 horas para cotações enviadas em horário comercial. Cotações urgentes têm uma marcação especial que prioriza a notificação.</p></div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-question" onclick="toggleFaq(this)">E a LGPD? Meus dados estão seguros?
+            <svg class="faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </div>
+          <div class="faq-answer"><p>Sim. Seus dados são armazenados com criptografia, nunca vendidos a terceiros e usados apenas para a operação da plataforma. Você pode solicitar exclusão da conta e dados a qualquer momento. Consulte nossa Política de Privacidade completa no rodapé.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Banner -->
+  <section class="cta-section">
+    <div class="hero-blob hero-blob-1"></div>
+    <div class="container">
+      <h2 class="cta-section-title">Pronto para reor<em>ganizar</em><br>como você compra?</h2>
+      <p class="cta-section-sub">Cadastre-se em 2 minutos. Sem cartão de crédito, sem complicação.</p>
+      <div class="hero-ctas" style="justify-content:center">
+        <button class="btn btn-primary btn-xl" onclick="showPage('page-cadastro')">Criar conta gratuita</button>
+        <button class="btn btn-secondary btn-xl" onclick="openDemoModal()">Solicitar demonstração</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="logo-text">Vapt Vupt</div>
+          <p class="footer-tagline">Cotação inteligente e reposição automática de estoque para estabelecimentos comerciais.</p>
+        </div>
+        <div>
+          <div class="footer-heading">Produto</div>
+          <ul class="footer-links">
+            <li><a onclick="scrollTo('como-funciona')">Como funciona</a></li>
+            <li><a onclick="scrollTo('para-quem')">Para quem é</a></li>
+            <li><a onclick="scrollTo('diferenciais')">Diferenciais</a></li>
+            <li><a onclick="showPage('page-cadastro')">Criar conta</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-heading">Suporte</div>
+          <ul class="footer-links">
+            <li><a onclick="scrollTo('faq')">FAQ</a></li>
+            <li><a>Documentação</a></li>
+            <li><a>Status do sistema</a></li>
+            <li><a>Contato</a></li>
+          </ul>
+        </div>
+        <div>
+          <div class="footer-heading">Legal</div>
+          <ul class="footer-links">
+            <li><a>Termos de uso</a></li>
+            <li><a>Política de privacidade</a></li>
+            <li><a>LGPD</a></li>
+            <li><a>Cookies</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="footer-legal">© 2025 Vapt Vupt. Todos os direitos reservados.</div>
+        <div class="footer-legal">Feito com ♥ para o comércio brasileiro</div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE: LOGIN / CADASTRO
+═══════════════════════════════════════════ -->
+<div id="page-login" class="page">
+  <div class="auth-page">
+    <div class="auth-left">
+      <div class="auth-left-content">
+        <div class="nav-logo" onclick="showPage('page-landing')" style="color:#fff;margin-bottom:1rem">
+          <div class="nav-logo-icon">VV</div>
+          <span>Vapt Vupt</span>
+        </div>
+        <p class="auth-tagline">Bem-vindo de volta.<br>Seu estoque<br><em>está esperando.</em></p>
+        <ul class="auth-features">
+          <li>Cotações automáticas para seus fornecedores</li>
+          <li>Alertas de estoque crítico em tempo real</li>
+          <li>Promoções exclusivas para seu segmento</li>
+          <li>Histórico completo de compras e pedidos</li>
+        </ul>
+      </div>
+      <div style="font-size:.875rem;color:rgba(255,255,255,.3)">© 2025 Vapt Vupt — LGPD Compliant</div>
+    </div>
+    <div class="auth-right">
+      <div class="auth-form-container">
+        <div class="auth-form-title">Entrar na plataforma</div>
+        <div class="auth-form-sub">Digite seus dados para acessar o painel</div>
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input type="email" class="form-input" id="login-email" placeholder="seu@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display:flex;justify-content:space-between">
+            Senha
+            <span style="color:var(--blue);font-weight:500;cursor:pointer;font-size:.8125rem" onclick="showForgotModal()">Esqueci a senha</span>
+          </label>
+          <input type="password" class="form-input" id="login-pass" placeholder="••••••••">
+        </div>
+        <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()" style="margin-top:.5rem">Entrar</button>
+        <div class="auth-divider">ou</div>
+        <div style="text-align:center;font-size:.9375rem;color:var(--gray-400)">
+          Não tem conta? <span style="color:var(--blue);font-weight:500;cursor:pointer" onclick="showPage('page-cadastro')">Criar conta grátis</span>
+        </div>
+        <div style="text-align:center;margin-top:1rem">
+          <span style="font-size:.875rem;color:var(--gray-400);cursor:pointer" onclick="showPage('page-landing')">← Voltar ao site</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="page-cadastro" class="page">
+  <div class="auth-page">
+    <div class="auth-left">
+      <div class="auth-left-content">
+        <div class="nav-logo" onclick="showPage('page-landing')" style="color:#fff;margin-bottom:1rem">
+          <div class="nav-logo-icon">VV</div>
+          <span>Vapt Vupt</span>
+        </div>
+        <p class="auth-tagline">Sua loja nunca mais vai<br><em>ficar sem estoque</em><br>na hora errada.</p>
+        <ul class="auth-features">
+          <li>Gratuito para estabelecimentos comerciais</li>
+          <li>Configure em menos de 5 minutos</li>
+          <li>Sem cartão de crédito necessário</li>
+          <li>Dados protegidos — LGPD compliant</li>
+        </ul>
+      </div>
+      <div style="font-size:.875rem;color:rgba(255,255,255,.3)">© 2025 Vapt Vupt</div>
+    </div>
+    <div class="auth-right">
+      <div class="auth-form-container">
+        <div class="auth-form-title">Criar sua conta</div>
+        <div class="auth-form-sub">Você é:</div>
+        <div class="auth-type-selector" id="regType">
+          <div class="auth-type-btn selected" onclick="selectType('estabelecimento',this)">
+            <span class="type-icon">🏪</span>
+            <div class="type-label">Estabelecimento</div>
+            <div class="type-desc">Farmácia, bar, restaurante...</div>
+          </div>
+          <div class="auth-type-btn" onclick="selectType('fornecedor',this)">
+            <span class="type-icon">🏭</span>
+            <div class="type-label">Fornecedor</div>
+            <div class="type-desc">Distribuidora, atacado...</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nome completo</label>
+            <input type="text" class="form-input" id="reg-name" placeholder="Seu nome">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Telefone</label>
+            <input type="tel" class="form-input" id="reg-phone" placeholder="(11) 9 0000-0000">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail</label>
+          <input type="email" class="form-input" id="reg-email" placeholder="seu@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha</label>
+          <input type="password" class="form-input" id="reg-pass" placeholder="Mínimo 8 caracteres">
+          <div class="form-hint">Use letras, números e caracteres especiais para mais segurança</div>
+        </div>
+        <div style="font-size:.8125rem;color:var(--gray-400);margin-bottom:1.25rem">
+          Ao criar a conta você concorda com os <span style="color:var(--blue);cursor:pointer">Termos de Uso</span> e a <span style="color:var(--blue);cursor:pointer">Política de Privacidade</span>.
+        </div>
+        <button class="btn btn-primary btn-block btn-lg" onclick="doRegister()">Criar conta e continuar</button>
+        <div style="text-align:center;margin-top:1.25rem;font-size:.9375rem;color:var(--gray-400)">
+          Já tem conta? <span style="color:var(--blue);font-weight:500;cursor:pointer" onclick="showPage('page-login')">Entrar</span>
+        </div>
+        <div style="text-align:center;margin-top:.75rem">
+          <span style="font-size:.875rem;color:var(--gray-400);cursor:pointer" onclick="showPage('page-landing')">← Voltar ao site</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE: ONBOARDING
+═══════════════════════════════════════════ -->
+<div id="page-onboarding" class="page">
+  <div class="onboarding-page">
+    <div class="onboarding-container">
+      <div class="onboarding-header">
+        <div class="onboarding-logo" onclick="showPage('page-landing')">
+          <div class="nav-logo-icon">VV</div>
+          <span>Vapt Vupt</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-track">
+            <div class="progress-fill" id="ob-progress" style="width:14%"></div>
+          </div>
+          <div class="progress-steps">
+            <span class="progress-step-label active" id="psl-1">Negócio</span>
+            <span class="progress-step-label" id="psl-2">Endereço</span>
+            <span class="progress-step-label" id="psl-3">Compras</span>
+            <span class="progress-step-label" id="psl-4">Estoque</span>
+            <span class="progress-step-label" id="psl-5">Alertas</span>
+            <span class="progress-step-label" id="psl-6">Objetivo</span>
+            <span class="progress-step-label" id="psl-7">Pronto!</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 1: Dados do negócio -->
+      <div class="onboarding-card" id="ob-step-1">
+        <div class="onboarding-step-header">
+          <div class="onboarding-step-num">Passo 1 de 7</div>
+          <h2 class="onboarding-step-title">Dados do seu negócio</h2>
+          <p class="onboarding-step-desc">Vamos personalizar a experiência para o seu tipo de estabelecimento.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nome do estabelecimento *</label>
+          <input type="text" class="form-input" id="ob-biz-name" placeholder="Ex: Farmácia Saúde & Vida">
+        </div>
+        <div class="form-group">
+          <label class="form-label">CNPJ <span style="color:var(--gray-400);font-weight:400">(opcional)</span></label>
+          <input type="text" class="form-input" id="ob-cnpj" placeholder="00.000.000/0000-00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Segmento do negócio *</label>
+          <div class="option-grid" id="ob-seg-options">
+            <div class="option-card selected" data-val="farmacia" onclick="selectOption(this,'ob-seg-options')"><span class="option-icon">💊</span><div class="option-label">Farmácia</div></div>
+            <div class="option-card" data-val="adega" onclick="selectOption(this,'ob-seg-options')"><span class="option-icon">🍷</span><div class="option-label">Adega</div></div>
+            <div class="option-card" data-val="bar" onclick="selectOption(this,'ob-seg-options')"><span class="option-icon">🍺</span><div class="option-label">Bar</div></div>
+            <div class="option-card" data-val="restaurante" onclick="selectOption(this,'ob-seg-options')"><span class="option-icon">🍽️</span><div class="option-label">Restaurante</div></div>
+            <div class="option-card" data-val="mercado" onclick="selectOption(this,'ob-seg-options')"><span class="option-icon">🛒</span><div class="option-label">Mercado</div></div>
+            <div class="option-card" data-val="outros" onclick="selectOption(this,'ob-seg-options')"><span class="option-icon">🏪</span><div class="option-label">Outro</div></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Porte do negócio</label>
+          <div class="option-grid" id="ob-porte-options">
+            <div class="option-card selected" data-val="micro" onclick="selectOption(this,'ob-porte-options')"><span class="option-icon">🌱</span><div class="option-label">Micro<br><small style="color:var(--gray-400);font-size:.75rem">até 2 func.</small></div></div>
+            <div class="option-card" data-val="pequeno" onclick="selectOption(this,'ob-porte-options')"><span class="option-icon">🌿</span><div class="option-label">Pequeno<br><small style="color:var(--gray-400);font-size:.75rem">3–10 func.</small></div></div>
+            <div class="option-card" data-val="medio" onclick="selectOption(this,'ob-porte-options')"><span class="option-icon">🌳</span><div class="option-label">Médio<br><small style="color:var(--gray-400);font-size:.75rem">10–50 func.</small></div></div>
+            <div class="option-card" data-val="grande" onclick="selectOption(this,'ob-porte-options')"><span class="option-icon">🏢</span><div class="option-label">Grande<br><small style="color:var(--gray-400);font-size:.75rem">50+ func.</small></div></div>
+          </div>
+        </div>
+        <div class="onboarding-nav">
+          <button class="btn btn-ghost" onclick="showPage('page-landing')">Sair</button>
+          <button class="btn btn-primary" onclick="obNext(2)">Continuar →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Endereço -->
+      <div class="onboarding-card hidden" id="ob-step-2">
+        <div class="onboarding-step-header">
+          <div class="onboarding-step-num">Passo 2 de 7</div>
+          <h2 class="onboarding-step-title">Localização e entrega</h2>
+          <p class="onboarding-step-desc">Esses dados ajudam os fornecedores a calcular frete e prazo com precisão.</p>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">CEP *</label>
+            <input type="text" class="form-input" id="ob-cep" placeholder="00000-000">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cidade *</label>
+            <input type="text" class="form-input" id="ob-cidade" placeholder="São Paulo">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Endereço *</label>
+            <input type="text" class="form-input" id="ob-endereco" placeholder="Rua, número">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Bairro</label>
+            <input type="text" class="form-input" id="ob-bairro" placeholder="Nome do bairro">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Horários de recebimento preferidos</label>
+          <div class="option-grid" id="ob-horarios">
+            <div class="option-card selected" data-val="manha" onclick="selectOption(this,'ob-horarios')"><span class="option-icon">🌅</span><div class="option-label">Manhã<br><small style="color:var(--gray-400);font-size:.75rem">8h–12h</small></div></div>
+            <div class="option-card" data-val="tarde" onclick="selectOption(this,'ob-horarios')"><span class="option-icon">☀️</span><div class="option-label">Tarde<br><small style="color:var(--gray-400);font-size:.75rem">12h–18h</small></div></div>
+            <div class="option-card" data-val="noite" onclick="selectOption(this,'ob-horarios')"><span class="option-icon">🌙</span><div class="option-label">Noite<br><small style="color:var(--gray-400);font-size:.75rem">18h–22h</small></div></div>
+            <div class="option-card" data-val="qualquer" onclick="selectOption(this,'ob-horarios')"><span class="option-icon">🕐</span><div class="option-label">Qualquer hora</div></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Alguma restrição de entrega? <span style="color:var(--gray-400);font-weight:400">(opcional)</span></label>
+          <textarea class="form-input form-textarea" id="ob-restricoes" placeholder="Ex: não aceito carga fora do horário comercial, precisa de agendamento, portão na lateral..." style="min-height:80px"></textarea>
+        </div>
+        <div class="onboarding-nav">
+          <button class="btn btn-ghost" onclick="obBack(1)">← Voltar</button>
+          <button class="btn btn-primary" onclick="obNext(3)">Continuar →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Perfil de compra -->
+      <div class="onboarding-card hidden" id="ob-step-3">
+        <div class="onboarding-step-header">
+          <div class="onboarding-step-num">Passo 3 de 7</div>
+          <h2 class="onboarding-step-title">Seu perfil de compra</h2>
+          <p class="onboarding-step-desc">Quanto mais você conta, mais personalizadas ficam suas cotações.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Com que frequência você faz pedidos?</label>
+          <div class="option-grid" id="ob-freq">
+            <div class="option-card" data-val="semanal" onclick="selectOption(this,'ob-freq')"><span class="option-icon">📅</span><div class="option-label">Semanal</div></div>
+            <div class="option-card selected" data-val="quinzenal" onclick="selectOption(this,'ob-freq')"><span class="option-icon">📆</span><div class="option-label">Quinzenal</div></div>
+            <div class="option-card" data-val="mensal" onclick="selectOption(this,'ob-freq')"><span class="option-icon">🗓️</span><div class="option-label">Mensal</div></div>
+            <div class="option-card" data-val="demanda" onclick="selectOption(this,'ob-freq')"><span class="option-icon">⚡</span><div class="option-label">Por demanda</div></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Aceita substituição de marca?</label>
+          <div class="option-grid" id="ob-subst" style="grid-template-columns:1fr 1fr 1fr">
+            <div class="option-card selected" data-val="sim" onclick="selectOption(this,'ob-subst')"><span class="option-icon">✅</span><div class="option-label">Sim, aceito</div></div>
+            <div class="option-card" data-val="nao" onclick="selectOption(this,'ob-subst')"><span class="option-icon">❌</span><div class="option-label">Não aceito</div></div>
+            <div class="option-card" data-val="depende" onclick="selectOption(this,'ob-subst')"><span class="option-icon">🤔</span><div class="option-label">Depende do item</div></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sensibilidade a preço</label>
+          <div class="option-grid" id="ob-preco">
+            <div class="option-card" data-val="baixa" onclick="selectOption(this,'ob-preco')"><span class="option-icon">💎</span><div class="option-label">Baixa<br><small style="color:var(--gray-400);font-size:.75rem">Qualidade 1º</small></div></div>
+            <div class="option-card selected" data-val="media" onclick="selectOption(this,'ob-preco')"><span class="option-icon">⚖️</span><div class="option-label">Média<br><small style="color:var(--gray-400);font-size:.75rem">Equilíbrio</small></div></div>
+            <div class="option-card" data-val="alta" onclick="selectOption(this,'ob-preco')"><span class="option-icon">💰</span><div class="option-label">Alta<br><small style="color:var(--gray-400);font-size:.75rem">Menor preço</small></div></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Condição de pagamento preferida</label>
+          <div class="checkbox-group">
+            <label class="checkbox-item"><input type="checkbox" checked> <label>Boleto bancário</label></label>
+            <label class="checkbox-item"><input type="checkbox" checked> <label>PIX</label></label>
+            <label class="checkbox-item"><input type="checkbox"> <label>Prazo (30/60/90 dias)</label></label>
+            <label class="checkbox-item"><input type="checkbox"> <label>Cartão CNPJ</label></label>
+          </div>
+        </div>
+        <div class="onboarding-nav">
+          <button class="btn btn-ghost" onclick="obBack(2)">← Voltar</button>
+          <button class="btn btn-primary" onclick="obNext(4)">Continuar →</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Estoque -->
+      <div class="onboarding-card hidden" id="ob-step-4">
+        <div class="onboarding-step-header">
+          <div class="onboarding-step-num">Passo 4 de 7</div>
+          <h2 class="onboarding-step-title">Operação e estoque</h2>
+          <p class="onboarding-step-desc">Como você controla seu estoque hoje? Isso ajuda a calibrar os alertas.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Método atual de controle de estoque</label>
+          <div class="option-grid" id="ob-ctrl">
+            <div class="option-card" data-val="planilha" onclick="selectOption(this,'ob-ctrl')"><span class="option-icon">📊</span><div class="option-label">Planilha Excel/Google</div></div>
+            <div class="option-card selected" data-val="sistema" onclick="selectOption(this,'ob-ctrl')"><span class="option-icon">💻</span><div class="option-label">Sistema de gestão (ERP)</div></div>
+            <div class="option-card" data-val="nenhum" onclick="selectOption(this,'ob-ctrl')"><span class="option-icon">🧠</span><div class="option-label">Memória / visual</div></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Principais categorias que você vende <span style="color:var(--gray-400);font-weight:400">(marque todas)</span></label>
+          <div class="checkbox-group" id="ob-cats">
+            <label class="checkbox-item"><input type="checkbox" checked> <label>Bebidas (alcoólicas)</label></label>
+            <label class="checkbox-item"><input type="checkbox" checked> <label>Bebidas não-alcoólicas</label></label>
+            <label class="checkbox-item"><input type="checkbox"> <label>Medicamentos / OTC</label></label>
+            <label class="checkbox-item"><input type="checkbox" checked> <label>Higiene e limpeza</label></label>
+            <label class="checkbox-item"><input type="checkbox"> <label>Alimentos secos</label></label>
+            <label class="checkbox-item"><input type="checkbox"> <label>Descartáveis</label></label>
+            <label class="checkbox-item"><input type="checkbox"> <label>Cosméticos / perfumaria</label></label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Meta de nível de estoque</label>
+          <div class="option-grid" id="ob-meta">
+            <div class="option-card" data-val="conservador" onclick="selectOption(this,'ob-meta')"><span class="option-icon">🐢</span><div class="option-label">Conservador<br><small style="color:var(--gray-400);font-size:.75rem">30 dias de cobertura</small></div></div>
+            <div class="option-card selected" data-val="normal" onclick="selectOption(this,'ob-meta')"><span class="option-icon">⚖️</span><div class="option-label">Normal<br><small style="color:var(--gray-400);font-size:.75rem">14 dias de cobertura</small></div></div>
+            <div class="option-card" data-val="agressivo" onclick="selectOption(this,'ob-meta')"><span class="option-icon">🚀</span><div class="option-label">Agressivo<br><small style="color:var(--gray-400);font-size:.75rem">7 dias de cobertura</small></div></div>
+          </div>
+        </div>
+        <div class="onboarding-nav">
+          <button class="btn btn-ghost" onclick="obBack(3)">← Voltar</button>
+          <button class="btn btn-primary" onclick="obNext(5)">Continuar →</button>
+        </div>
+      </div>
+
+      <!-- Step 5: Alertas -->
+      <div class="onboarding-card hidden" id="ob-step-5">
+        <div class="onboarding-step-header">
+          <div class="onboarding-step-num">Passo 5 de 7</div>
+          <h2 class="onboarding-step-title">Como você quer ser avisado?</h2>
+          <p class="onboarding-step-desc">Configure seus canais de alerta de estoque e novas ofertas.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">E-mail para alertas</label>
+          <input type="email" class="form-input" id="ob-alert-email" placeholder="seu@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">WhatsApp <span class="badge badge-blue" style="font-size:.6875rem;vertical-align:middle;margin-left:.5rem">Em breve</span></label>
+          <input type="tel" class="form-input" id="ob-whatsapp" placeholder="(11) 9 0000-0000" disabled style="opacity:.6">
+          <div class="form-hint">Notificações por WhatsApp serão ativadas em breve. Seu número ficará salvo para quando estiver disponível.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Frequência de alertas de estoque</label>
+          <div class="option-grid" id="ob-freq-alert">
+            <div class="option-card" data-val="urgente" onclick="selectOption(this,'ob-freq-alert')"><span class="option-icon">🔴</span><div class="option-label">Só urgente<br><small style="color:var(--gray-400);font-size:.75rem">Quando zerar</small></div></div>
+            <div class="option-card selected" data-val="diario" onclick="selectOption(this,'ob-freq-alert')"><span class="option-icon">📧</span><div class="option-label">Diário<br><small style="color:var(--gray-400);font-size:.75rem">Resumo diário</small></div></div>
+            <div class="option-card" data-val="semanal" onclick="selectOption(this,'ob-freq-alert')"><span class="option-icon">📋</span><div class="option-label">Semanal<br><small style="color:var(--gray-400);font-size:.75rem">Todo início de semana</small></div></div>
+          </div>
+        </div>
+        <div class="onboarding-nav">
+          <button class="btn btn-ghost" onclick="obBack(4)">← Voltar</button>
+          <button class="btn btn-primary" onclick="obNext(6)">Continuar →</button>
+        </div>
+      </div>
+
+      <!-- Step 6: Objetivo -->
+      <div class="onboarding-card hidden" id="ob-step-6">
+        <div class="onboarding-step-header">
+          <div class="onboarding-step-num">Passo 6 de 7</div>
+          <h2 class="onboarding-step-title">Qual é seu principal objetivo?</h2>
+          <p class="onboarding-step-desc">Vamos destacar as funcionalidades mais úteis para você.</p>
+        </div>
+        <div class="option-grid" id="ob-goal" style="grid-template-columns:1fr">
+          <div class="option-card" data-val="economizar" onclick="selectOption(this,'ob-goal')" style="flex-direction:row;text-align:left;display:flex;align-items:center;gap:1rem">
+            <span class="option-icon" style="font-size:2rem">💰</span>
+            <div><div class="option-label" style="font-size:1rem">Quero economizar nas compras</div><div style="font-size:.875rem;color:var(--gray-400)">Focar em comparação de preços e promoções</div></div>
+          </div>
+          <div class="option-card selected" data-val="ruptura" onclick="selectOption(this,'ob-goal')" style="flex-direction:row;text-align:left;display:flex;align-items:center;gap:1rem">
+            <span class="option-icon" style="font-size:2rem">🔔</span>
+            <div><div class="option-label" style="font-size:1rem">Quero evitar ruptura de estoque</div><div style="font-size:.875rem;color:var(--gray-400)">Alertas antecipados e reposição automática</div></div>
+          </div>
+          <div class="option-card" data-val="automatizar" onclick="selectOption(this,'ob-goal')" style="flex-direction:row;text-align:left;display:flex;align-items:center;gap:1rem">
+            <span class="option-icon" style="font-size:2rem">🤖</span>
+            <div><div class="option-label" style="font-size:1rem">Quero automatizar as compras</div><div style="font-size:.875rem;color:var(--gray-400)">Sistema faz cotações e sugere pedidos automaticamente</div></div>
+          </div>
+          <div class="option-card" data-val="comparar" onclick="selectOption(this,'ob-goal')" style="flex-direction:row;text-align:left;display:flex;align-items:center;gap:1rem">
+            <span class="option-icon" style="font-size:2rem">📊</span>
+            <div><div class="option-label" style="font-size:1rem">Quero comparar fornecedores</div><div style="font-size:.875rem;color:var(--gray-400)">Visibilidade total das opções de compra</div></div>
+          </div>
+        </div>
+        <div class="onboarding-nav">
+          <button class="btn btn-ghost" onclick="obBack(5)">← Voltar</button>
+          <button class="btn btn-primary" onclick="obNext(7)">Continuar →</button>
+        </div>
+      </div>
+
+      <!-- Step 7: Concluído -->
+      <div class="onboarding-card hidden" id="ob-step-7" style="text-align:center;padding:3rem 2rem">
+        <div style="font-size:4rem;margin-bottom:1.5rem;animation:bounce .6s ease">🎉</div>
+        <h2 style="font-size:1.875rem;font-weight:700;color:var(--gray-900);margin-bottom:.75rem">Seu Vapt Vupt está pronto!</h2>
+        <p style="color:var(--gray-400);font-size:1.0625rem;margin-bottom:2rem;max-width:400px;margin-left:auto;margin-right:auto">Configuramos tudo com base no seu perfil. Agora é só subir sua planilha ou fazer uma cotação manual para começar a economizar.</p>
+        <div style="background:var(--blue-light);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:2rem;text-align:left">
+          <div style="font-size:.875rem;font-weight:600;color:var(--blue-dark);margin-bottom:.875rem">✦ Sugerimos começar por:</div>
+          <div style="font-size:.9375rem;color:var(--gray-800);display:flex;flex-direction:column;gap:.625rem">
+            <div>1. 📊 Baixar o modelo de planilha e preenchê-lo com seus itens</div>
+            <div>2. 🔍 Ou usar o catálogo manual para cotação rápida</div>
+            <div>3. ⚡ Ver as promoções ativas para seu segmento</div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-xl" onclick="goToDashboard()">Acessar meu painel →</button>
+      </div>
+    </div>
+  </div>
+</div>
+@keyframes bounce{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+
+<!-- ═══════════════════════════════════════════
+     PAGE: DASHBOARD
+═══════════════════════════════════════════ -->
+<div id="page-dashboard" class="page">
+  <div class="dashboard">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo" onclick="showPage('page-landing')">
+        <div class="logo-text">Vapt Vupt</div>
+        <div class="logo-sub">Painel do Estabelecimento</div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">Principal</div>
+        <div class="sidebar-item active" onclick="showDashPanel('visao-geral',this)">
+          <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2"/></svg>
+          Visão geral
+        </div>
+        <div class="sidebar-item" onclick="showDashPanel('cotar-planilha',this)">
+          <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Cotar por Planilha
+        </div>
+        <div class="sidebar-item" onclick="showDashPanel('cotar-manual',this)">
+          <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Cotação Manual
+        </div>
+        <div class="sidebar-item" onclick="showDashPanel('cotacoes',this)">
+          <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Minhas Cotações
+          <span class="badge badge-blue" style="margin-left:auto">3</span>
+        </div>
+        <div class="sidebar-item" onclick="showDashPanel('promocoes',this)">
+          <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Promoções
+          <span class="badge badge-red" style="margin-left:auto">5</span>
+        </div>
+        <div class="sidebar-section" style="margin-top:.5rem">Configurações</div>
+        <div class="sidebar-item" onclick="showDashPanel('config',this)">
+          <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-width="2"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
+          Configurações
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar" id="sidebar-avatar-text">MR</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="sidebar-user-name">Marcos Ribeiro</div>
+            <div class="sidebar-user-role" id="sidebar-user-biz">Farmácia Saúde & Vida</div>
+          </div>
+          <span style="color:rgba(255,255,255,.3);cursor:pointer;font-size:.875rem" onclick="doLogout()" title="Sair">⎋</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+      <!-- Visão Geral -->
+      <div class="dash-panel active" id="panel-visao-geral">
+        <div class="content-header">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <h1>Bom dia, <span id="dash-name">Marcos</span>! 👋</h1>
+              <p>Aqui está um resumo da saúde do seu estoque agora</p>
+            </div>
+            <div style="display:flex;gap:.75rem">
+              <button class="btn btn-secondary btn-sm" onclick="showDashPanel('cotar-planilha',null)">+ Cotação por Planilha</button>
+              <button class="btn btn-primary btn-sm" onclick="showDashPanel('cotar-manual',null)">+ Cotação Manual</button>
+            </div>
+          </div>
+        </div>
+        <div class="content-body">
+          <!-- KPIs -->
+          <div class="overview-grid">
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-icon-red">🚨</div>
+              <div class="kpi-label">Itens críticos</div>
+              <div class="kpi-value" style="color:var(--danger)">7</div>
+              <div class="kpi-change down">↑ 3 vs ontem</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-icon-orange">⚠️</div>
+              <div class="kpi-label">Em atenção</div>
+              <div class="kpi-value" style="color:var(--warning)">12</div>
+              <div class="kpi-change" style="color:var(--gray-400)">Abaixo do mínimo</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-icon-green">✅</div>
+              <div class="kpi-label">Itens OK</div>
+              <div class="kpi-value" style="color:var(--success)">84</div>
+              <div class="kpi-change up">↑ 5 esta semana</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon kpi-icon-blue">💰</div>
+              <div class="kpi-label">Economia estimada</div>
+              <div class="kpi-value">R$1.840</div>
+              <div class="kpi-change up">↑ 18% vs mês passado</div>
+            </div>
+          </div>
+
+          <!-- Stock health -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
+            <div class="card-flat">
+              <div class="section-header">
+                <h2>Saúde do Estoque</h2>
+                <span class="chip chip-orange">⚠ Atenção</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:.875rem;color:var(--gray-400);margin-bottom:.375rem">
+                <span>Crítico (7%)</span><span>OK (81%)</span>
+              </div>
+              <div class="health-bar">
+                <div class="health-bar-fill" style="width:81%"></div>
+              </div>
+              <div style="display:flex;gap:1.5rem;margin-top:1rem;font-size:.875rem">
+                <div style="display:flex;align-items:center;gap:.375rem"><span style="width:10px;height:10px;background:var(--danger);border-radius:50%;display:inline-block"></span> <span style="color:var(--gray-400)">Crítico (7)</span></div>
+                <div style="display:flex;align-items:center;gap:.375rem"><span style="width:10px;height:10px;background:var(--warning);border-radius:50%;display:inline-block"></span> <span style="color:var(--gray-400)">Atenção (12)</span></div>
+                <div style="display:flex;align-items:center;gap:.375rem"><span style="width:10px;height:10px;background:var(--success);border-radius:50%;display:inline-block"></span> <span style="color:var(--gray-400)">OK (84)</span></div>
+              </div>
+            </div>
+
+            <div class="card-flat">
+              <div class="section-header">
+                <h2>Ação rápida</h2>
+              </div>
+              <p style="font-size:.9375rem;color:var(--gray-400);margin-bottom:1.25rem">7 itens precisam de reposição urgente. Gere uma cotação agora para resolver em minutos.</p>
+              <button class="btn btn-primary btn-block" onclick="generateAutoQuote()">⚡ Gerar cotação dos itens críticos</button>
+              <button class="btn btn-ghost btn-block" style="margin-top:.5rem" onclick="showDashPanel('cotar-planilha',null)">📊 Subir planilha atualizada</button>
+            </div>
+          </div>
+
+          <!-- Itens críticos -->
+          <div class="card-flat">
+            <div class="section-header">
+              <h2>Itens críticos agora</h2>
+              <span style="font-size:.875rem;color:var(--blue);cursor:pointer">Ver todos →</span>
+            </div>
+            <div class="critical-list" id="critical-items-list"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cotação por Planilha -->
+      <div class="dash-panel" id="panel-cotar-planilha">
+        <div class="content-header">
+          <h1>Cotação por Planilha</h1>
+          <p>Suba sua planilha de estoque e gere uma cotação automática em segundos</p>
+        </div>
+        <div class="content-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
+            <div class="card-flat">
+              <div style="font-size:.875rem;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.625rem">Passo 1</div>
+              <h3 style="font-size:1.0625rem;font-weight:600;margin-bottom:.375rem;color:var(--gray-900)">Baixe o modelo</h3>
+              <p style="font-size:.875rem;color:var(--gray-400);margin-bottom:1.25rem">Use nossa planilha padrão com colunas já configuradas, instruções e exemplos prontos. Edite, preencha e salve.</p>
+              <button class="btn btn-secondary btn-block" onclick="downloadTemplate()">📥 Baixar modelo .xlsx</button>
+            </div>
+            <div class="card-flat">
+              <div style="font-size:.875rem;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.625rem">Passo 2</div>
+              <h3 style="font-size:1.0625rem;font-weight:600;margin-bottom:.375rem;color:var(--gray-900)">Envie sua planilha</h3>
+              <p style="font-size:.875rem;color:var(--gray-400);margin-bottom:1.25rem">Aceita .xlsx e .csv. O sistema lê os itens, identifica o que está em baixa e sugere quantidades de reposição.</p>
+              <label class="btn btn-primary btn-block" for="planilha-upload" style="cursor:pointer">📤 Selecionar arquivo</label>
+              <input type="file" id="planilha-upload" accept=".xlsx,.csv" style="display:none" onchange="handleFileUpload(this)">
+            </div>
+          </div>
+
+          <!-- Upload zone -->
+          <div class="upload-zone" id="upload-zone" ondragover="handleDragOver(event)" ondrop="handleDrop(event)" onclick="document.getElementById('planilha-upload').click()">
+            <span class="upload-icon">📂</span>
+            <div class="upload-title">Arraste e solte sua planilha aqui</div>
+            <div class="upload-desc">ou <span class="upload-btn-label">clique para selecionar</span> — .xlsx ou .csv</div>
+            <div style="margin-top:1rem;font-size:.8125rem;color:var(--gray-400)">Tamanho máximo: 10MB · Até 10.000 itens</div>
+          </div>
+
+          <!-- Resultado upload (hidden initially) -->
+          <div id="upload-result" class="hidden" style="margin-top:1.5rem">
+            <div style="display:flex;align-items:center;gap:.75rem;padding:1rem;background:#E8FFF5;border-radius:var(--radius-md);border:1.5px solid rgba(0,185,125,.2);margin-bottom:1.5rem">
+              <span style="font-size:1.25rem">✅</span>
+              <div>
+                <div style="font-size:.9375rem;font-weight:600;color:#007A52">Planilha processada com sucesso!</div>
+                <div style="font-size:.8125rem;color:#007A52;opacity:.8" id="upload-summary">103 itens lidos · 7 em baixo estoque · 12 em atenção</div>
+              </div>
+            </div>
+
+            <div class="tab-bar">
+              <div class="tab active" onclick="switchTab(this,'tab-criticos')">🚨 Críticos (7)</div>
+              <div class="tab" onclick="switchTab(this,'tab-atencao')">⚠️ Atenção (12)</div>
+              <div class="tab" onclick="switchTab(this,'tab-todos')">📋 Todos (103)</div>
+            </div>
+
+            <div id="tab-criticos">
+              <div class="critical-list" id="upload-critical-list"></div>
+            </div>
+            <div id="tab-atencao" class="hidden">
+              <div class="critical-list" id="upload-atencao-list"></div>
+            </div>
+            <div id="tab-todos" class="hidden">
+              <p style="color:var(--gray-400);font-size:.9375rem;padding:1rem 0">Lista completa disponível após geração da cotação.</p>
+            </div>
+
+            <div style="margin-top:1.5rem;padding:1.5rem;background:var(--blue-light);border-radius:var(--radius-lg);border:1.5px solid rgba(0,87,255,.15)">
+              <h3 style="font-size:1.0625rem;font-weight:600;color:var(--gray-900);margin-bottom:.375rem">Sugestão de reposição</h3>
+              <p style="font-size:.875rem;color:var(--gray-600);margin-bottom:1.25rem">
+                Com base no seu perfil (<strong>meta: 14 dias de cobertura</strong> + 20% de margem de segurança), identificamos as quantidades abaixo para cada item crítico.
+                <span style="display:inline-flex;align-items:center;gap:.25rem;color:var(--blue);cursor:pointer;font-weight:500;text-decoration:underline;margin-left:.25rem" onclick="alert('Fórmula: Consumo Médio × Dias de Cobertura × 1,2 (margem). Se consumo não informado, usamos média por categoria/porte.')">ℹ Como calculamos</span>
+              </p>
+              <button class="btn btn-primary" onclick="gerarCotacaoPlanilha()" style="gap:.5rem">⚡ Gerar cotação para esses itens</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cotação Manual -->
+      <div class="dash-panel" id="panel-cotar-manual">
+        <div class="content-header">
+          <h1>Cotação Manual</h1>
+          <p>Busque produtos no catálogo, monte seu carrinho e gere uma cotação</p>
+        </div>
+        <div class="content-body" style="display:grid;grid-template-columns:1fr 380px;gap:1.5rem;align-items:start">
+          <!-- Catálogo -->
+          <div>
+            <div class="catalog-search" style="margin-bottom:1rem">
+              <span class="catalog-search-icon">🔍</span>
+              <input type="text" class="form-input catalog-search-input" id="catalog-search" placeholder="Buscar produto (nome, categoria, marca...)" oninput="filterCatalog(this.value)">
+            </div>
+            <div class="cat-filters" id="cat-filters">
+              <div class="cat-filter active" onclick="filterByCategory('todos',this)">Todos</div>
+              <div class="cat-filter" onclick="filterByCategory('farmacia',this)">💊 Farmácia</div>
+              <div class="cat-filter" onclick="filterByCategory('bebidas',this)">🍺 Bebidas</div>
+              <div class="cat-filter" onclick="filterByCategory('alimentos',this)">🍽 Alimentos</div>
+              <div class="cat-filter" onclick="filterByCategory('limpeza',this)">🧴 Limpeza</div>
+              <div class="cat-filter" onclick="filterByCategory('descartaveis',this)">📦 Descartáveis</div>
+            </div>
+            <div class="catalog-grid" id="catalog-grid"></div>
+          </div>
+
+          <!-- Carrinho -->
+          <div style="position:sticky;top:80px">
+            <div class="card-flat">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+                <h3 style="font-size:1.0625rem;font-weight:700">Carrinho de cotação</h3>
+                <span class="badge badge-blue" id="cart-count">0 itens</span>
+              </div>
+              <div id="cart-items">
+                <div class="empty-state" style="padding:2rem 1rem">
+                  <span class="empty-state-icon" style="font-size:2rem">🛒</span>
+                  <div class="empty-state-title">Carrinho vazio</div>
+                  <div class="empty-state-desc" style="font-size:.875rem">Busque e adicione produtos ao lado</div>
+                </div>
+              </div>
+              <div id="cart-footer" class="hidden">
+                <div class="divider"></div>
+                <div class="form-group">
+                  <label class="form-label">Observações de compra <span style="color:var(--gray-400);font-weight:400">(opcional)</span></label>
+                  <textarea class="form-input form-textarea" id="cart-obs" placeholder="Ex: entrega urgente, não substituir cerveja Brahma, orçamento máximo R$ 2.000..." style="min-height:80px"></textarea>
+                </div>
+                <button class="btn btn-primary btn-block" onclick="gerarCotacaoManual()">⚡ Gerar cotação</button>
+                <button class="btn btn-ghost btn-block" style="margin-top:.5rem" onclick="clearCart()">🗑 Limpar carrinho</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Minhas Cotações -->
+      <div class="dash-panel" id="panel-cotacoes">
+        <div class="content-header">
+          <h1>Minhas Cotações</h1>
+          <p>Histórico e acompanhamento de todas as cotações</p>
+        </div>
+        <div class="content-body">
+          <div class="tab-bar">
+            <div class="tab active" onclick="switchTab(this,'cot-ativas')">Em andamento (2)</div>
+            <div class="tab" onclick="switchTab(this,'cot-recebidas')">Ofertas recebidas (1)</div>
+            <div class="tab" onclick="switchTab(this,'cot-finalizadas')">Finalizadas (4)</div>
+          </div>
+          <div id="cot-ativas">
+            <div id="quotes-list-ativas"></div>
+          </div>
+          <div id="cot-recebidas" class="hidden">
+            <div id="quotes-list-recebidas"></div>
+          </div>
+          <div id="cot-finalizadas" class="hidden">
+            <div id="quotes-list-finalizadas"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Promoções -->
+      <div class="dash-panel" id="panel-promocoes">
+        <div class="content-header">
+          <h1>Promoções para você</h1>
+          <p>Ofertas personalizadas com base no seu perfil e itens em baixa</p>
+        </div>
+        <div class="content-body">
+          <div style="background:linear-gradient(135deg,rgba(0,87,255,.06),rgba(51,115,255,.04));border:1.5px solid rgba(0,87,255,.15);border-radius:var(--radius-lg);padding:1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem">
+            <span style="font-size:1.5rem">🎯</span>
+            <div>
+              <div style="font-size:.9375rem;font-weight:600;color:var(--gray-900)">5 promoções encontradas para o seu perfil</div>
+              <div style="font-size:.875rem;color:var(--gray-400)">Baseado nos seus itens críticos e categorias de maior volume</div>
+            </div>
+          </div>
+          <div class="cat-filters">
+            <div class="cat-filter active" onclick="filterPromos('todos',this)">Todas</div>
+            <div class="cat-filter" onclick="filterPromos('urgente',this)">⚡ Relâmpago</div>
+            <div class="cat-filter" onclick="filterPromos('critico',this)">🚨 Item crítico</div>
+            <div class="cat-filter" onclick="filterPromos('bebidas',this)">🍺 Bebidas</div>
+            <div class="cat-filter" onclick="filterPromos('farmacia',this)">💊 Farmácia</div>
+          </div>
+          <div class="promo-grid" id="promo-grid"></div>
+        </div>
+      </div>
+
+      <!-- Configurações -->
+      <div class="dash-panel" id="panel-config">
+        <div class="content-header">
+          <h1>Configurações</h1>
+          <p>Gerencie seu perfil e preferências de compra</p>
+        </div>
+        <div class="content-body" style="max-width:640px">
+          <div class="card-flat" style="margin-bottom:1.5rem">
+            <h3 style="font-size:1.0625rem;font-weight:600;margin-bottom:1.25rem">Dados do negócio</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Nome do estabelecimento</label>
+                <input type="text" class="form-input" id="cfg-biz-name" placeholder="Farmácia Saúde & Vida">
+              </div>
+              <div class="form-group">
+                <label class="form-label">CNPJ</label>
+                <input type="text" class="form-input" placeholder="00.000.000/0000-00">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">E-mail</label>
+                <input type="email" class="form-input" id="cfg-email" placeholder="seu@email.com">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Telefone</label>
+                <input type="tel" class="form-input" placeholder="(11) 9 0000-0000">
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveConfig()">Salvar alterações</button>
+          </div>
+
+          <div class="card-flat" style="margin-bottom:1.5rem">
+            <h3 style="font-size:1.0625rem;font-weight:600;margin-bottom:1.25rem">Preferências de compra</h3>
+            <div class="form-group">
+              <label class="form-label">Frequência de compra</label>
+              <select class="form-input form-select" id="cfg-freq">
+                <option>Semanal</option>
+                <option selected>Quinzenal</option>
+                <option>Mensal</option>
+                <option>Por demanda</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Condições de pagamento aceitas</label>
+              <div class="checkbox-group">
+                <label class="checkbox-item"><input type="checkbox" checked><label>Boleto bancário</label></label>
+                <label class="checkbox-item"><input type="checkbox" checked><label>PIX</label></label>
+                <label class="checkbox-item"><input type="checkbox"><label>Prazo (30/60/90 dias)</label></label>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveConfig()">Salvar</button>
+          </div>
+
+          <div class="card-flat" style="margin-bottom:1.5rem">
+            <h3 style="font-size:1.0625rem;font-weight:600;margin-bottom:1.25rem">Alertas</h3>
+            <div class="form-group">
+              <label class="form-label">E-mail para notificações</label>
+              <input type="email" class="form-input" placeholder="seu@email.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label">WhatsApp <span class="badge badge-blue" style="font-size:.6875rem;vertical-align:middle;margin-left:.5rem">Em breve</span></label>
+              <input type="tel" class="form-input" placeholder="(11) 9 0000-0000" disabled style="opacity:.6">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Frequência de relatório</label>
+              <select class="form-input form-select">
+                <option>Somente alertas urgentes</option>
+                <option selected>Diário</option>
+                <option>Semanal</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveConfig()">Salvar alertas</button>
+          </div>
+
+          <div class="card-flat">
+            <h3 style="font-size:1.0625rem;font-weight:600;margin-bottom:.625rem">Gestão de usuários <span class="badge badge-gray" style="background:var(--gray-200);color:var(--gray-600);font-size:.6875rem;vertical-align:middle;margin-left:.5rem">Em breve</span></h3>
+            <p style="font-size:.875rem;color:var(--gray-400)">Em breve você poderá convidar sua equipe para acessar o painel com diferentes níveis de permissão.</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PAGE: FORNECEDOR
+═══════════════════════════════════════════ -->
+<div id="page-fornecedor" class="page">
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="nav-logo" onclick="showPage('page-landing')">
+        <div class="nav-logo-icon" style="background:#0040CC">VV</div>
+        <span>Vapt Vupt <span style="font-size:.75rem;color:var(--gray-400);font-weight:400">Fornecedor</span></span>
+      </div>
+      <div class="nav-actions">
+        <button class="btn btn-ghost btn-sm" onclick="showPage('page-login')">← Voltar</button>
+      </div>
+    </div>
+  </nav>
+  <div style="max-width:900px;margin:3rem auto;padding:0 1.5rem">
+    <div style="text-align:center;margin-bottom:3rem">
+      <div class="section-tag">Área do Fornecedor</div>
+      <h2 class="section-title">Acesse demanda real,<br>reduza custo de aquisição</h2>
+      <p style="color:var(--gray-400);font-size:1.0625rem;max-width:480px;margin:0 auto">Conecte-se com centenas de estabelecimentos que precisam dos seus produtos agora mesmo.</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2.5rem">
+      <div class="diff-card"><div class="diff-icon">📊</div><h3 class="diff-title">Cotações em tempo real</h3><p class="diff-desc">Receba solicitações de cotação qualificadas para os produtos e regiões que você atende.</p></div>
+      <div class="diff-card"><div class="diff-icon">🎯</div><h3 class="diff-title">Promoções segmentadas</h3><p class="diff-desc">Envie ofertas diretamente para quem precisa do produto. Sem spam, sem desperdício.</p></div>
+      <div class="diff-card"><div class="diff-icon">🔄</div><h3 class="diff-title">Recorrência garantida</h3><p class="diff-desc">Estabelecimentos fiéis que compram regularmente. Menos esforço de vendas, mais previsibilidade.</p></div>
+      <div class="diff-card"><div class="diff-icon">📈</div><h3 class="diff-title">Relatórios de desempenho</h3><p class="diff-desc">Acompanhe quantas propostas você enviou, taxa de aceite e volume de vendas pela plataforma.</p></div>
+    </div>
+
+    <div class="supplier-profile">
+      <div style="text-align:center;margin-bottom:2rem">
+        <h3 style="font-size:1.375rem;font-weight:700;margin-bottom:.5rem">Cadastre sua empresa</h3>
+        <p style="color:var(--gray-400)">Preencha os dados para ativar seu acesso à plataforma</p>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Razão Social *</label><input type="text" class="form-input" placeholder="Nome Distribuidora Ltda"></div>
+        <div class="form-group"><label class="form-label">CNPJ *</label><input type="text" class="form-input" placeholder="00.000.000/0000-00"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Nome para exibição</label><input type="text" class="form-input" placeholder="Ex: Distribuidora Norte"></div>
+        <div class="form-group"><label class="form-label">Telefone comercial</label><input type="tel" class="form-input" placeholder="(11) 3000-0000"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Categorias que você distribui</label>
+        <div class="checkbox-group">
+          <label class="checkbox-item"><input type="checkbox" checked><label>Bebidas (alcoólicas e não-alcoólicas)</label></label>
+          <label class="checkbox-item"><input type="checkbox"><label>Medicamentos e OTC</label></label>
+          <label class="checkbox-item"><input type="checkbox" checked><label>Higiene e limpeza</label></label>
+          <label class="checkbox-item"><input type="checkbox"><label>Alimentos secos e embalados</label></label>
+          <label class="checkbox-item"><input type="checkbox"><label>Descartáveis</label></label>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Prazo médio de entrega</label>
+          <select class="form-input form-select">
+            <option>Mesmo dia (São Paulo Capital)</option>
+            <option selected>1-2 dias úteis</option>
+            <option>3-5 dias úteis</option>
+            <option>Combinado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pedido mínimo</label>
+          <input type="text" class="form-input" placeholder="Ex: R$ 500,00 ou 10 cx">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Regiões atendidas</label>
+        <input type="text" class="form-input" placeholder="Ex: Grande São Paulo, ABC Paulista, Campinas...">
+      </div>
+      <button class="btn btn-primary btn-lg" onclick="showToast('Solicitação enviada! Entraremos em contato em até 1 dia útil para ativar seu cadastro.','success')">Enviar solicitação de cadastro</button>
+    </div>
+
+    <div style="text-align:center;margin-top:2rem;padding:2rem;background:var(--gray-100);border-radius:var(--radius-lg)">
+      <div style="font-size:1rem;font-weight:600;color:var(--gray-900);margin-bottom:.5rem">Cotações disponíveis (simulação)</div>
+      <p style="color:var(--gray-400);font-size:.875rem;margin-bottom:1.25rem">Após aprovação, você verá aqui as cotações ativas compatíveis com seu perfil.</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
+        <div style="background:var(--white);border-radius:var(--radius-md);padding:1rem;border:1.5px solid var(--gray-200)"><div style="font-size:.8125rem;color:var(--gray-400)">Cotação #2847</div><div style="font-size:.9375rem;font-weight:500;margin:.25rem 0">Bebidas — 15 itens</div><div><span class="chip chip-orange">Aguardando propostas</span></div></div>
+        <div style="background:var(--white);border-radius:var(--radius-md);padding:1rem;border:1.5px solid var(--gray-200)"><div style="font-size:.8125rem;color:var(--gray-400)">Cotação #2851</div><div style="font-size:.9375rem;font-weight:500;margin:.25rem 0">Limpeza — 8 itens</div><div><span class="chip chip-orange">Aguardando propostas</span></div></div>
+        <div style="background:var(--white);border-radius:var(--radius-md);padding:1rem;border:1.5px solid var(--gray-200)"><div style="font-size:.8125rem;color:var(--gray-400)">Cotação #2855</div><div style="font-size:.9375rem;font-weight:500;margin:.25rem 0">Higiene — 22 itens</div><div><span class="chip chip-blue">Sua proposta enviada</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Demo Modal -->
+<div id="demo-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center">
+  <div style="background:var(--white);border-radius:var(--radius-xl);padding:2.5rem;max-width:480px;width:90%;box-shadow:var(--shadow-lg)">
+    <h3 style="font-size:1.375rem;font-weight:700;margin-bottom:.5rem">Solicitar demonstração</h3>
+    <p style="color:var(--gray-400);margin-bottom:1.5rem">Nosso time entrará em contato em até 24h para agendar uma demo personalizada.</p>
+    <div class="form-group"><label class="form-label">Seu nome</label><input type="text" class="form-input" placeholder="Nome completo"></div>
+    <div class="form-group"><label class="form-label">E-mail</label><input type="email" class="form-input" placeholder="seu@email.com"></div>
+    <div class="form-group"><label class="form-label">Tipo de negócio</label>
+      <select class="form-input form-select"><option>Farmácia</option><option>Adega/Bar</option><option>Restaurante</option><option>Mercado</option><option>Outro</option></select>
+    </div>
+    <div style="display:flex;gap:.75rem;margin-top:.5rem">
+      <button class="btn btn-primary flex-1" onclick="submitDemo()">Enviar solicitação</button>
+      <button class="btn btn-ghost" onclick="closeDemoModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════
+// DATA STORE
+// ═══════════════════════════════
+const appState = {
+  currentUser:null,
+  userType:'estabelecimento',
+  onboardingData:{},
+  cart:[],
+  obStep:1
+};
+
+// ═══════════════════════════════
+// CATALOG DATA
+// ═══════════════════════════════
+const catalog = [
+  // Farmácia
+  {id:1,name:'Dipirona 500mg cx30',cat:'farmacia',icon:'💊',unit:'cx',brand:'Genérico'},
+  {id:2,name:'Paracetamol 750mg cx20',cat:'farmacia',icon:'💊',unit:'cx',brand:'EMS'},
+  {id:3,name:'Omeprazol 20mg cx30',cat:'farmacia',icon:'💊',unit:'cx',brand:'Genérico'},
+  {id:4,name:'Ibuprofeno 600mg cx20',cat:'farmacia',icon:'💊',unit:'cx',brand:'Prati'},
+  {id:5,name:'Shampoo anticaspa 400ml',cat:'farmacia',icon:'🧴',unit:'un',brand:'Head&Shoulders'},
+  {id:6,name:'Protetor solar FPS 50 200ml',cat:'farmacia',icon:'🌞',unit:'un',brand:'Nivea'},
+  {id:7,name:'Álcool gel 70% 500ml',cat:'farmacia',icon:'💧',unit:'un',brand:'Vitalitá'},
+  {id:8,name:'Curativo band-aid cx100',cat:'farmacia',icon:'🩹',unit:'cx',brand:'Band-Aid'},
+  {id:9,name:'Termômetro digital',cat:'farmacia',icon:'🌡️',unit:'un',brand:'G-Tech'},
+  {id:10,name:'Vitamina C 1g eferv cx10',cat:'farmacia',icon:'💊',unit:'cx',brand:'Vitamino'},
+  // Bebidas
+  {id:11,name:'Cerveja Heineken long neck 330ml',cat:'bebidas',icon:'🍺',unit:'cx24',brand:'Heineken'},
+  {id:12,name:'Cerveja Brahma lata 350ml',cat:'bebidas',icon:'🍺',unit:'cx12',brand:'Brahma'},
+  {id:13,name:'Cerveja Budweiser long neck 330ml',cat:'bebidas',icon:'🍺',unit:'cx24',brand:'Budweiser'},
+  {id:14,name:'Vodka Absolut 1L',cat:'bebidas',icon:'🍸',unit:'un',brand:'Absolut'},
+  {id:15,name:'Whisky Jack Daniel\'s 1L',cat:'bebidas',icon:'🥃',unit:'un',brand:'Jack Daniel\'s'},
+  {id:16,name:'Vinho tinto seco Miolo 750ml',cat:'bebidas',icon:'🍷',unit:'un',brand:'Miolo'},
+  {id:17,name:'Energético Red Bull 250ml',cat:'bebidas',icon:'⚡',unit:'cx24',brand:'Red Bull'},
+  {id:18,name:'Refrigerante Coca-Cola 2L',cat:'bebidas',icon:'🥤',unit:'cx6',brand:'Coca-Cola'},
+  {id:19,name:'Água mineral s/ gás 500ml',cat:'bebidas',icon:'💧',unit:'cx24',brand:'Crystal'},
+  {id:20,name:'Suco de laranja 1L',cat:'bebidas',icon:'🍊',unit:'cx12',brand:'Del Valle'},
+  // Alimentos
+  {id:21,name:'Arroz branco 5kg',cat:'alimentos',icon:'🍚',unit:'sc',brand:'Tio João'},
+  {id:22,name:'Feijão preto 1kg',cat:'alimentos',icon:'🫘',unit:'kg',brand:'Camil'},
+  {id:23,name:'Macarrão espaguete 500g',cat:'alimentos',icon:'🍝',unit:'pct',brand:'Barilla'},
+  {id:24,name:'Azeite extra virgem 500ml',cat:'alimentos',icon:'🫙',unit:'un',brand:'Gallo'},
+  {id:25,name:'Sal refinado 1kg',cat:'alimentos',icon:'🧂',unit:'kg',brand:'Cisne'},
+  {id:26,name:'Açúcar cristal 5kg',cat:'alimentos',icon:'🍬',unit:'sc',brand:'União'},
+  {id:27,name:'Farinha de trigo 5kg',cat:'alimentos',icon:'🌾',unit:'sc',brand:'Dona Benta'},
+  {id:28,name:'Óleo de soja 900ml',cat:'alimentos',icon:'🫙',unit:'cx12',brand:'Liza'},
+  // Limpeza
+  {id:29,name:'Detergente líquido 500ml',cat:'limpeza',icon:'🧽',unit:'cx24',brand:'Ypê'},
+  {id:30,name:'Desinfetante 1L',cat:'limpeza',icon:'🧴',unit:'cx12',brand:'Pinho Sol'},
+  {id:31,name:'Água sanitária 1L',cat:'limpeza',icon:'💧',unit:'cx12',brand:'Qboa'},
+  {id:32,name:'Sabão em pó 1kg',cat:'limpeza',icon:'📦',unit:'un',brand:'Omo'},
+  {id:33,name:'Esponja de limpeza cx10',cat:'limpeza',icon:'🧽',unit:'cx',brand:'Scotch-Brite'},
+  {id:34,name:'Multiuso spray 500ml',cat:'limpeza',icon:'🧴',unit:'un',brand:'Mr Músculo'},
+  // Descartáveis
+  {id:35,name:'Copo descartável 200ml cx50',cat:'descartaveis',icon:'🥤',unit:'cx',brand:'Copobrás'},
+  {id:36,name:'Prato descartável cx10',cat:'descartaveis',icon:'🍽',unit:'cx',brand:'Descartex'},
+  {id:37,name:'Talheres descartáveis kit50',cat:'descartaveis',icon:'🍴',unit:'kit',brand:'Descartex'},
+  {id:38,name:'Embalagem para marmita G cx50',cat:'descartaveis',icon:'📦',unit:'cx',brand:'Nita'},
+  {id:39,name:'Luva descartável cx100',cat:'descartaveis',icon:'🧤',unit:'cx',brand:'Supermax'},
+  {id:40,name:'Sacola plástica 40x50 cx500',cat:'descartaveis',icon:'🛍',unit:'cx',brand:'Vitória'},
+];
+
+// Critical items for dashboard
+const criticalItems = [
+  {name:'Cerveja Heineken cx24',cat:'bebidas',icon:'🍺',estoque:2,minimo:10,unit:'cx',urgencia:'urgent'},
+  {name:'Dipirona 500mg cx30',cat:'farmacia',icon:'💊',estoque:3,minimo:15,unit:'cx',urgencia:'urgent'},
+  {name:'Detergente Ypê cx24',cat:'limpeza',icon:'🧽',estoque:1,minimo:8,unit:'cx',urgencia:'urgent'},
+  {name:'Água sanitária Qboa',cat:'limpeza',icon:'💧',estoque:4,minimo:12,unit:'cx',urgencia:'urgent'},
+  {name:'Energético Red Bull',cat:'bebidas',icon:'⚡',estoque:5,minimo:12,unit:'cx',urgencia:'urgent'},
+  {name:'Refrigerante Coca-Cola 2L',cat:'bebidas',icon:'🥤',estoque:6,minimo:18,unit:'cx',urgencia:'warning'},
+  {name:'Álcool gel 70%',cat:'farmacia',icon:'💧',estoque:8,minimo:20,unit:'un',urgencia:'warning'},
+];
+
+const atencaoItems = [
+  {name:'Vodka Absolut 1L',cat:'bebidas',icon:'🍸',estoque:4,minimo:8,unit:'un',urgencia:'warning'},
+  {name:'Macarrão espaguete',cat:'alimentos',icon:'🍝',estoque:6,minimo:10,unit:'pct',urgencia:'warning'},
+  {name:'Sabão em pó Omo 1kg',cat:'limpeza',icon:'📦',estoque:3,minimo:6,unit:'un',urgencia:'warning'},
+  {name:'Copo descartável 200ml',cat:'descartaveis',icon:'🥤',estoque:8,minimo:15,unit:'cx',urgencia:'warning'},
+];
+
+// Promotions
+const promotions = [
+  {id:1,name:'Cerveja Heineken cx24',supplier:'Distribuidora Norte SP',oldPrice:89.9,newPrice:72.5,discount:19,category:'bebidas',tag:'critico',timer:7200,recommended:true},
+  {id:2,name:'Kit Limpeza Ypê (deterg+desinf+agua sant)',supplier:'Atacado Pronto',oldPrice:45.0,newPrice:34.9,discount:22,category:'limpeza',tag:'flash',timer:3600,recommended:false},
+  {id:3,name:'Álcool Gel 70% 500ml cx12',supplier:'Distribuidora Saúde Total',oldPrice:96.0,newPrice:79.0,discount:18,category:'farmacia',tag:'critico',timer:14400,recommended:true},
+  {id:4,name:'Red Bull 250ml cx24',supplier:'Bebidas Leste Ltda',oldPrice:165.0,newPrice:139.0,discount:16,category:'bebidas',tag:'flash',timer:5400,recommended:false},
+  {id:5,name:'Dipirona Genérica cx30 — lot50',supplier:'Farma Atacado Central',oldPrice:180.0,newPrice:142.0,discount:21,category:'farmacia',tag:'critico',timer:21600,recommended:true},
+];
+
+// Quotes simulation
+const quotes = {
+  ativas: [
+    {id:'#VV-2851',date:'Hoje, 09:14',items:5,status:'Em andamento',statusClass:'chip-orange',detail:[
+      {name:'Cerveja Heineken cx24',qty:10,unit:'cx'},
+      {name:'Energético Red Bull cx24',qty:6,unit:'cx'},
+      {name:'Refrigerante Coca-Cola 2L cx6',qty:8,unit:'cx6'},
+      {name:'Vodka Absolut 1L',qty:3,unit:'un'},
+      {name:'Água Crystal 500ml cx24',qty:4,unit:'cx'},
+    ]},
+    {id:'#VV-2847',date:'Ontem, 14:32',items:8,status:'Aguardando respostas',statusClass:'chip-orange',detail:[
+      {name:'Detergente Ypê cx24',qty:5,unit:'cx'},
+      {name:'Água Sanitária Qboa cx12',qty:4,unit:'cx'},
+      {name:'Desinfetante Pinho Sol 1L',qty:6,unit:'cx12'},
+      {name:'Esponja Scotch-Brite cx10',qty:3,unit:'cx'},
+      {name:'Multiuso Mr Músculo',qty:4,unit:'un'},
+    ]},
+  ],
+  recebidas: [
+    {id:'#VV-2844',date:'Há 2 dias',items:4,status:'Ofertas recebidas',statusClass:'chip-green',hasOffers:true,detail:[
+      {name:'Dipirona 500mg cx30',qty:15,unit:'cx'},
+      {name:'Paracetamol 750mg cx20',qty:10,unit:'cx'},
+      {name:'Álcool Gel 70% 500ml',qty:20,unit:'un'},
+      {name:'Curativo Band-Aid cx100',qty:5,unit:'cx'},
+    ],
+    offers:[
+      {supplier:'Farma Atacado Central',price:'R$ 1.289,00',prazo:'1-2 dias',cond:'Boleto 30d',rep:'4.8 ★',best:true},
+      {supplier:'Distribuidora Saúde Total',price:'R$ 1.340,00',prazo:'2-3 dias',cond:'PIX/Boleto',rep:'4.6 ★',best:false},
+      {supplier:'Atacado MedBem SP',price:'R$ 1.415,00',prazo:'1 dia',cond:'PIX',rep:'4.9 ★',best:false},
+    ]},
+  ],
+  finalizadas:[
+    {id:'#VV-2840',date:'5 dias atrás',items:6,status:'Finalizada',statusClass:'chip-gray'},
+    {id:'#VV-2835',date:'8 dias atrás',items:3,status:'Finalizada',statusClass:'chip-gray'},
+    {id:'#VV-2829',date:'12 dias atrás',items:11,status:'Finalizada',statusClass:'chip-gray'},
+    {id:'#VV-2820',date:'18 dias atrás',items:4,status:'Finalizada',statusClass:'chip-gray'},
+  ]
+};
+
+// ═══════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function scrollTo(id){
+  document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function showDashPanel(panelId, clickedItem){
+  document.querySelectorAll('.dash-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+panelId).classList.add('active');
+  if(clickedItem){
+    document.querySelectorAll('.sidebar-item').forEach(i=>i.classList.remove('active'));
+    clickedItem.classList.add('active');
+  }
+  document.querySelector('.main-content').scrollTo(0,0);
+}
+
+function goToDashboard(){
+  showPage('page-dashboard');
+  initDashboard();
+}
+
+function doLogin(){
+  const email=document.getElementById('login-email').value;
+  const pass=document.getElementById('login-pass').value;
+  if(!email||!pass){showToast('Preencha e-mail e senha','error');return}
+  appState.currentUser={name:'Marcos Ribeiro',email,biz:'Farmácia Saúde & Vida'};
+  showToast('Bem-vindo de volta, Marcos!','success');
+  showPage('page-dashboard');
+  initDashboard();
+}
+
+function doRegister(){
+  const name=document.getElementById('reg-name').value;
+  const email=document.getElementById('reg-email').value;
+  const pass=document.getElementById('reg-pass').value;
+  if(!name||!email||!pass){showToast('Preencha todos os campos obrigatórios','error');return}
+  if(pass.length<8){showToast('A senha deve ter pelo menos 8 caracteres','error');return}
+  appState.currentUser={name,email,biz:''};
+  if(appState.userType==='fornecedor'){showPage('page-fornecedor');return}
+  showPage('page-onboarding');
+  document.getElementById('ob-alert-email').value=email;
+}
+
+function doLogout(){
+  appState.currentUser=null;
+  showToast('Você saiu da sua conta','info');
+  showPage('page-landing');
+}
+
+let regUserType='estabelecimento';
+function selectType(type,el){
+  regUserType=type;
+  appState.userType=type;
+  document.querySelectorAll('.auth-type-btn').forEach(b=>b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ═══════════════════════════════
+// ONBOARDING
+// ═══════════════════════════════
+const progressPct=[0,14,28,42,57,71,85,100];
+
+function obNext(to){
+  document.getElementById('ob-step-'+(to-1)).classList.add('hidden');
+  document.getElementById('ob-step-'+to).classList.remove('hidden');
+  document.getElementById('ob-progress').style.width=progressPct[to]+'%';
+  document.querySelectorAll('[id^="psl-"]').forEach((el,i)=>{
+    el.classList.toggle('active',i+1===to);
+  });
+  document.querySelector('.onboarding-container').scrollIntoView({behavior:'smooth'});
+}
+
+function obBack(to){
+  document.getElementById('ob-step-'+(to+1)).classList.add('hidden');
+  document.getElementById('ob-step-'+to).classList.remove('hidden');
+  document.getElementById('ob-progress').style.width=progressPct[to]+'%';
+}
+
+function selectOption(el,groupId){
+  document.querySelectorAll('#'+groupId+' .option-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ═══════════════════════════════
+// DASHBOARD INIT
+// ═══════════════════════════════
+function initDashboard(){
+  const bizName=document.getElementById('ob-biz-name')?.value||'Farmácia Saúde & Vida';
+  const userName=appState.currentUser?.name||'Marcos Ribeiro';
+  const firstName=userName.split(' ')[0];
+  document.getElementById('dash-name').textContent=firstName;
+  document.getElementById('sidebar-user-name').textContent=userName;
+  document.getElementById('sidebar-user-biz').textContent=bizName||'Estabelecimento';
+  document.getElementById('sidebar-avatar-text').textContent=userName.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+  renderCriticalItems();
+  renderCatalog();
+  renderPromos();
+  renderQuotes();
+}
+
+function renderCriticalItems(){
+  const list=document.getElementById('critical-items-list');
+  if(!list)return;
+  list.innerHTML=criticalItems.map(item=>`
+    <div class="critical-item ${item.urgencia}">
+      <span style="font-size:1.25rem">${item.icon}</span>
+      <div style="flex:1">
+        <div class="critical-item-name">${item.name}</div>
+        <div class="critical-item-info">${item.cat} · ${item.unit}</div>
+      </div>
+      <div class="critical-item-stock">
+        <span class="chip ${item.urgencia==='urgent'?'chip-red':'chip-orange'}" style="font-size:.75rem">
+          ${item.estoque} ${item.unit} restando
+        </span>
+        <span style="font-size:.75rem;color:var(--gray-400)">mín: ${item.minimo}</span>
+      </div>
+      <button class="btn btn-primary btn-sm" style="padding:.375rem .75rem;font-size:.8125rem" onclick="addSingleItemToQuote('${item.name}')">+ Cotar</button>
+    </div>`).join('');
+
+  // Upload critical list
+  const ul=document.getElementById('upload-critical-list');
+  if(ul) ul.innerHTML=list.innerHTML;
+  const al=document.getElementById('upload-atencao-list');
+  if(al) al.innerHTML=atencaoItems.map(item=>`
+    <div class="critical-item ${item.urgencia}">
+      <span style="font-size:1.25rem">${item.icon}</span>
+      <div style="flex:1">
+        <div class="critical-item-name">${item.name}</div>
+        <div class="critical-item-info">${item.cat} · ${item.unit}</div>
+      </div>
+      <div class="critical-item-stock">
+        <span class="chip chip-orange" style="font-size:.75rem">${item.estoque} ${item.unit} restando</span>
+        <span style="font-size:.75rem;color:var(--gray-400)">mín: ${item.minimo}</span>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════
+// CATALOG & CART
+// ═══════════════════════════════
+let activeCat='todos';
+let searchQuery='';
+
+function renderCatalog(){
+  const grid=document.getElementById('catalog-grid');
+  if(!grid)return;
+  const filtered=catalog.filter(p=>{
+    const matchCat=activeCat==='todos'||p.cat===activeCat;
+    const matchSearch=!searchQuery||p.name.toLowerCase().includes(searchQuery.toLowerCase())||p.brand.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchCat&&matchSearch;
+  });
+  if(filtered.length===0){
+    grid.innerHTML=`<div class="empty-state" style="grid-column:1/-1"><span class="empty-state-icon">🔍</span><div class="empty-state-title">Nenhum produto encontrado</div><div class="empty-state-desc">Tente outros termos ou mude a categoria</div></div>`;
+    return;
+  }
+  grid.innerHTML=filtered.map(p=>`
+    <div class="catalog-item">
+      <div class="catalog-item-icon">${p.icon}</div>
+      <div style="flex:1">
+        <div class="catalog-item-name">${p.name}</div>
+        <div class="catalog-item-meta">${p.brand} · ${p.unit}</div>
+      </div>
+      <button class="catalog-add-btn" onclick="addToCart(${p.id})" title="Adicionar ao carrinho">+</button>
+    </div>`).join('');
+}
+
+function filterCatalog(q){
+  searchQuery=q;
+  renderCatalog();
+}
+
+function filterByCategory(cat,el){
+  activeCat=cat;
+  document.querySelectorAll('.cat-filter').forEach(f=>f.classList.remove('active'));
+  el.classList.add('active');
+  renderCatalog();
+}
+
+function addToCart(productId){
+  const p=catalog.find(x=>x.id===productId);
+  if(!p)return;
+  const existing=appState.cart.find(x=>x.id===productId);
+  if(existing){existing.qty++;showToast(`${p.name.slice(0,30)}... (+1)`,'info')}
+  else{appState.cart.push({...p,qty:1});showToast(`${p.name.slice(0,30)}... adicionado`,'success')}
+  renderCart();
+}
+
+function changeQty(id,delta){
+  const item=appState.cart.find(x=>x.id===id);
+  if(!item)return;
+  item.qty=Math.max(1,item.qty+delta);
+  renderCart();
+}
+
+function removeFromCart(id){
+  appState.cart=appState.cart.filter(x=>x.id!==id);
+  renderCart();
+}
+
+function clearCart(){
+  appState.cart=[];
+  renderCart();
+}
+
+function renderCart(){
+  const el=document.getElementById('cart-items');
+  const footer=document.getElementById('cart-footer');
+  const countEl=document.getElementById('cart-count');
+  if(!el)return;
+  countEl.textContent=appState.cart.length+' '+(appState.cart.length===1?'item':'itens');
+  if(appState.cart.length===0){
+    el.innerHTML=`<div class="empty-state" style="padding:2rem 1rem"><span class="empty-state-icon" style="font-size:2rem">🛒</span><div class="empty-state-title">Carrinho vazio</div><div class="empty-state-desc" style="font-size:.875rem">Busque e adicione produtos ao lado</div></div>`;
+    footer.classList.add('hidden');
+    return;
+  }
+  el.innerHTML=appState.cart.map(item=>`
+    <div class="cart-item">
+      <div style="flex:1">
+        <div class="catalog-item-name" style="font-size:.875rem">${item.name}</div>
+        <div class="catalog-item-meta">${item.unit}</div>
+      </div>
+      <div class="qty-control">
+        <button class="qty-btn" onclick="changeQty(${item.id},-1)">−</button>
+        <span class="qty-num">${item.qty}</span>
+        <button class="qty-btn" onclick="changeQty(${item.id},1)">+</button>
+      </div>
+      <button class="cart-remove" onclick="removeFromCart(${item.id})">✕</button>
+    </div>`).join('');
+  footer.classList.remove('hidden');
+}
+
+function gerarCotacaoManual(){
+  if(appState.cart.length===0){showToast('Adicione itens ao carrinho primeiro','error');return}
+  showToast('✅ Cotação #VV-2858 gerada! Fornecedores foram notificados.','success');
+  appState.cart=[];
+  renderCart();
+  setTimeout(()=>showDashPanel('cotacoes',document.querySelector('[onclick*="cotacoes"]')),1500);
+}
+
+function gerarCotacaoPlanilha(){
+  showToast('✅ Cotação #VV-2857 gerada para os 7 itens críticos! Aguardando respostas dos fornecedores.','success');
+  setTimeout(()=>showDashPanel('cotacoes',null),1500);
+}
+
+function generateAutoQuote(){
+  showToast('⚡ Gerando cotação automática para os 7 itens críticos...','info');
+  setTimeout(()=>{
+    showToast('✅ Cotação #VV-2859 enviada para 4 fornecedores!','success');
+    showDashPanel('cotacoes',null);
+  },2000);
+}
+
+function addSingleItemToQuote(name){
+  showDashPanel('cotar-manual',document.querySelectorAll('.sidebar-item')[2]);
+  setTimeout(()=>{
+    document.getElementById('catalog-search').value=name.split(' ').slice(0,2).join(' ');
+    filterCatalog(name.split(' ').slice(0,2).join(' '));
+  },200);
+}
+
+// ═══════════════════════════════
+// PROMOTIONS
+// ═══════════════════════════════
+let promoFilter='todos';
+let promoTimers={};
+
+function filterPromos(cat,el){
+  promoFilter=cat;
+  document.querySelectorAll('.cat-filter').forEach(f=>f.classList.remove('active'));
+  el.classList.add('active');
+  renderPromos();
+}
+
+function renderPromos(){
+  const grid=document.getElementById('promo-grid');
+  if(!grid)return;
+  const filtered=promotions.filter(p=>{
+    if(promoFilter==='todos')return true;
+    if(promoFilter==='urgente')return p.tag==='flash';
+    if(promoFilter==='critico')return p.tag==='critico';
+    return p.category===promoFilter;
+  });
+  grid.innerHTML=filtered.map(p=>`
+    <div class="promo-card">
+      <div class="promo-header">
+        <div class="promo-tag">
+          <span class="chip ${p.tag==='critico'?'chip-red':'chip-orange'}" style="font-size:.75rem">${p.tag==='critico'?'🚨 Item crítico':'⚡ Relâmpago'}</span>
+          ${p.recommended?'<span class="chip chip-blue" style="font-size:.75rem">✦ Para você</span>':''}
+        </div>
+        <div class="promo-name">${p.name}</div>
+        <div class="promo-supplier">${p.supplier}</div>
+      </div>
+      <div class="promo-body">
+        <div class="promo-price-row">
+          <span class="promo-price-old">R$ ${p.oldPrice.toFixed(2)}</span>
+          <span class="promo-price-new">R$ ${p.newPrice.toFixed(2)}</span>
+          <span class="promo-discount">−${p.discount}%</span>
+        </div>
+        <div style="font-size:.8125rem;color:var(--gray-400)">Economia de R$ ${(p.oldPrice-p.newPrice).toFixed(2)} por unidade</div>
+      </div>
+      <div class="promo-footer">
+        <div class="promo-timer" id="timer-${p.id}">⏱ Carregando...</div>
+        <button class="btn btn-primary btn-sm" onclick="acceptPromo(${p.id})">Aproveitar</button>
+      </div>
+    </div>`).join('');
+  // Start timers
+  filtered.forEach(p=>startTimer(p.id,p.timer));
+}
+
+function startTimer(id,seconds){
+  if(promoTimers[id])clearInterval(promoTimers[id]);
+  let remaining=seconds;
+  const update=()=>{
+    const el=document.getElementById('timer-'+id);
+    if(!el)return;
+    const h=Math.floor(remaining/3600);
+    const m=Math.floor((remaining%3600)/60);
+    const s=remaining%60;
+    el.textContent=`⏱ ${h>0?h+'h ':''} ${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    if(remaining<=0){clearInterval(promoTimers[id]);el.textContent='⏱ Expirada'}
+    remaining--;
+  };
+  update();
+  promoTimers[id]=setInterval(update,1000);
+}
+
+function acceptPromo(id){
+  const p=promotions.find(x=>x.id===id);
+  showToast(`✅ ${p.name} adicionado ao carrinho de cotação!`,'success');
+}
+
+// ═══════════════════════════════
+// QUOTES
+// ═══════════════════════════════
+function renderQuotes(){
+  renderQuoteGroup('quotes-list-ativas',quotes.ativas);
+  renderQuoteGroup('quotes-list-recebidas',quotes.recebidas);
+  renderQuoteGroup('quotes-list-finalizadas',quotes.finalizadas);
+}
+
+function renderQuoteGroup(elId,list){
+  const el=document.getElementById(elId);
+  if(!el)return;
+  el.innerHTML=list.map(q=>`
+    <div class="quote-card" id="qcard-${q.id.replace('#','')}">
+      <div class="quote-header" onclick="toggleQuote('${q.id.replace('#','')}')">
+        <div>
+          <div class="quote-id">Cotação ${q.id}</div>
+          <div class="quote-meta">${q.date} · ${q.items} itens</div>
+        </div>
+        <div class="quote-status">
+          <span class="chip ${q.statusClass}" style="font-size:.8125rem">${q.status}</span>
+          <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </div>
+      </div>
+      <div class="quote-body">
+        <h4 style="font-size:.875rem;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.75rem">Itens da cotação</h4>
+        <table class="quote-items-table">
+          <thead><tr><th>Produto</th><th>Qtd</th><th>Unidade</th></tr></thead>
+          <tbody>
+            ${(q.detail||[]).map(d=>`<tr><td>${d.name}</td><td>${d.qty}</td><td>${d.unit}</td></tr>`).join('')}
+          </tbody>
+        </table>
+        ${q.hasOffers?renderOffers(q.offers):''}
+        ${q.status==='Finalizada'?`<div style="color:var(--gray-400);font-size:.875rem;margin-top:1rem;text-align:center">Cotação encerrada — pedido realizado com sucesso.</div>`:''}
+        ${q.status==='Em andamento'||q.status==='Aguardando respostas'?`<div style="color:var(--gray-400);font-size:.875rem;margin-top:1rem;display:flex;align-items:center;gap:.5rem"><div class="loading-spinner"></div> Aguardando respostas dos fornecedores...</div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function renderOffers(offers){
+  return`
+    <h4 style="font-size:.875rem;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:.04em;margin-top:1.5rem;margin-bottom:.75rem">Ofertas recebidas</h4>
+    <table class="offers-table">
+      <thead><tr><th>Fornecedor</th><th>Valor total</th><th>Prazo</th><th>Pagamento</th><th>Reputação</th><th></th></tr></thead>
+      <tbody>
+        ${offers.map(o=>`
+          <tr ${o.best?'class="best-offer"':''}>
+            <td style="font-weight:500">${o.supplier} ${o.best?'<span class="best-badge">★ Melhor oferta</span>':''}</td>
+            <td style="font-weight:600;color:var(--blue)">${o.price}</td>
+            <td>${o.prazo}</td>
+            <td>${o.cond}</td>
+            <td>${o.rep}</td>
+            <td><button class="btn btn-${o.best?'success':'ghost'} btn-sm" onclick="chooseOffer('${o.supplier}')">${o.best?'Escolher':'Selecionar'}</button></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function toggleQuote(id){
+  const card=document.getElementById('qcard-'+id);
+  card.classList.toggle('open');
+}
+
+function chooseOffer(supplier){
+  showToast(`✅ Oferta da ${supplier} confirmada! Pedido sendo processado.`,'success');
+}
+
+// ═══════════════════════════════
+// FILE UPLOAD
+// ═══════════════════════════════
+function handleDragOver(e){e.preventDefault();document.getElementById('upload-zone').classList.add('dragover')}
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('dragover');
+  processUpload(e.dataTransfer.files[0]);
+}
+function handleFileUpload(input){processUpload(input.files[0])}
+
+function processUpload(file){
+  if(!file)return;
+  const validExt=['.xlsx','.csv'];
+  const ext='.'+file.name.split('.').pop().toLowerCase();
+  if(!validExt.includes(ext)){showToast('Formato inválido. Use .xlsx ou .csv','error');return}
+  const zone=document.getElementById('upload-zone');
+  zone.innerHTML=`<div class="loading-spinner" style="margin:0 auto 1rem"></div><div style="font-size:.9375rem;font-weight:500;color:var(--gray-900)">Processando "${file.name}"...</div>`;
+  setTimeout(()=>{
+    zone.innerHTML=`<span class="upload-icon">✅</span><div class="upload-title">${file.name}</div><div style="font-size:.875rem;color:var(--success)">Arquivo carregado com sucesso</div>`;
+    document.getElementById('upload-result').classList.remove('hidden');
+    document.getElementById('upload-summary').textContent='103 itens lidos · 7 em baixo estoque · 12 em atenção';
+    showToast('Planilha processada! 7 itens críticos identificados.','success');
+  },1800);
+}
+
+// ═══════════════════════════════
+// TEMPLATE DOWNLOAD
+// ═══════════════════════════════
+function downloadTemplate(){
+  const csv=`SKU,Produto,Categoria,Marca,Unidade,Quantidade em Estoque,Estoque Mínimo,Consumo Médio,Observações
+001,Cerveja Heineken long neck 330ml,Bebidas,Heineken,cx24,5,10,8,Reposição urgente
+002,Dipirona 500mg cx30,Farmácia,Genérico,cx,3,15,12,Item crítico
+003,Detergente Ypê 500ml,Limpeza,Ypê,cx24,2,8,6,
+004,Água Mineral 500ml,Bebidas,Crystal,cx24,8,20,16,
+005,Álcool Gel 70% 500ml,Farmácia,Vitalitá,un,10,25,20,
+006,[PREENCHA AQUI],,,,,,,`;
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='vapt-vupt-modelo-estoque.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('📥 Modelo baixado! Preencha e suba de volta.','success');
+}
+
+// ═══════════════════════════════
+// CONFIG SAVE
+// ═══════════════════════════════
+function saveConfig(){showToast('✅ Configurações salvas com sucesso!','success')}
+
+// ═══════════════════════════════
+// FAQ
+// ═══════════════════════════════
+function toggleFaq(el){el.parentElement.classList.toggle('open')}
+
+// ═══════════════════════════════
+// TABS
+// ═══════════════════════════════
+function switchTab(el,targetId){
+  const parent=el.closest('.dash-panel,.onboarding-card,#panel-cotar-planilha,#panel-cotacoes');
+  const bar=el.closest('.tab-bar');
+  bar.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  // Hide all siblings of target
+  const target=document.getElementById(targetId);
+  if(!target)return;
+  const siblings=target.parentElement.children;
+  Array.from(siblings).forEach(s=>{
+    if(s.id&&s.id!==targetId&&!s.classList.contains('tab-bar'))s.classList.add('hidden');
+  });
+  target.classList.remove('hidden');
+}
+
+// ═══════════════════════════════
+// TOAST
+// ═══════════════════════════════
+function showToast(msg,type='info'){
+  const tc=document.getElementById('toastContainer');
+  const t=document.createElement('div');
+  t.className=`toast ${type}`;
+  t.innerHTML=`<span>${msg}</span><button onclick="this.parentElement.remove()" style="background:none;border:none;color:inherit;margin-left:.5rem;opacity:.6;cursor:pointer;font-size:1rem">✕</button>`;
+  tc.appendChild(t);
+  setTimeout(()=>t.style.animation='fadeOut .3s ease forwards',3500);
+  setTimeout(()=>t.remove(),3800);
+}
+
+// ═══════════════════════════════
+// DEMO MODAL
+// ═══════════════════════════════
+function openDemoModal(){document.getElementById('demo-modal').style.display='flex'}
+function closeDemoModal(){document.getElementById('demo-modal').style.display='none'}
+function submitDemo(){showToast('✅ Solicitação enviada! Entraremos em contato em até 24h.','success');closeDemoModal()}
+
+// ═══════════════════════════════
+// FORGOT PASSWORD
+// ═══════════════════════════════
+function showForgotModal(){showToast('Um link de recuperação foi enviado para seu e-mail.','info')}
+
+// ═══════════════════════════════
+// SCROLL REVEAL
+// ═══════════════════════════════
+const revealObs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('revealed');revealObs.unobserve(e.target)}});
+},{threshold:.1,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('[data-reveal]').forEach(el=>revealObs.observe(el));
+
+// ═══════════════════════════════
+// CSS ANIMATIONS APPEND
+// ═══════════════════════════════
+const style=document.createElement('style');
+style.textContent=`@keyframes fadeOut{to{opacity:0;transform:translateY(16px)}} .badge-gray{background:var(--gray-200);color:var(--gray-600)}`;
+document.head.appendChild(style);
+
+// ═══════════════════════════════
+// INIT
+// ═══════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  // Demo login shortcut on landing page
+  renderCatalog();
+  renderPromos();
+  renderCriticalItems();
+  renderQuotes();
+});
+</script>
+</body>
+</html>
