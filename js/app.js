@@ -1325,11 +1325,11 @@ function initScrollReveal() {
 function showSplashScreen() {
   var splash = document.createElement('div');
   splash.id = 'splash-screen';
-  splash.style.cssText = 'position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#0057FF 0%,#3373FF 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .5s ease,transform .5s ease';
+  splash.style.cssText = 'position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse at 35% 40%,#0033FF,#0022FF 65%);display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .5s ease,transform .5s ease';
   splash.innerHTML =
-    '<img src="img/favicon.svg" alt="Vapt Vupt logo" style="width:80px;height:80px;margin-bottom:1.5rem;animation:splashPulse 1s ease infinite alternate">' +
-    '<div style="color:#fff;font-family:var(--font-display);font-size:2rem;font-weight:400;opacity:0;animation:splashFadeIn .6s ease .3s forwards">Vapt Vupt</div>' +
-    '<div style="color:rgba(255,255,255,.6);font-size:.875rem;margin-top:.5rem;opacity:0;animation:splashFadeIn .6s ease .6s forwards">Reposição Inteligente de Estoque</div>';
+    '<img src="img/favicon.svg" alt="Vapt Vupt logo" style="width:96px;height:96px;border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,.3);margin-bottom:1.75rem;animation:splashPulse 1s ease infinite alternate">' +
+    '<div style="color:#fff;font-family:\'DM Sans\',sans-serif;font-size:2.25rem;font-weight:700;letter-spacing:-.02em;opacity:0;animation:splashFadeIn .6s ease .3s forwards">Vapt Vupt</div>' +
+    '<div style="color:rgba(255,255,255,.65);font-family:\'DM Sans\',sans-serif;font-size:.9375rem;font-weight:400;margin-top:.5rem;opacity:0;animation:splashFadeIn .6s ease .6s forwards">Reposição Inteligente de Estoque</div>';
   document.body.appendChild(splash);
   setTimeout(function() {
     splash.style.opacity = '0';
