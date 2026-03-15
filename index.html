@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Vapt Vupt — Cotação inteligente e reposição automática de estoque para farmácias, adegas, bares, restaurantes e comércio em geral.">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
-<meta http-equiv="X-Frame-Options" content="DENY">
+
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Vapt Vupt — Reposição Inteligente de Estoque</title>
 <link rel="icon" type="image/svg+xml" href="img/favicon.svg">
@@ -361,21 +361,21 @@
       <div style="font-size:.875rem;color:rgba(255,255,255,.3)">© 2025–2026 Vapt Vupt — LGPD Compliant</div>
     </div>
     <div class="auth-right">
-      <div class="auth-form-container">
+      <form class="auth-form-container" onsubmit="doLogin();return false" autocomplete="on">
         <div class="auth-form-title">Entrar na plataforma</div>
         <div class="auth-form-sub">Digite seus dados para acessar o painel</div>
         <div class="form-group">
-          <label class="form-label">E-mail</label>
-          <input type="email" class="form-input" id="login-email" placeholder="seu@email.com">
+          <label class="form-label" for="login-email">E-mail</label>
+          <input type="email" class="form-input" id="login-email" placeholder="seu@email.com" autocomplete="email" required>
         </div>
         <div class="form-group">
-          <label class="form-label" style="display:flex;justify-content:space-between">
+          <label class="form-label" for="login-pass" style="display:flex;justify-content:space-between">
             Senha
             <span style="color:var(--blue);font-weight:500;cursor:pointer;font-size:.8125rem" onclick="showForgotModal()">Esqueci a senha</span>
           </label>
-          <input type="password" class="form-input" id="login-pass" placeholder="••••••••">
+          <input type="password" class="form-input" id="login-pass" placeholder="••••••••" autocomplete="current-password" required>
         </div>
-        <button class="btn btn-primary btn-block btn-lg" onclick="doLogin()" style="margin-top:.5rem">Entrar</button>
+        <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top:.5rem">Entrar</button>
         <div class="auth-divider">ou</div>
         <div style="text-align:center;font-size:.9375rem;color:var(--gray-400)">
           Não tem conta? <span style="color:var(--blue);font-weight:500;cursor:pointer" onclick="showPage('page-cadastro')">Criar conta grátis</span>
@@ -383,7 +383,7 @@
         <div style="text-align:center;margin-top:1rem">
           <span style="font-size:.875rem;color:var(--gray-400);cursor:pointer" onclick="showPage('page-landing')">← Voltar ao site</span>
         </div>
-      </div>
+      </form>
     </div>
   </div>
 </div>
@@ -407,7 +407,7 @@
       <div style="font-size:.875rem;color:rgba(255,255,255,.3)">© 2025–2026 Vapt Vupt</div>
     </div>
     <div class="auth-right">
-      <div class="auth-form-container">
+      <form class="auth-form-container" onsubmit="doRegister();return false" autocomplete="on">
         <div class="auth-form-title">Criar sua conta</div>
         <div class="auth-form-sub">Você é:</div>
         <div class="auth-type-selector" id="regType">
@@ -424,34 +424,34 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Nome completo</label>
-            <input type="text" class="form-input" id="reg-name" placeholder="Seu nome">
+            <label class="form-label" for="reg-name">Nome completo</label>
+            <input type="text" class="form-input" id="reg-name" placeholder="Seu nome" autocomplete="name" required>
           </div>
           <div class="form-group">
-            <label class="form-label">Telefone</label>
-            <input type="tel" class="form-input" id="reg-phone" placeholder="(11) 9 0000-0000">
+            <label class="form-label" for="reg-phone">Telefone</label>
+            <input type="tel" class="form-input" id="reg-phone" placeholder="(11) 9 0000-0000" autocomplete="tel">
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">E-mail</label>
-          <input type="email" class="form-input" id="reg-email" placeholder="seu@email.com">
+          <label class="form-label" for="reg-email">E-mail</label>
+          <input type="email" class="form-input" id="reg-email" placeholder="seu@email.com" autocomplete="email" required>
         </div>
         <div class="form-group">
-          <label class="form-label">Senha</label>
-          <input type="password" class="form-input" id="reg-pass" placeholder="Mínimo 8 caracteres">
+          <label class="form-label" for="reg-pass">Senha</label>
+          <input type="password" class="form-input" id="reg-pass" placeholder="Mínimo 8 caracteres" autocomplete="new-password" minlength="8" required>
           <div class="form-hint">Use letras, números e caracteres especiais para mais segurança</div>
         </div>
         <div style="font-size:.8125rem;color:var(--gray-400);margin-bottom:1.25rem">
           Ao criar a conta você concorda com os <span style="color:var(--blue);cursor:pointer">Termos de Uso</span> e a <span style="color:var(--blue);cursor:pointer">Política de Privacidade</span>.
         </div>
-        <button class="btn btn-primary btn-block btn-lg" onclick="doRegister()">Criar conta e continuar</button>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Criar conta e continuar</button>
         <div style="text-align:center;margin-top:1.25rem;font-size:.9375rem;color:var(--gray-400)">
           Já tem conta? <span style="color:var(--blue);font-weight:500;cursor:pointer" onclick="showPage('page-login')">Entrar</span>
         </div>
         <div style="text-align:center;margin-top:.75rem">
           <span style="font-size:.875rem;color:var(--gray-400);cursor:pointer" onclick="showPage('page-landing')">← Voltar ao site</span>
         </div>
-      </div>
+      </form>
     </div>
   </div>
 </div>
