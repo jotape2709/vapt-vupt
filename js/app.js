@@ -103,44 +103,33 @@ const promotions = [
   {id:5,name:'Dipirona Genérica cx30 — lot50',supplier:'Farma Atacado Central',oldPrice:180.0,newPrice:142.0,discount:21,category:'farmacia',tag:'critico',timer:21600,recommended:true},
 ];
 
-// Quotes simulation
-const quotes = {
-  ativas: [
-    {id:'#VV-2851',date:'Hoje, 09:14',items:5,status:'Em andamento',statusClass:'chip-orange',detail:[
-      {name:'Cerveja Heineken cx24',qty:10,unit:'cx'},
-      {name:'Energético Red Bull cx24',qty:6,unit:'cx'},
-      {name:'Refrigerante Coca-Cola 2L cx6',qty:8,unit:'cx6'},
-      {name:'Vodka Absolut 1L',qty:3,unit:'un'},
-      {name:'Água Crystal 500ml cx24',qty:4,unit:'cx'},
-    ]},
-    {id:'#VV-2847',date:'Ontem, 14:32',items:8,status:'Aguardando respostas',statusClass:'chip-orange',detail:[
-      {name:'Detergente Ypê cx24',qty:5,unit:'cx'},
-      {name:'Água Sanitária Qboa cx12',qty:4,unit:'cx'},
-      {name:'Desinfetante Pinho Sol 1L',qty:6,unit:'cx12'},
-      {name:'Esponja Scotch-Brite cx10',qty:3,unit:'cx'},
-      {name:'Multiuso Mr Músculo',qty:4,unit:'un'},
-    ]},
-  ],
-  recebidas: [
-    {id:'#VV-2844',date:'Há 2 dias',items:4,status:'Ofertas recebidas',statusClass:'chip-green',hasOffers:true,detail:[
-      {name:'Dipirona 500mg cx30',qty:15,unit:'cx'},
-      {name:'Paracetamol 750mg cx20',qty:10,unit:'cx'},
-      {name:'Álcool Gel 70% 500ml',qty:20,unit:'un'},
-      {name:'Curativo Band-Aid cx100',qty:5,unit:'cx'},
-    ],
-    offers:[
-      {supplier:'Farma Atacado Central',price:'R$ 1.289,00',prazo:'1-2 dias',cond:'Boleto 30d',rep:'4.8 ★',best:true},
-      {supplier:'Distribuidora Saúde Total',price:'R$ 1.340,00',prazo:'2-3 dias',cond:'PIX/Boleto',rep:'4.6 ★',best:false},
-      {supplier:'Atacado MedBem SP',price:'R$ 1.415,00',prazo:'1 dia',cond:'PIX',rep:'4.9 ★',best:false},
-    ]},
-  ],
-  finalizadas:[
-    {id:'#VV-2840',date:'5 dias atrás',items:6,status:'Finalizada',statusClass:'chip-gray'},
-    {id:'#VV-2835',date:'8 dias atrás',items:3,status:'Finalizada',statusClass:'chip-gray'},
-    {id:'#VV-2829',date:'12 dias atrás',items:11,status:'Finalizada',statusClass:'chip-gray'},
-    {id:'#VV-2820',date:'18 dias atrás',items:4,status:'Finalizada',statusClass:'chip-gray'},
-  ]
-};
+// Quotes — start empty; populated when user creates quotes
+var userQuotes = { ativas: [], recebidas: [], finalizadas: [] };
+var quoteCounter = 2860;
+
+// Supplier pool — available suppliers for matching
+var supplierPool = [
+  {name:'Distribuidora Norte SP', cats:['bebidas','limpeza','alimentos'], rating:'4.7 ★', available:true},
+  {name:'Atacado Pronto', cats:['limpeza','alimentos','descartaveis'], rating:'4.5 ★', available:true},
+  {name:'Distribuidora Saúde Total', cats:['farmacia','limpeza'], rating:'4.6 ★', available:true},
+  {name:'Bebidas Leste Ltda', cats:['bebidas'], rating:'4.8 ★', available:true},
+  {name:'Farma Atacado Central', cats:['farmacia'], rating:'4.8 ★', available:true},
+  {name:'Descartáveis Plus', cats:['descartaveis','alimentos'], rating:'4.3 ★', available:true},
+  {name:'MedBem Atacado SP', cats:['farmacia','limpeza'], rating:'4.9 ★', available:false},
+];
+
+function getMatchedSuppliers(items) {
+  var cats = [];
+  items.forEach(function(item) {
+    var cat = item.cat || item.category || 'outros';
+    if (cats.indexOf(cat) === -1) cats.push(cat);
+  });
+  var matched = [];
+  supplierPool.forEach(function(s) {
+    if (s.cats.some(function(c) { return cats.indexOf(c) !== -1; })) matched.push(s);
+  });
+  return matched.slice(0, 5);
+}
 
 // ═══════════════════════════════
 // NAVIGATION
@@ -500,23 +489,72 @@ function renderCart() {
 
 function gerarCotacaoManual() {
   if (appState.cart.length === 0) { showToast('Adicione itens ao carrinho primeiro', 'error'); return; }
-  showToast('✅ Cotação #VV-2858 gerada! Fornecedores foram notificados.', 'success');
+  var quoteId = '#VV-' + (quoteCounter++);
+  var matched = getMatchedSuppliers(appState.cart);
+  var availableCount = matched.filter(function(s) { return s.available; }).length;
+  var newQuote = {
+    id: quoteId,
+    date: 'Agora',
+    items: appState.cart.length,
+    status: 'Aguardando respostas',
+    statusClass: 'chip-orange',
+    detail: appState.cart.map(function(item) { return {name: item.name, qty: item.qty, unit: item.unit}; }),
+    suppliers: matched
+  };
+  userQuotes.ativas.unshift(newQuote);
+  updateQuoteTabs();
   appState.cart = [];
   renderCart();
+  showToast('✅ Cotação ' + quoteId + ' gerada! ' + availableCount + ' fornecedor(es) notificado(s).', 'success');
   setTimeout(function() {
+    renderQuotes();
     showDashPanel('cotacoes', document.querySelector('[onclick*="cotacoes"]'));
   }, 1500);
 }
 
 function gerarCotacaoPlanilha() {
-  showToast('✅ Cotação #VV-2857 gerada para os 7 itens críticos! Aguardando respostas dos fornecedores.', 'success');
-  setTimeout(function() { showDashPanel('cotacoes', null); }, 1500);
+  var quoteId = '#VV-' + (quoteCounter++);
+  var items = criticalItems.map(function(i) { return {name: i.name, qty: i.minimo - i.estoque, unit: i.unit, cat: i.cat}; });
+  var matched = getMatchedSuppliers(criticalItems);
+  var availableCount = matched.filter(function(s) { return s.available; }).length;
+  var newQuote = {
+    id: quoteId,
+    date: 'Agora',
+    items: items.length,
+    status: 'Aguardando respostas',
+    statusClass: 'chip-orange',
+    detail: items,
+    suppliers: matched
+  };
+  userQuotes.ativas.unshift(newQuote);
+  updateQuoteTabs();
+  showToast('✅ Cotação ' + quoteId + ' gerada para ' + items.length + ' itens! ' + availableCount + ' fornecedor(es) notificado(s).', 'success');
+  setTimeout(function() {
+    renderQuotes();
+    showDashPanel('cotacoes', null);
+  }, 1500);
 }
 
 function generateAutoQuote() {
-  showToast('⚡ Gerando cotação automática para os 7 itens críticos...', 'info');
+  showToast('⚡ Gerando cotação automática para os itens críticos...', 'info');
   setTimeout(function() {
-    showToast('✅ Cotação #VV-2859 enviada para 4 fornecedores!', 'success');
+    var quoteId = '#VV-' + (quoteCounter++);
+    var items = criticalItems.map(function(i) { return {name: i.name, qty: i.minimo - i.estoque, unit: i.unit, cat: i.cat}; });
+    var matched = getMatchedSuppliers(criticalItems);
+    var availableCount = matched.filter(function(s) { return s.available; }).length;
+    var newQuote = {
+      id: quoteId,
+      date: 'Agora',
+      items: items.length,
+      status: 'Aguardando respostas',
+      statusClass: 'chip-orange',
+      detail: items,
+      suppliers: matched
+    };
+    userQuotes.ativas.unshift(newQuote);
+    updateQuoteTabs();
+    showToast('✅ Cotação ' + quoteId + ' enviada para ' + availableCount + ' fornecedores!', 'success');
+    renderQuotes();
     showDashPanel('cotacoes', null);
   }, 2000);
 }
@@ -612,16 +650,53 @@ function acceptPromo(id) {
 // QUOTES
 // ═══════════════════════════════
 function renderQuotes() {
-  renderQuoteGroup('quotes-list-ativas', quotes.ativas);
-  renderQuoteGroup('quotes-list-recebidas', quotes.recebidas);
-  renderQuoteGroup('quotes-list-finalizadas', quotes.finalizadas);
+  renderQuoteGroup('quotes-list-ativas', userQuotes.ativas);
+  renderQuoteGroup('quotes-list-recebidas', userQuotes.recebidas);
+  renderQuoteGroup('quotes-list-finalizadas', userQuotes.finalizadas);
+  updateQuoteTabs();
 }
 
 function renderQuoteGroup(elId, list) {
   var el = document.getElementById(elId);
   if (!el) return;
+  if (list.length === 0) {
+    var targetId = elId.replace('quotes-list-', '');
+    var messages = {
+      'ativas': 'Nenhuma cotação em andamento. Use o botão abaixo para criar uma.',
+      'recebidas': 'Nenhuma oferta recebida ainda. Aguarde as respostas dos fornecedores.',
+      'finalizadas': 'Nenhuma cotação finalizada ainda.'
+    };
+    el.innerHTML =
+      '<div class="empty-state" style="padding:2.5rem 1rem">' +
+        '<span class="empty-state-icon" style="font-size:2.5rem;display:block;margin-bottom:.75rem">📋</span>' +
+        '<div class="empty-state-title">Sem cotações</div>' +
+        '<div class="empty-state-desc">' + (messages[targetId] || 'Nenhuma cotação encontrada.') + '</div>' +
+        (targetId === 'ativas' ?
+          '<div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;margin-top:1rem">' +
+            '<button class="btn btn-primary btn-sm" onclick="showDashPanel(\'cotar-manual\',null)">+ Cotação manual</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="showDashPanel(\'cotar-planilha\',null)">📊 Cotação por planilha</button>' +
+          '</div>' : '') +
+      '</div>';
+    return;
+  }
   el.innerHTML = list.map(function(q) {
     var qId = q.id.replace('#', '');
+    var suppliersHtml = '';
+    if ((q.status === 'Em andamento' || q.status === 'Aguardando respostas') && q.suppliers && q.suppliers.length > 0) {
+      suppliersHtml =
+        '<div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--gray-100)">' +
+          '<h4 style="font-size:.8125rem;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.625rem">Fornecedores notificados</h4>' +
+          '<div style="display:flex;flex-wrap:wrap;gap:.5rem">' +
+          q.suppliers.map(function(s) {
+            return '<div style="display:flex;align-items:center;gap:.375rem;background:' + (s.available ? 'var(--blue-light)' : 'var(--gray-100)') + ';padding:.3125rem .75rem;border-radius:100px;font-size:.8125rem">' +
+              '<span style="width:7px;height:7px;border-radius:50%;flex-shrink:0;background:' + (s.available ? 'var(--success)' : 'var(--warning)') + ';display:inline-block"></span>' +
+              '<span style="color:' + (s.available ? 'var(--gray-900)' : 'var(--gray-500)') + '">' + escapeHtml(s.name) + '</span>' +
+              '<span style="color:var(--gray-400);font-size:.75rem">' + escapeHtml(s.rating) + '</span>' +
+            '</div>';
+          }).join('') +
+          '</div>' +
+        '</div>';
+    }
     return '<div class="quote-card" id="qcard-' + escapeHtml(qId) + '">' +
       '<div class="quote-header" onclick="toggleQuote(\'' + escapeHtml(qId) + '\')">' +
         '<div>' +
@@ -641,6 +716,7 @@ function renderQuoteGroup(elId, list) {
             (q.detail || []).map(function(d) { return '<tr><td>' + escapeHtml(d.name) + '</td><td>' + d.qty + '</td><td>' + escapeHtml(d.unit) + '</td></tr>'; }).join('') +
           '</tbody>' +
         '</table>' +
+        suppliersHtml +
         (q.hasOffers ? renderOffers(q.offers) : '') +
         (q.status === 'Finalizada' ? '<div style="color:var(--gray-400);font-size:.875rem;margin-top:1rem;text-align:center">Cotação encerrada — pedido realizado com sucesso.</div>' : '') +
         (q.status === 'Em andamento' || q.status === 'Aguardando respostas' ? '<div style="color:var(--gray-400);font-size:.875rem;margin-top:1rem;display:flex;align-items:center;gap:.5rem"><div class="loading-spinner"></div> Aguardando respostas dos fornecedores...</div>' : '') +
@@ -675,6 +751,63 @@ function toggleQuote(id) {
 
 function chooseOffer(supplier) {
   showToast('✅ Oferta da ' + escapeHtml(supplier) + ' confirmada! Pedido sendo processado.', 'success');
+}
+
+function updateQuoteTabs() {
+  var ativasCount = userQuotes.ativas.length;
+  var recebidasCount = userQuotes.recebidas.length;
+  var finalizadasCount = userQuotes.finalizadas.length;
+  var tabBar = document.querySelector('#panel-cotacoes .tab-bar');
+  if (tabBar) {
+    var tabs = tabBar.querySelectorAll('.tab');
+    if (tabs[0]) tabs[0].textContent = 'Em andamento (' + ativasCount + ')';
+    if (tabs[1]) tabs[1].textContent = 'Ofertas recebidas (' + recebidasCount + ')';
+    if (tabs[2]) tabs[2].textContent = 'Finalizadas (' + finalizadasCount + ')';
+  }
+  var badge = document.querySelector('[onclick*="\'cotacoes\'"] .badge');
+  if (badge) {
+    var total = ativasCount + recebidasCount;
+    badge.textContent = total;
+    badge.style.display = total > 0 ? '' : 'none';
+  }
+}
+
+// ═══════════════════════════════
+// CEP AUTO-FILL (ViaCEP)
+// ═══════════════════════════════
+function autoFillCep(inputEl) {
+  var cep = inputEl.value.replace(/\D/g, '');
+  if (cep.length !== 8) return;
+  var prefix = inputEl.id.replace(/-cep$/, '');
+  fetch('https://viacep.com.br/ws/' + cep + '/json/')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.erro) { showToast('CEP não encontrado. Verifique e tente novamente.', 'error'); return; }
+      var fieldMap = {endereco: data.logradouro, bairro: data.bairro, cidade: data.localidade, uf: data.uf};
+      Object.keys(fieldMap).forEach(function(key) {
+        var el = document.getElementById(prefix + '-' + key);
+        if (el && fieldMap[key]) el.value = fieldMap[key];
+      });
+      showToast('✅ Endereço preenchido automaticamente!', 'success');
+    })
+    .catch(function() {
+      showToast('Não foi possível buscar o CEP. Preencha manualmente.', 'error');
+    });
+}
+
+// ═══════════════════════════════
+// SUPPLIER REGISTRATION
+// ═══════════════════════════════
+function submitSupplierRegistration() {
+  var razaoSocial = document.getElementById('sup-razao-social');
+  var cnpj = document.getElementById('sup-cnpj');
+  if (!razaoSocial || !razaoSocial.value.trim()) { showToast('Preencha a Razão Social', 'error'); return; }
+  if (!cnpj || !cnpj.value.trim()) { showToast('Preencha o CNPJ', 'error'); return; }
+  var form = document.getElementById('supplier-form');
+  var pending = document.getElementById('supplier-pending');
+  if (form) form.style.display = 'none';
+  if (pending) pending.style.display = 'block';
+  showToast('✅ Solicitação enviada com sucesso!', 'success');
 }
 
 // ═══════════════════════════════
