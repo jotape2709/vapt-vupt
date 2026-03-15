@@ -175,7 +175,15 @@ function goToDashboard() {
   initDashboard();
 }
 
-function doLogin() {
+async function hashPassword(password) {
+  var encoder = new TextEncoder();
+  var data = encoder.encode(password);
+  var hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  var hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+}
+
+async function doLogin() {
   var email = document.getElementById('login-email').value.trim();
   var pass = document.getElementById('login-pass').value;
   if (!email || !pass) { showToast('Preencha e-mail e senha', 'error'); return; }
@@ -184,7 +192,8 @@ function doLogin() {
   if (!stored) { showToast('Nenhuma conta encontrada. Cadastre-se primeiro.', 'error'); return; }
   var user = JSON.parse(stored);
   if (user.email !== email) { showToast('E-mail não encontrado', 'error'); return; }
-  if (user.password !== pass) { showToast('Senha incorreta', 'error'); return; }
+  var hashed = await hashPassword(pass);
+  if (user.password !== hashed) { showToast('Senha incorreta', 'error'); return; }
   appState.currentUser = { name: user.name, email: user.email, biz: user.biz || '' };
   localStorage.setItem('vv_session', JSON.stringify(appState.currentUser));
   var firstName = user.name.split(' ')[0];
@@ -193,7 +202,7 @@ function doLogin() {
   initDashboard();
 }
 
-function doRegister() {
+async function doRegister() {
   var name = document.getElementById('reg-name').value.trim();
   var email = document.getElementById('reg-email').value.trim();
   var pass = document.getElementById('reg-pass').value;
@@ -203,7 +212,8 @@ function doRegister() {
   if (!/(?=.*[a-zA-Z])(?=.*[0-9])/.test(pass)) { showToast('A senha deve conter letras e números', 'error'); return; }
   var existing = localStorage.getItem('vv_user');
   if (existing) { showToast('Já existe uma conta cadastrada neste navegador. Faça login ou exclua a conta existente.', 'error'); return; }
-  var user = { name: name, email: email, password: pass, biz: '' };
+  var hashed = await hashPassword(pass);
+  var user = { name: name, email: email, password: hashed, biz: '' };
   localStorage.setItem('vv_user', JSON.stringify(user));
   appState.currentUser = { name: name, email: email, biz: '' };
   localStorage.setItem('vv_session', JSON.stringify(appState.currentUser));
@@ -1184,7 +1194,7 @@ function showSplashScreen() {
   splash.id = 'splash-screen';
   splash.style.cssText = 'position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#0057FF 0%,#3373FF 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .5s ease,transform .5s ease';
   splash.innerHTML =
-    '<img src="img/favicon.svg" alt="" style="width:80px;height:80px;margin-bottom:1.5rem;animation:splashPulse 1s ease infinite alternate">' +
+    '<img src="img/favicon.svg" alt="Vapt Vupt logo" style="width:80px;height:80px;margin-bottom:1.5rem;animation:splashPulse 1s ease infinite alternate">' +
     '<div style="color:#fff;font-family:var(--font-display);font-size:2rem;font-weight:400;opacity:0;animation:splashFadeIn .6s ease .3s forwards">Vapt Vupt</div>' +
     '<div style="color:rgba(255,255,255,.6);font-size:.875rem;margin-top:.5rem;opacity:0;animation:splashFadeIn .6s ease .6s forwards">Reposição Inteligente de Estoque</div>';
   document.body.appendChild(splash);
@@ -1211,6 +1221,7 @@ window.addEventListener('DOMContentLoaded', function() {
       showPage('page-dashboard');
       initDashboard();
     } catch(e) {
+      console.warn('Sessão inválida no cache, limpando:', e);
       localStorage.removeItem('vv_session');
     }
   }
