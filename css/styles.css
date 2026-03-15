@@ -99,7 +99,7 @@ img{max-width:100%}
 .nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--gray-100);padding:.875rem 0}
 .nav-inner{display:flex;align-items:center;justify-content:space-between;max-width:1200px;margin:0 auto;padding:0 24px}
 .nav-logo{display:flex;align-items:center;gap:.625rem;font-weight:700;font-size:1.25rem;color:var(--blue);cursor:pointer}
-.nav-logo-icon{width:36px;height:36px;background:var(--blue);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:.875rem;letter-spacing:-.02em}
+.nav-logo-icon{width:36px;height:36px;border-radius:var(--radius-sm)}
 .nav-links{display:flex;align-items:center;gap:1.5rem}
 .nav-link{font-size:.9375rem;color:var(--gray-600);font-weight:500;transition:var(--transition);cursor:pointer}
 .nav-link:hover{color:var(--gray-900)}
@@ -109,7 +109,8 @@ img{max-width:100%}
 /* ── Dashboard Layout ── */
 .dashboard{display:flex;min-height:100vh}
 .sidebar{width:256px;background:var(--gray-900);color:#fff;flex-shrink:0;display:flex;flex-direction:column;transition:var(--transition)}
-.sidebar-logo{padding:1.5rem;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo{padding:1.5rem;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:.75rem;cursor:pointer}
+.sidebar-logo-img{width:36px;height:36px;border-radius:var(--radius-sm)}
 .sidebar-logo .logo-text{font-weight:700;font-size:1.1875rem;color:#fff}
 .sidebar-logo .logo-sub{font-size:.75rem;color:rgba(255,255,255,.4);margin-top:.125rem}
 .sidebar-nav{padding:1rem;flex:1;overflow-y:auto}
@@ -235,6 +236,7 @@ img{max-width:100%}
 .footer{background:var(--gray-900);color:rgba(255,255,255,.5);padding:4rem 0 2rem}
 .footer-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:3rem;margin-bottom:3rem}
 .footer-brand .logo-text{font-size:1.25rem;font-weight:700;color:#fff;margin-bottom:.75rem}
+.footer-logo-img{width:36px;height:36px;border-radius:var(--radius-sm);margin-bottom:.75rem}
 .footer-tagline{font-size:.9375rem;line-height:1.7;color:rgba(255,255,255,.4)}
 .footer-heading{font-size:.875rem;font-weight:600;color:#fff;margin-bottom:1rem;text-transform:uppercase;letter-spacing:.06em}
 .footer-links{list-style:none}
