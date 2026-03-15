@@ -41,7 +41,7 @@
 
 > **⚠️ Aviso Importante**
 >
-> Este projeto é de **caráter exclusivamente acadêmico**, desenvolvido como trabalho de conclusão de curso superior.
+> Este projeto é de **caráter exclusivamente acadêmico**, desenvolvido como trabalho de curso superior.
 > Não possui fins lucrativos, não está em produção comercial e foi criado apenas para fins de apresentação e avaliação universitária.
 > **Não são aceitas contribuições externas.**
 
