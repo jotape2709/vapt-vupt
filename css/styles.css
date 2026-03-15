@@ -493,3 +493,12 @@ img{max-width:100%}
 .demo-offer-row{display:flex;align-items:center;justify-content:space-between;padding:1rem;border:1.5px solid var(--gray-100);border-radius:var(--radius-md);margin-bottom:.5rem;transition:var(--transition)}
 .demo-offer-row:hover{border-color:var(--blue);background:var(--blue-light)}
 .demo-offer-row.best{border-color:var(--success);background:rgba(0,185,125,.04)}
+
+/* Segment card clickable */
+.segment-card{cursor:pointer}
+.segment-hint{font-size:.75rem;color:var(--blue);margin-top:.5rem;opacity:0;transition:opacity .2s ease}
+.segment-card:hover .segment-hint{opacity:1}
+
+/* Splash screen animations */
+@keyframes splashPulse{from{transform:scale(1)}to{transform:scale(1.08)}}
+@keyframes splashFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
