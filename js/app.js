@@ -296,7 +296,7 @@ function renderCriticalItems() {
         '</span>' +
         '<span style="font-size:.75rem;color:var(--gray-400)">mín: ' + item.minimo + '</span>' +
       '</div>' +
-      '<button class="btn btn-primary btn-sm" style="padding:.375rem .75rem;font-size:.8125rem" onclick="addSingleItemToQuote(\'' + escapeHtml(item.name).replace(/'/g, "\\'") + '\')">+ Cotar</button>' +
+      '<button class="btn btn-primary btn-sm" style="padding:.375rem .75rem;font-size:.8125rem" onclick="addSingleItemToQuote(\'' + escapeHtml(item.name).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')">+ Cotar</button>' +
     '</div>';
   }).join('');
 
@@ -578,7 +578,7 @@ function renderOffers(offers) {
             '<td>' + escapeHtml(o.prazo) + '</td>' +
             '<td>' + escapeHtml(o.cond) + '</td>' +
             '<td>' + escapeHtml(o.rep) + '</td>' +
-            '<td><button class="btn btn-' + (o.best ? 'success' : 'ghost') + ' btn-sm" onclick="chooseOffer(\'' + escapeHtml(o.supplier).replace(/'/g, "\\'") + '\')">' + (o.best ? 'Escolher' : 'Selecionar') + '</button></td>' +
+            '<td><button class="btn btn-' + (o.best ? 'success' : 'ghost') + ' btn-sm" onclick="chooseOffer(\'' + escapeHtml(o.supplier).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')">' + (o.best ? 'Escolher' : 'Selecionar') + '</button></td>' +
           '</tr>';
         }).join('') +
       '</tbody>' +
