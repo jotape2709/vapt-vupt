@@ -535,7 +535,7 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">CEP *</label>
-            <input type="text" class="form-input" id="ob-cep" placeholder="00000-000">
+            <input type="text" class="form-input" id="ob-cep" placeholder="00000-000" maxlength="9" onblur="autoFillCep(this)">
           </div>
           <div class="form-group">
             <label class="form-label">Cidade *</label>
@@ -770,7 +770,7 @@
         <div class="sidebar-item" onclick="showDashPanel('cotacoes',this)">
           <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Minhas Cotações
-          <span class="badge badge-blue" style="margin-left:auto">3</span>
+          <span class="badge badge-blue" style="margin-left:auto;display:none">0</span>
         </div>
         <div class="sidebar-item" onclick="showDashPanel('promocoes',this)">
           <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1010,9 +1010,9 @@
         </div>
         <div class="content-body">
           <div class="tab-bar">
-            <div class="tab active" onclick="switchTab(this,'cot-ativas')">Em andamento (2)</div>
-            <div class="tab" onclick="switchTab(this,'cot-recebidas')">Ofertas recebidas (1)</div>
-            <div class="tab" onclick="switchTab(this,'cot-finalizadas')">Finalizadas (4)</div>
+            <div class="tab active" onclick="switchTab(this,'cot-ativas')">Em andamento (0)</div>
+            <div class="tab" onclick="switchTab(this,'cot-recebidas')">Ofertas recebidas (0)</div>
+            <div class="tab" onclick="switchTab(this,'cot-finalizadas')">Finalizadas (0)</div>
           </div>
           <div id="cot-ativas">
             <div id="quotes-list-ativas"></div>
@@ -1171,18 +1171,37 @@
       <div class="diff-card"><div class="diff-icon">📈</div><h3 class="diff-title">Relatórios de desempenho</h3><p class="diff-desc">Acompanhe quantas propostas você enviou, taxa de aceite e volume de vendas pela plataforma.</p></div>
     </div>
 
-    <div class="supplier-profile">
+    <div class="supplier-profile" id="supplier-form">
       <div style="text-align:center;margin-bottom:2rem">
         <h3 style="font-size:1.375rem;font-weight:700;margin-bottom:.5rem">Cadastre sua empresa</h3>
         <p style="color:var(--gray-400)">Preencha os dados para ativar seu acesso à plataforma</p>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Razão Social *</label><input type="text" class="form-input" placeholder="Nome Distribuidora Ltda"></div>
-        <div class="form-group"><label class="form-label">CNPJ *</label><input type="text" class="form-input" placeholder="00.000.000/0000-00"></div>
+        <div class="form-group"><label class="form-label">Razão Social *</label><input type="text" class="form-input" id="sup-razao-social" placeholder="Nome Distribuidora Ltda"></div>
+        <div class="form-group"><label class="form-label">CNPJ *</label><input type="text" class="form-input" id="sup-cnpj" placeholder="00.000.000/0000-00"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Nome para exibição</label><input type="text" class="form-input" placeholder="Ex: Distribuidora Norte"></div>
-        <div class="form-group"><label class="form-label">Telefone comercial</label><input type="tel" class="form-input" placeholder="(11) 3000-0000"></div>
+        <div class="form-group"><label class="form-label">Nome para exibição</label><input type="text" class="form-input" id="sup-nome-exibicao" placeholder="Ex: Distribuidora Norte"></div>
+        <div class="form-group"><label class="form-label">Telefone comercial</label><input type="tel" class="form-input" id="sup-telefone" placeholder="(11) 3000-0000"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">CEP *</label>
+          <input type="text" class="form-input" id="sup-cep" placeholder="00000-000" maxlength="9" onblur="autoFillCep(this)">
+          <div class="form-hint">Digite o CEP para preencher o endereço automaticamente</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado (UF)</label>
+          <input type="text" class="form-input" id="sup-uf" placeholder="SP" maxlength="2">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Endereço</label><input type="text" class="form-input" id="sup-endereco" placeholder="Rua e número"></div>
+        <div class="form-group"><label class="form-label">Bairro</label><input type="text" class="form-input" id="sup-bairro" placeholder="Nome do bairro"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cidade</label>
+        <input type="text" class="form-input" id="sup-cidade" placeholder="São Paulo">
       </div>
       <div class="form-group">
         <label class="form-label">Categorias que você distribui</label>
@@ -1213,7 +1232,19 @@
         <label class="form-label">Regiões atendidas</label>
         <input type="text" class="form-input" placeholder="Ex: Grande São Paulo, ABC Paulista, Campinas...">
       </div>
-      <button class="btn btn-primary btn-lg" onclick="showToast('Solicitação enviada! Entraremos em contato em até 1 dia útil para ativar seu cadastro.','success')">Enviar solicitação de cadastro</button>
+      <button class="btn btn-primary btn-lg" onclick="submitSupplierRegistration()">Enviar solicitação de cadastro</button>
+    </div>
+
+    <!-- Pending approval state (shown after form submit) -->
+    <div id="supplier-pending" style="display:none;text-align:center;padding:3rem 2rem;background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-xl);box-shadow:var(--shadow-md)">
+      <div style="font-size:4rem;margin-bottom:1.5rem">⏳</div>
+      <h3 style="font-size:1.5rem;font-weight:700;color:var(--gray-900);margin-bottom:.75rem">Cadastro enviado!</h3>
+      <p style="color:var(--gray-600);font-size:1.0625rem;margin-bottom:1.5rem;max-width:440px;margin-left:auto;margin-right:auto">Recebemos sua solicitação. Nossa equipe irá analisar os seus dados e você receberá um e-mail de confirmação em até <strong>1 dia útil</strong>.</p>
+      <div style="background:var(--blue-light);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;text-align:left;margin-bottom:1.5rem;max-width:440px;margin-left:auto;margin-right:auto">
+        <div style="font-size:.875rem;font-weight:600;color:var(--blue-dark);margin-bottom:.625rem">⚠️ Importante — aguarde a aprovação</div>
+        <p style="font-size:.875rem;color:var(--gray-800);line-height:1.6">Seu acesso à plataforma só será ativado <strong>após a aprovação</strong> do cadastro. Enquanto isso, você pode explorar a área abaixo para ver como funciona.</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="showPage('page-landing')">← Voltar ao início</button>
     </div>
 
     <div style="text-align:center;margin-top:2rem;padding:2rem;background:var(--gray-100);border-radius:var(--radius-lg)">

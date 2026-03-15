@@ -995,7 +995,7 @@ img{max-width:100%}
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">CEP *</label>
-            <input type="text" class="form-input" id="ob-cep" placeholder="00000-000">
+            <input type="text" class="form-input" id="ob-cep" placeholder="00000-000" maxlength="9" onblur="autoFillCep(this)">
           </div>
           <div class="form-group">
             <label class="form-label">Cidade *</label>
@@ -1231,7 +1231,7 @@ img{max-width:100%}
         <div class="sidebar-item" onclick="showDashPanel('cotacoes',this)">
           <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Minhas Cotações
-          <span class="badge badge-blue" style="margin-left:auto">3</span>
+          <span class="badge badge-blue" style="margin-left:auto;display:none">0</span>
         </div>
         <div class="sidebar-item" onclick="showDashPanel('promocoes',this)">
           <svg class="sidebar-item-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -1471,9 +1471,9 @@ img{max-width:100%}
         </div>
         <div class="content-body">
           <div class="tab-bar">
-            <div class="tab active" onclick="switchTab(this,'cot-ativas')">Em andamento (2)</div>
-            <div class="tab" onclick="switchTab(this,'cot-recebidas')">Ofertas recebidas (1)</div>
-            <div class="tab" onclick="switchTab(this,'cot-finalizadas')">Finalizadas (4)</div>
+            <div class="tab active" onclick="switchTab(this,'cot-ativas')">Em andamento (0)</div>
+            <div class="tab" onclick="switchTab(this,'cot-recebidas')">Ofertas recebidas (0)</div>
+            <div class="tab" onclick="switchTab(this,'cot-finalizadas')">Finalizadas (0)</div>
           </div>
           <div id="cot-ativas">
             <div id="quotes-list-ativas"></div>
@@ -1626,18 +1626,37 @@ img{max-width:100%}
       <div class="diff-card"><div class="diff-icon">📈</div><h3 class="diff-title">Relatórios de desempenho</h3><p class="diff-desc">Acompanhe quantas propostas você enviou, taxa de aceite e volume de vendas pela plataforma.</p></div>
     </div>
 
-    <div class="supplier-profile">
+    <div class="supplier-profile" id="supplier-form">
       <div style="text-align:center;margin-bottom:2rem">
         <h3 style="font-size:1.375rem;font-weight:700;margin-bottom:.5rem">Cadastre sua empresa</h3>
         <p style="color:var(--gray-400)">Preencha os dados para ativar seu acesso à plataforma</p>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Razão Social *</label><input type="text" class="form-input" placeholder="Nome Distribuidora Ltda"></div>
-        <div class="form-group"><label class="form-label">CNPJ *</label><input type="text" class="form-input" placeholder="00.000.000/0000-00"></div>
+        <div class="form-group"><label class="form-label">Razão Social *</label><input type="text" class="form-input" id="sup-razao-social" placeholder="Nome Distribuidora Ltda"></div>
+        <div class="form-group"><label class="form-label">CNPJ *</label><input type="text" class="form-input" id="sup-cnpj" placeholder="00.000.000/0000-00"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Nome para exibição</label><input type="text" class="form-input" placeholder="Ex: Distribuidora Norte"></div>
-        <div class="form-group"><label class="form-label">Telefone comercial</label><input type="tel" class="form-input" placeholder="(11) 3000-0000"></div>
+        <div class="form-group"><label class="form-label">Nome para exibição</label><input type="text" class="form-input" id="sup-nome-exibicao" placeholder="Ex: Distribuidora Norte"></div>
+        <div class="form-group"><label class="form-label">Telefone comercial</label><input type="tel" class="form-input" id="sup-telefone" placeholder="(11) 3000-0000"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">CEP *</label>
+          <input type="text" class="form-input" id="sup-cep" placeholder="00000-000" maxlength="9" onblur="autoFillCep(this)">
+          <div class="form-hint">Digite o CEP para preencher o endereço automaticamente</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estado (UF)</label>
+          <input type="text" class="form-input" id="sup-uf" placeholder="SP" maxlength="2">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Endereço</label><input type="text" class="form-input" id="sup-endereco" placeholder="Rua e número"></div>
+        <div class="form-group"><label class="form-label">Bairro</label><input type="text" class="form-input" id="sup-bairro" placeholder="Nome do bairro"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cidade</label>
+        <input type="text" class="form-input" id="sup-cidade" placeholder="São Paulo">
       </div>
       <div class="form-group">
         <label class="form-label">Categorias que você distribui</label>
@@ -1668,7 +1687,19 @@ img{max-width:100%}
         <label class="form-label">Regiões atendidas</label>
         <input type="text" class="form-input" placeholder="Ex: Grande São Paulo, ABC Paulista, Campinas...">
       </div>
-      <button class="btn btn-primary btn-lg" onclick="showToast('Solicitação enviada! Entraremos em contato em até 1 dia útil para ativar seu cadastro.','success')">Enviar solicitação de cadastro</button>
+      <button class="btn btn-primary btn-lg" onclick="submitSupplierRegistration()">Enviar solicitação de cadastro</button>
+    </div>
+
+    <!-- Pending approval state (shown after form submit) -->
+    <div id="supplier-pending" style="display:none;text-align:center;padding:3rem 2rem;background:var(--white);border:1.5px solid var(--gray-100);border-radius:var(--radius-xl);box-shadow:var(--shadow-md)">
+      <div style="font-size:4rem;margin-bottom:1.5rem">⏳</div>
+      <h3 style="font-size:1.5rem;font-weight:700;color:var(--gray-900);margin-bottom:.75rem">Cadastro enviado!</h3>
+      <p style="color:var(--gray-600);font-size:1.0625rem;margin-bottom:1.5rem;max-width:440px;margin-left:auto;margin-right:auto">Recebemos sua solicitação. Nossa equipe irá analisar os seus dados e você receberá um e-mail de confirmação em até <strong>1 dia útil</strong>.</p>
+      <div style="background:var(--blue-light);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;text-align:left;margin-bottom:1.5rem;max-width:440px;margin-left:auto;margin-right:auto">
+        <div style="font-size:.875rem;font-weight:600;color:var(--blue-dark);margin-bottom:.625rem">⚠️ Importante — aguarde a aprovação</div>
+        <p style="font-size:.875rem;color:var(--gray-800);line-height:1.6">Seu acesso à plataforma só será ativado <strong>após a aprovação</strong> do cadastro. Enquanto isso, você pode explorar a área abaixo para ver como funciona.</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="showPage('page-landing')">← Voltar ao início</button>
     </div>
 
     <div style="text-align:center;margin-top:2rem;padding:2rem;background:var(--gray-100);border-radius:var(--radius-lg)">
@@ -1791,43 +1822,25 @@ const promotions = [
 ];
 
 // Quotes simulation
-const quotes = {
-  ativas: [
-    {id:'#VV-2851',date:'Hoje, 09:14',items:5,status:'Em andamento',statusClass:'chip-orange',detail:[
-      {name:'Cerveja Heineken cx24',qty:10,unit:'cx'},
-      {name:'Energético Red Bull cx24',qty:6,unit:'cx'},
-      {name:'Refrigerante Coca-Cola 2L cx6',qty:8,unit:'cx6'},
-      {name:'Vodka Absolut 1L',qty:3,unit:'un'},
-      {name:'Água Crystal 500ml cx24',qty:4,unit:'cx'},
-    ]},
-    {id:'#VV-2847',date:'Ontem, 14:32',items:8,status:'Aguardando respostas',statusClass:'chip-orange',detail:[
-      {name:'Detergente Ypê cx24',qty:5,unit:'cx'},
-      {name:'Água Sanitária Qboa cx12',qty:4,unit:'cx'},
-      {name:'Desinfetante Pinho Sol 1L',qty:6,unit:'cx12'},
-      {name:'Esponja Scotch-Brite cx10',qty:3,unit:'cx'},
-      {name:'Multiuso Mr Músculo',qty:4,unit:'un'},
-    ]},
-  ],
-  recebidas: [
-    {id:'#VV-2844',date:'Há 2 dias',items:4,status:'Ofertas recebidas',statusClass:'chip-green',hasOffers:true,detail:[
-      {name:'Dipirona 500mg cx30',qty:15,unit:'cx'},
-      {name:'Paracetamol 750mg cx20',qty:10,unit:'cx'},
-      {name:'Álcool Gel 70% 500ml',qty:20,unit:'un'},
-      {name:'Curativo Band-Aid cx100',qty:5,unit:'cx'},
-    ],
-    offers:[
-      {supplier:'Farma Atacado Central',price:'R$ 1.289,00',prazo:'1-2 dias',cond:'Boleto 30d',rep:'4.8 ★',best:true},
-      {supplier:'Distribuidora Saúde Total',price:'R$ 1.340,00',prazo:'2-3 dias',cond:'PIX/Boleto',rep:'4.6 ★',best:false},
-      {supplier:'Atacado MedBem SP',price:'R$ 1.415,00',prazo:'1 dia',cond:'PIX',rep:'4.9 ★',best:false},
-    ]},
-  ],
-  finalizadas:[
-    {id:'#VV-2840',date:'5 dias atrás',items:6,status:'Finalizada',statusClass:'chip-gray'},
-    {id:'#VV-2835',date:'8 dias atrás',items:3,status:'Finalizada',statusClass:'chip-gray'},
-    {id:'#VV-2829',date:'12 dias atrás',items:11,status:'Finalizada',statusClass:'chip-gray'},
-    {id:'#VV-2820',date:'18 dias atrás',items:4,status:'Finalizada',statusClass:'chip-gray'},
-  ]
-};
+// Quotes — start empty; populated when user creates quotes
+var userQuotes = { ativas: [], recebidas: [], finalizadas: [] };
+var quoteCounter = 2860;
+
+// Supplier pool — available suppliers for matching
+var supplierPool = [
+  {name:'Distribuidora Norte SP', cats:['bebidas','limpeza','alimentos'], rating:'4.7 ★', available:true},
+  {name:'Atacado Pronto', cats:['limpeza','alimentos','descartaveis'], rating:'4.5 ★', available:true},
+  {name:'Distribuidora Saúde Total', cats:['farmacia','limpeza'], rating:'4.6 ★', available:true},
+  {name:'Bebidas Leste Ltda', cats:['bebidas'], rating:'4.8 ★', available:true},
+  {name:'Farma Atacado Central', cats:['farmacia'], rating:'4.8 ★', available:true},
+  {name:'Descartáveis Plus', cats:['descartaveis','alimentos'], rating:'4.3 ★', available:true},
+  {name:'MedBem Atacado SP', cats:['farmacia','limpeza'], rating:'4.9 ★', available:false},
+];
+
+function getMatchedSuppliers(items) {
+  const cats = [...new Set(items.map(i => i.cat || i.category || 'outros'))];
+  return supplierPool.filter(s => s.cats.some(c => cats.includes(c))).slice(0, 5);
+}
 
 // ═══════════════════════════════
 // NAVIGATION
@@ -2069,22 +2082,51 @@ function renderCart(){
 
 function gerarCotacaoManual(){
   if(appState.cart.length===0){showToast('Adicione itens ao carrinho primeiro','error');return}
-  showToast('✅ Cotação #VV-2858 gerada! Fornecedores foram notificados.','success');
-  appState.cart=[];
-  renderCart();
-  setTimeout(()=>showDashPanel('cotacoes',document.querySelector('[onclick*="cotacoes"]')),1500);
+  const quoteId='#VV-'+(quoteCounter++);
+  const matched=getMatchedSuppliers(appState.cart);
+  const availableCount=matched.filter(s=>s.available).length;
+  userQuotes.ativas.unshift({
+    id:quoteId,date:'Agora',items:appState.cart.length,
+    status:'Aguardando respostas',statusClass:'chip-orange',
+    detail:appState.cart.map(i=>({name:i.name,qty:i.qty,unit:i.unit})),
+    suppliers:matched
+  });
+  updateQuoteTabs();
+  appState.cart=[];renderCart();
+  showToast(`✅ Cotação ${quoteId} gerada! ${availableCount} fornecedor(es) notificado(s).`,'success');
+  setTimeout(()=>{renderQuotes();showDashPanel('cotacoes',document.querySelector('[onclick*="cotacoes"]'))},1500);
 }
 
 function gerarCotacaoPlanilha(){
-  showToast('✅ Cotação #VV-2857 gerada para os 7 itens críticos! Aguardando respostas dos fornecedores.','success');
-  setTimeout(()=>showDashPanel('cotacoes',null),1500);
+  const quoteId='#VV-'+(quoteCounter++);
+  const items=criticalItems.map(i=>({name:i.name,qty:i.minimo-i.estoque,unit:i.unit,cat:i.cat}));
+  const matched=getMatchedSuppliers(criticalItems);
+  const availableCount=matched.filter(s=>s.available).length;
+  userQuotes.ativas.unshift({
+    id:quoteId,date:'Agora',items:items.length,
+    status:'Aguardando respostas',statusClass:'chip-orange',
+    detail:items,suppliers:matched
+  });
+  updateQuoteTabs();
+  showToast(`✅ Cotação ${quoteId} gerada para ${items.length} itens! ${availableCount} fornecedor(es) notificado(s).`,'success');
+  setTimeout(()=>{renderQuotes();showDashPanel('cotacoes',null)},1500);
 }
 
 function generateAutoQuote(){
-  showToast('⚡ Gerando cotação automática para os 7 itens críticos...','info');
+  showToast('⚡ Gerando cotação automática para os itens críticos...','info');
   setTimeout(()=>{
-    showToast('✅ Cotação #VV-2859 enviada para 4 fornecedores!','success');
-    showDashPanel('cotacoes',null);
+    const quoteId='#VV-'+(quoteCounter++);
+    const items=criticalItems.map(i=>({name:i.name,qty:i.minimo-i.estoque,unit:i.unit,cat:i.cat}));
+    const matched=getMatchedSuppliers(criticalItems);
+    const availableCount=matched.filter(s=>s.available).length;
+    userQuotes.ativas.unshift({
+      id:quoteId,date:'Agora',items:items.length,
+      status:'Aguardando respostas',statusClass:'chip-orange',
+      detail:items,suppliers:matched
+    });
+    updateQuoteTabs();
+    showToast(`✅ Cotação ${quoteId} enviada para ${availableCount} fornecedores!`,'success');
+    renderQuotes();showDashPanel('cotacoes',null);
   },2000);
 }
 
@@ -2171,17 +2213,50 @@ function acceptPromo(id){
 // QUOTES
 // ═══════════════════════════════
 function renderQuotes(){
-  renderQuoteGroup('quotes-list-ativas',quotes.ativas);
-  renderQuoteGroup('quotes-list-recebidas',quotes.recebidas);
-  renderQuoteGroup('quotes-list-finalizadas',quotes.finalizadas);
+  renderQuoteGroup('quotes-list-ativas',userQuotes.ativas);
+  renderQuoteGroup('quotes-list-recebidas',userQuotes.recebidas);
+  renderQuoteGroup('quotes-list-finalizadas',userQuotes.finalizadas);
+  updateQuoteTabs();
 }
 
 function renderQuoteGroup(elId,list){
   const el=document.getElementById(elId);
   if(!el)return;
-  el.innerHTML=list.map(q=>`
-    <div class="quote-card" id="qcard-${q.id.replace('#','')}">
-      <div class="quote-header" onclick="toggleQuote('${q.id.replace('#','')}')">
+  if(list.length===0){
+    const targetId=elId.replace('quotes-list-','');
+    const messages={
+      ativas:'Nenhuma cotação em andamento. Use o botão abaixo para criar uma.',
+      recebidas:'Nenhuma oferta recebida ainda. Aguarde as respostas dos fornecedores.',
+      finalizadas:'Nenhuma cotação finalizada ainda.'
+    };
+    el.innerHTML=`<div class="empty-state" style="padding:2.5rem 1rem">
+      <span class="empty-state-icon" style="font-size:2.5rem;display:block;margin-bottom:.75rem">📋</span>
+      <div class="empty-state-title">Sem cotações</div>
+      <div class="empty-state-desc">${messages[targetId]||'Nenhuma cotação encontrada.'}</div>
+      ${targetId==='ativas'?`<div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;margin-top:1rem">
+        <button class="btn btn-primary btn-sm" onclick="showDashPanel('cotar-manual',null)">+ Cotação manual</button>
+        <button class="btn btn-secondary btn-sm" onclick="showDashPanel('cotar-planilha',null)">📊 Cotação por planilha</button>
+      </div>`:''}
+    </div>`;
+    return;
+  }
+  el.innerHTML=list.map(q=>{
+    const qId=q.id.replace('#','');
+    let suppliersHtml='';
+    if((q.status==='Em andamento'||q.status==='Aguardando respostas')&&q.suppliers&&q.suppliers.length>0){
+      suppliersHtml=`<div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--gray-100)">
+        <h4 style="font-size:.8125rem;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.625rem">Fornecedores notificados</h4>
+        <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+          ${q.suppliers.map(s=>`<div style="display:flex;align-items:center;gap:.375rem;background:${s.available?'var(--blue-light)':'var(--gray-100)'};padding:.3125rem .75rem;border-radius:100px;font-size:.8125rem">
+            <span style="width:7px;height:7px;border-radius:50%;flex-shrink:0;background:${s.available?'var(--success)':'var(--warning)'};display:inline-block"></span>
+            <span style="color:${s.available?'var(--gray-900)':'var(--gray-500)'}">${s.name}</span>
+            <span style="color:var(--gray-400);font-size:.75rem">${s.rating}</span>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }
+    return `<div class="quote-card" id="qcard-${qId}">
+      <div class="quote-header" onclick="toggleQuote('${qId}')">
         <div>
           <div class="quote-id">Cotação ${q.id}</div>
           <div class="quote-meta">${q.date} · ${q.items} itens</div>
@@ -2199,11 +2274,13 @@ function renderQuoteGroup(elId,list){
             ${(q.detail||[]).map(d=>`<tr><td>${d.name}</td><td>${d.qty}</td><td>${d.unit}</td></tr>`).join('')}
           </tbody>
         </table>
+        ${suppliersHtml}
         ${q.hasOffers?renderOffers(q.offers):''}
         ${q.status==='Finalizada'?`<div style="color:var(--gray-400);font-size:.875rem;margin-top:1rem;text-align:center">Cotação encerrada — pedido realizado com sucesso.</div>`:''}
         ${q.status==='Em andamento'||q.status==='Aguardando respostas'?`<div style="color:var(--gray-400);font-size:.875rem;margin-top:1rem;display:flex;align-items:center;gap:.5rem"><div class="loading-spinner"></div> Aguardando respostas dos fornecedores...</div>`:''}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function renderOffers(offers){
@@ -2232,6 +2309,61 @@ function toggleQuote(id){
 
 function chooseOffer(supplier){
   showToast(`✅ Oferta da ${supplier} confirmada! Pedido sendo processado.`,'success');
+}
+
+function updateQuoteTabs(){
+  const ativasCount=userQuotes.ativas.length;
+  const recebidasCount=userQuotes.recebidas.length;
+  const finalizadasCount=userQuotes.finalizadas.length;
+  const tabBar=document.querySelector('#panel-cotacoes .tab-bar');
+  if(tabBar){
+    const tabs=tabBar.querySelectorAll('.tab');
+    if(tabs[0])tabs[0].textContent=`Em andamento (${ativasCount})`;
+    if(tabs[1])tabs[1].textContent=`Ofertas recebidas (${recebidasCount})`;
+    if(tabs[2])tabs[2].textContent=`Finalizadas (${finalizadasCount})`;
+  }
+  const badge=document.querySelector('[onclick*="\'cotacoes\'"] .badge');
+  if(badge){
+    const total=ativasCount+recebidasCount;
+    badge.textContent=total;
+    badge.style.display=total>0?'':'none';
+  }
+}
+
+// ═══════════════════════════════
+// CEP AUTO-FILL (ViaCEP)
+// ═══════════════════════════════
+function autoFillCep(inputEl){
+  const cep=inputEl.value.replace(/\D/g,'');
+  if(cep.length!==8)return;
+  const prefix=inputEl.id.replace(/-cep$/,'');
+  fetch(`https://viacep.com.br/ws/${cep}/json/`)
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.erro){showToast('CEP não encontrado. Verifique e tente novamente.','error');return;}
+      const fieldMap={endereco:data.logradouro,bairro:data.bairro,cidade:data.localidade,uf:data.uf};
+      Object.entries(fieldMap).forEach(([key,val])=>{
+        const el=document.getElementById(`${prefix}-${key}`);
+        if(el&&val)el.value=val;
+      });
+      showToast('✅ Endereço preenchido automaticamente!','success');
+    })
+    .catch(()=>showToast('Não foi possível buscar o CEP. Preencha manualmente.','error'));
+}
+
+// ═══════════════════════════════
+// SUPPLIER REGISTRATION
+// ═══════════════════════════════
+function submitSupplierRegistration(){
+  const razaoSocial=document.getElementById('sup-razao-social');
+  const cnpj=document.getElementById('sup-cnpj');
+  if(!razaoSocial||!razaoSocial.value.trim()){showToast('Preencha a Razão Social','error');return;}
+  if(!cnpj||!cnpj.value.trim()){showToast('Preencha o CNPJ','error');return;}
+  const form=document.getElementById('supplier-form');
+  const pending=document.getElementById('supplier-pending');
+  if(form)form.style.display='none';
+  if(pending)pending.style.display='block';
+  showToast('✅ Solicitação enviada com sucesso!','success');
 }
 
 // ═══════════════════════════════
