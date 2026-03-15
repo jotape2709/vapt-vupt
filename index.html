@@ -26,7 +26,7 @@
   <nav class="nav">
     <div class="nav-inner">
       <div class="nav-logo" onclick="showPage('page-landing')">
-        <div class="nav-logo-icon">VV</div>
+        <img src="img/favicon.svg" alt="" class="nav-logo-icon">
         <span>Vapt Vupt</span>
       </div>
       <div class="nav-links">
@@ -135,14 +135,14 @@
         <p class="section-sub" style="margin:0 auto">Se você tem estoque, você precisa do Vapt Vupt.</p>
       </div>
       <div class="segments-grid" data-reveal>
-        <div class="segment-card"><span class="segment-icon">💊</span><div class="segment-name">Farmácias</div></div>
-        <div class="segment-card"><span class="segment-icon">🍷</span><div class="segment-name">Adegas</div></div>
-        <div class="segment-card"><span class="segment-icon">🍺</span><div class="segment-name">Bares</div></div>
-        <div class="segment-card"><span class="segment-icon">🍽️</span><div class="segment-name">Restaurantes</div></div>
-        <div class="segment-card"><span class="segment-icon">🛒</span><div class="segment-name">Mercados</div></div>
-        <div class="segment-card"><span class="segment-icon">☕</span><div class="segment-name">Cafeterias</div></div>
-        <div class="segment-card"><span class="segment-icon">🐾</span><div class="segment-name">Pet Shops</div></div>
-        <div class="segment-card"><span class="segment-icon">🏪</span><div class="segment-name">Conveniências</div></div>
+        <div class="segment-card" onclick="showSegmentExample('Farmácias')"><span class="segment-icon">💊</span><div class="segment-name">Farmácias</div><div class="segment-hint">Ver exemplo →</div></div>
+        <div class="segment-card" onclick="showSegmentExample('Adegas')"><span class="segment-icon">🍷</span><div class="segment-name">Adegas</div><div class="segment-hint">Ver exemplo →</div></div>
+        <div class="segment-card" onclick="showSegmentExample('Bares')"><span class="segment-icon">🍺</span><div class="segment-name">Bares</div><div class="segment-hint">Ver exemplo →</div></div>
+        <div class="segment-card" onclick="showSegmentExample('Restaurantes')"><span class="segment-icon">🍽️</span><div class="segment-name">Restaurantes</div><div class="segment-hint">Ver exemplo →</div></div>
+        <div class="segment-card" onclick="showSegmentExample('Mercados')"><span class="segment-icon">🛒</span><div class="segment-name">Mercados</div><div class="segment-hint">Ver exemplo →</div></div>
+        <div class="segment-card" onclick="showSegmentExample('Cafeterias')"><span class="segment-icon">☕</span><div class="segment-name">Cafeterias</div><div class="segment-hint">Ver exemplo →</div></div>
+        <div class="segment-card" onclick="showSegmentExample('Pet Shops')"><span class="segment-icon">🐾</span><div class="segment-name">Pet Shops</div><div class="segment-hint">Ver exemplo →</div></div>
+        <div class="segment-card" onclick="showSegmentExample('Conveniências')"><span class="segment-icon">🏪</span><div class="segment-name">Conveniências</div><div class="segment-hint">Ver exemplo →</div></div>
       </div>
     </div>
   </section>
@@ -300,6 +300,7 @@
     <div class="container">
       <div class="footer-grid">
         <div class="footer-brand">
+          <img src="img/favicon.svg" alt="" class="footer-logo-img">
           <div class="logo-text">Vapt Vupt</div>
           <p class="footer-tagline">Cotação inteligente e reposição automática de estoque para estabelecimentos comerciais.</p>
         </div>
@@ -347,7 +348,7 @@
     <div class="auth-left">
       <div class="auth-left-content">
         <div class="nav-logo" onclick="showPage('page-landing')" style="color:#fff;margin-bottom:1rem">
-          <div class="nav-logo-icon">VV</div>
+          <img src="img/favicon.svg" alt="" class="nav-logo-icon">
           <span>Vapt Vupt</span>
         </div>
         <p class="auth-tagline">Bem-vindo de volta.<br>Seu estoque<br><em>está esperando.</em></p>
@@ -393,7 +394,7 @@
     <div class="auth-left">
       <div class="auth-left-content">
         <div class="nav-logo" onclick="showPage('page-landing')" style="color:#fff;margin-bottom:1rem">
-          <div class="nav-logo-icon">VV</div>
+          <img src="img/favicon.svg" alt="" class="nav-logo-icon">
           <span>Vapt Vupt</span>
         </div>
         <p class="auth-tagline">Sua loja nunca mais vai<br><em>ficar sem estoque</em><br>na hora errada.</p>
@@ -464,7 +465,7 @@
     <div class="onboarding-container">
       <div class="onboarding-header">
         <div class="onboarding-logo" onclick="showPage('page-landing')">
-          <div class="nav-logo-icon">VV</div>
+          <img src="img/favicon.svg" alt="" class="nav-logo-icon">
           <span>Vapt Vupt</span>
         </div>
         <div class="progress-bar-container">
@@ -746,8 +747,11 @@
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-logo" onclick="showPage('page-landing')">
-        <div class="logo-text">Vapt Vupt</div>
-        <div class="logo-sub">Painel do Estabelecimento</div>
+        <img src="img/favicon.svg" alt="" class="sidebar-logo-img">
+        <div>
+          <div class="logo-text">Vapt Vupt</div>
+          <div class="logo-sub">Painel do Estabelecimento</div>
+        </div>
       </div>
       <nav class="sidebar-nav">
         <div class="sidebar-section">Principal</div>
@@ -1126,6 +1130,12 @@
             <h3 style="font-size:1.0625rem;font-weight:600;margin-bottom:.625rem">Gestão de usuários <span class="badge badge-gray" style="background:var(--gray-200);color:var(--gray-600);font-size:.6875rem;vertical-align:middle;margin-left:.5rem">Em breve</span></h3>
             <p style="font-size:.875rem;color:var(--gray-400)">Em breve você poderá convidar sua equipe para acessar o painel com diferentes níveis de permissão.</p>
           </div>
+
+          <div class="card-flat" style="margin-top:1.5rem;border-color:rgba(255,59,48,.2)">
+            <h3 style="font-size:1.0625rem;font-weight:600;margin-bottom:.625rem;color:var(--danger)">Zona de perigo</h3>
+            <p style="font-size:.875rem;color:var(--gray-400);margin-bottom:1.25rem">Ao excluir sua conta, todos os dados (estoque, cotações, configurações) serão apagados permanentemente deste navegador. Esta ação não pode ser desfeita.</p>
+            <button class="btn btn-sm" style="background:var(--danger);color:#fff;border:2px solid var(--danger)" onclick="deleteAccount()">🗑 Excluir minha conta</button>
+          </div>
         </div>
       </div>
     </main>
@@ -1139,7 +1149,7 @@
   <nav class="nav">
     <div class="nav-inner">
       <div class="nav-logo" onclick="showPage('page-landing')">
-        <div class="nav-logo-icon" style="background:#0040CC">VV</div>
+        <img src="img/favicon.svg" alt="" class="nav-logo-icon">
         <span>Vapt Vupt <span style="font-size:.75rem;color:var(--gray-400);font-weight:400">Fornecedor</span></span>
       </div>
       <div class="nav-actions">
