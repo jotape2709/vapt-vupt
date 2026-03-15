@@ -180,8 +180,15 @@ function doLogin() {
   var pass = document.getElementById('login-pass').value;
   if (!email || !pass) { showToast('Preencha e-mail e senha', 'error'); return; }
   if (!isValidEmail(email)) { showToast('Formato de e-mail inválido', 'error'); return; }
-  appState.currentUser = { name: 'Marcos Ribeiro', email: email, biz: 'Farmácia Saúde & Vida' };
-  showToast('Bem-vindo de volta, Marcos!', 'success');
+  var stored = localStorage.getItem('vv_user');
+  if (!stored) { showToast('Nenhuma conta encontrada. Cadastre-se primeiro.', 'error'); return; }
+  var user = JSON.parse(stored);
+  if (user.email !== email) { showToast('E-mail não encontrado', 'error'); return; }
+  if (user.password !== pass) { showToast('Senha incorreta', 'error'); return; }
+  appState.currentUser = { name: user.name, email: user.email, biz: user.biz || '' };
+  localStorage.setItem('vv_session', JSON.stringify(appState.currentUser));
+  var firstName = user.name.split(' ')[0];
+  showToast('Bem-vindo de volta, ' + escapeHtml(firstName) + '!', 'success');
   showPage('page-dashboard');
   initDashboard();
 }
@@ -194,7 +201,12 @@ function doRegister() {
   if (!isValidEmail(email)) { showToast('Formato de e-mail inválido', 'error'); return; }
   if (pass.length < 8) { showToast('A senha deve ter pelo menos 8 caracteres', 'error'); return; }
   if (!/(?=.*[a-zA-Z])(?=.*[0-9])/.test(pass)) { showToast('A senha deve conter letras e números', 'error'); return; }
+  var existing = localStorage.getItem('vv_user');
+  if (existing) { showToast('Já existe uma conta cadastrada neste navegador. Faça login ou exclua a conta existente.', 'error'); return; }
+  var user = { name: name, email: email, password: pass, biz: '' };
+  localStorage.setItem('vv_user', JSON.stringify(user));
   appState.currentUser = { name: name, email: email, biz: '' };
+  localStorage.setItem('vv_session', JSON.stringify(appState.currentUser));
   if (appState.userType === 'fornecedor') { showPage('page-fornecedor'); return; }
   showPage('page-onboarding');
   var alertEmail = document.getElementById('ob-alert-email');
@@ -203,7 +215,18 @@ function doRegister() {
 
 function doLogout() {
   appState.currentUser = null;
+  localStorage.removeItem('vv_session');
   showToast('Você saiu da sua conta', 'info');
+  showPage('page-landing');
+}
+
+function deleteAccount() {
+  if (!confirm('Tem certeza que deseja excluir sua conta? Todos os dados serão apagados permanentemente.')) return;
+  localStorage.removeItem('vv_user');
+  localStorage.removeItem('vv_session');
+  localStorage.removeItem('vv_inventory');
+  appState.currentUser = null;
+  showToast('Conta excluída com sucesso.', 'info');
   showPage('page-landing');
 }
 
@@ -260,8 +283,16 @@ function selectOption(el, groupId) {
 // ═══════════════════════════════
 function initDashboard() {
   var bizNameEl = document.getElementById('ob-biz-name');
-  var bizName = (bizNameEl && bizNameEl.value) ? bizNameEl.value : 'Farmácia Saúde & Vida';
-  var userName = (appState.currentUser && appState.currentUser.name) ? appState.currentUser.name : 'Marcos Ribeiro';
+  var storedUser = localStorage.getItem('vv_user');
+  var bizName = '';
+  if (bizNameEl && bizNameEl.value) {
+    bizName = bizNameEl.value;
+  } else if (storedUser) {
+    var u = JSON.parse(storedUser);
+    bizName = u.biz || '';
+  }
+  if (!bizName) bizName = 'Meu Estabelecimento';
+  var userName = (appState.currentUser && appState.currentUser.name) ? appState.currentUser.name : 'Usuário';
   var firstName = userName.split(' ')[0];
 
   var dashName = document.getElementById('dash-name');
@@ -271,13 +302,55 @@ function initDashboard() {
 
   if (dashName) dashName.textContent = firstName;
   if (sidebarUserName) sidebarUserName.textContent = userName;
-  if (sidebarUserBiz) sidebarUserBiz.textContent = bizName || 'Estabelecimento';
+  if (sidebarUserBiz) sidebarUserBiz.textContent = bizName;
   if (sidebarAvatar) sidebarAvatar.textContent = userName.split(' ').map(function(n) { return n[0]; }).join('').slice(0, 2).toUpperCase();
 
-  renderCriticalItems();
-  renderCatalog();
-  renderPromos();
-  renderQuotes();
+  var hasInventory = localStorage.getItem('vv_inventory');
+  if (hasInventory) {
+    renderCriticalItems();
+    renderCatalog();
+    renderPromos();
+    renderQuotes();
+  } else {
+    renderEmptyDashboard();
+    renderCatalog();
+    renderPromos();
+    renderQuotes();
+  }
+}
+
+function renderEmptyDashboard() {
+  var list = document.getElementById('critical-items-list');
+  if (list) {
+    list.innerHTML =
+      '<div class="empty-state" style="padding:3rem 1rem;text-align:center">' +
+        '<span class="empty-state-icon" style="font-size:3rem;display:block;margin-bottom:1rem">📦</span>' +
+        '<div class="empty-state-title" style="font-size:1.125rem;font-weight:600;color:var(--gray-900);margin-bottom:.5rem">Nenhum estoque cadastrado ainda</div>' +
+        '<div class="empty-state-desc" style="font-size:.9375rem;color:var(--gray-400);margin-bottom:1.5rem;max-width:400px;margin-left:auto;margin-right:auto">' +
+          'Para começar, suba sua planilha de estoque ou use nosso modelo de exemplo. O sistema vai identificar automaticamente os itens que precisam de reposição.' +
+        '</div>' +
+        '<div style="display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap">' +
+          '<button class="btn btn-primary btn-sm" onclick="showDashPanel(\'cotar-planilha\',null)">📊 Subir planilha de estoque</button>' +
+          '<button class="btn btn-secondary btn-sm" onclick="downloadTemplate()">📥 Baixar modelo de exemplo</button>' +
+        '</div>' +
+      '</div>';
+  }
+  // Also set KPIs to zero
+  var kpiCards = document.querySelectorAll('.kpi-value');
+  if (kpiCards.length >= 4) {
+    kpiCards[0].textContent = '0';
+    kpiCards[1].textContent = '0';
+    kpiCards[2].textContent = '0';
+    kpiCards[3].textContent = 'R$0';
+  }
+  var kpiChanges = document.querySelectorAll('.kpi-change');
+  kpiChanges.forEach(function(el) { el.textContent = 'Sem dados'; el.className = 'kpi-change'; el.style.color = 'var(--gray-400)'; });
+
+  // Update health bar
+  var healthFill = document.querySelector('.health-bar-fill');
+  if (healthFill) healthFill.style.width = '0%';
+  var healthLabel = document.querySelector('.section-header .chip');
+  if (healthLabel) { healthLabel.textContent = '📦 Sem dados'; healthLabel.className = 'chip chip-gray'; }
 }
 
 function renderCriticalItems() {
@@ -638,6 +711,7 @@ function processUpload(file) {
     var summary = document.getElementById('upload-summary');
     if (summary) summary.textContent = '103 itens lidos · 7 em baixo estoque · 12 em atenção';
     showToast('Planilha processada! 7 itens críticos identificados.', 'success');
+    localStorage.setItem('vv_inventory', 'true');
   }, 1800);
 }
 
@@ -716,6 +790,157 @@ function showToast(msg, type) {
   tc.appendChild(t);
   setTimeout(function() { t.style.animation = 'fadeOut .3s ease forwards'; }, 3500);
   setTimeout(function() { t.remove(); }, 3800);
+}
+
+// ═══════════════════════════════
+// SEGMENT EXAMPLES
+// ═══════════════════════════════
+var segmentExamples = {
+  'Farmácias': {
+    icon: '💊', color: '#E8F5E9',
+    items: [
+      {name: 'Dipirona 500mg cx30', stock: 3, min: 15, status: 'Crítico'},
+      {name: 'Paracetamol 750mg cx20', stock: 8, min: 12, status: 'Atenção'},
+      {name: 'Omeprazol 20mg cx30', stock: 22, min: 10, status: 'OK'},
+      {name: 'Álcool gel 70% 500ml', stock: 5, min: 20, status: 'Crítico'},
+      {name: 'Protetor solar FPS 50', stock: 18, min: 8, status: 'OK'},
+    ]
+  },
+  'Adegas': {
+    icon: '🍷', color: '#F3E5F5',
+    items: [
+      {name: 'Vinho tinto Miolo 750ml', stock: 4, min: 12, status: 'Crítico'},
+      {name: 'Cerveja Heineken cx24', stock: 2, min: 10, status: 'Crítico'},
+      {name: 'Whisky Jack Daniel\'s 1L', stock: 6, min: 4, status: 'OK'},
+      {name: 'Vodka Absolut 1L', stock: 3, min: 6, status: 'Atenção'},
+      {name: 'Espumante Chandon 750ml', stock: 8, min: 5, status: 'OK'},
+    ]
+  },
+  'Bares': {
+    icon: '🍺', color: '#FFF3E0',
+    items: [
+      {name: 'Cerveja Brahma lata 350ml', stock: 5, min: 24, status: 'Crítico'},
+      {name: 'Energético Red Bull 250ml', stock: 3, min: 12, status: 'Crítico'},
+      {name: 'Gelo 5kg', stock: 10, min: 20, status: 'Atenção'},
+      {name: 'Limão tahiti (kg)', stock: 2, min: 8, status: 'Crítico'},
+      {name: 'Refrigerante Coca-Cola 2L', stock: 12, min: 18, status: 'Atenção'},
+    ]
+  },
+  'Restaurantes': {
+    icon: '🍽️', color: '#E3F2FD',
+    items: [
+      {name: 'Arroz branco 5kg', stock: 3, min: 10, status: 'Crítico'},
+      {name: 'Feijão preto 1kg', stock: 8, min: 15, status: 'Atenção'},
+      {name: 'Azeite extra virgem 500ml', stock: 2, min: 6, status: 'Crítico'},
+      {name: 'Macarrão espaguete 500g', stock: 20, min: 10, status: 'OK'},
+      {name: 'Óleo de soja 900ml', stock: 4, min: 8, status: 'Atenção'},
+    ]
+  },
+  'Mercados': {
+    icon: '🛒', color: '#E8EAF6',
+    items: [
+      {name: 'Açúcar cristal 5kg', stock: 6, min: 20, status: 'Crítico'},
+      {name: 'Farinha de trigo 5kg', stock: 4, min: 15, status: 'Crítico'},
+      {name: 'Sal refinado 1kg', stock: 30, min: 10, status: 'OK'},
+      {name: 'Leite UHT 1L', stock: 12, min: 30, status: 'Atenção'},
+      {name: 'Café torrado 500g', stock: 8, min: 12, status: 'Atenção'},
+    ]
+  },
+  'Cafeterias': {
+    icon: '☕', color: '#EFEBE9',
+    items: [
+      {name: 'Café especial grão 1kg', stock: 2, min: 8, status: 'Crítico'},
+      {name: 'Leite integral 1L', stock: 5, min: 20, status: 'Crítico'},
+      {name: 'Açúcar demerara 1kg', stock: 10, min: 6, status: 'OK'},
+      {name: 'Copo descartável 200ml', stock: 50, min: 100, status: 'Atenção'},
+      {name: 'Croissant congelado cx20', stock: 3, min: 10, status: 'Crítico'},
+    ]
+  },
+  'Pet Shops': {
+    icon: '🐾', color: '#FFF8E1',
+    items: [
+      {name: 'Ração Golden cães 15kg', stock: 3, min: 10, status: 'Crítico'},
+      {name: 'Ração Whiskas gatos 3kg', stock: 5, min: 8, status: 'Atenção'},
+      {name: 'Shampoo pet neutro 500ml', stock: 12, min: 6, status: 'OK'},
+      {name: 'Antipulgas Frontline', stock: 2, min: 8, status: 'Crítico'},
+      {name: 'Osso brinquedo cx12', stock: 8, min: 5, status: 'OK'},
+    ]
+  },
+  'Conveniências': {
+    icon: '🏪', color: '#E0F7FA',
+    items: [
+      {name: 'Cerveja lata 350ml cx12', stock: 4, min: 15, status: 'Crítico'},
+      {name: 'Salgadinho Doritos 96g', stock: 8, min: 20, status: 'Atenção'},
+      {name: 'Chocolate Snickers cx20', stock: 6, min: 10, status: 'Atenção'},
+      {name: 'Energético Monster 473ml', stock: 3, min: 12, status: 'Crítico'},
+      {name: 'Cigarro (diversas marcas)', stock: 15, min: 30, status: 'Atenção'},
+    ]
+  }
+};
+
+function showSegmentExample(segmentName) {
+  var data = segmentExamples[segmentName];
+  if (!data) return;
+
+  var criticalCount = data.items.filter(function(i) { return i.status === 'Crítico'; }).length;
+  var warningCount = data.items.filter(function(i) { return i.status === 'Atenção'; }).length;
+  var okCount = data.items.filter(function(i) { return i.status === 'OK'; }).length;
+
+  var overlay = document.createElement('div');
+  overlay.className = 'demo-overlay';
+  overlay.id = 'segment-modal';
+  overlay.onclick = function(e) { if (e.target === overlay) closeSegmentModal(); };
+
+  overlay.innerHTML =
+    '<div class="demo-container" style="max-width:680px">' +
+      '<div class="demo-header">' +
+        '<div class="demo-header-title">' + data.icon + ' Exemplo — ' + escapeHtml(segmentName) + '</div>' +
+        '<button class="demo-close" onclick="closeSegmentModal()" title="Fechar">✕</button>' +
+      '</div>' +
+      '<div style="padding:1.5rem">' +
+        '<p style="color:var(--gray-400);margin-bottom:1.25rem;font-size:.9375rem">Veja como o painel do Vapt Vupt funciona para <strong>' + escapeHtml(segmentName) + '</strong>. Este é um exemplo de estoque com itens típicos do segmento.</p>' +
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem">' +
+          '<div style="text-align:center;padding:.75rem;background:rgba(255,59,48,.06);border-radius:var(--radius-md);border:1px solid rgba(255,59,48,.15)"><div style="font-size:1.25rem;font-weight:700;color:var(--danger)">' + criticalCount + '</div><div style="font-size:.75rem;color:var(--gray-400)">Críticos</div></div>' +
+          '<div style="text-align:center;padding:.75rem;background:rgba(255,149,0,.06);border-radius:var(--radius-md);border:1px solid rgba(255,149,0,.15)"><div style="font-size:1.25rem;font-weight:700;color:var(--warning)">' + warningCount + '</div><div style="font-size:.75rem;color:var(--gray-400)">Atenção</div></div>' +
+          '<div style="text-align:center;padding:.75rem;background:rgba(0,185,125,.06);border-radius:var(--radius-md);border:1px solid rgba(0,185,125,.15)"><div style="font-size:1.25rem;font-weight:700;color:var(--success)">' + okCount + '</div><div style="font-size:.75rem;color:var(--gray-400)">OK</div></div>' +
+        '</div>' +
+        '<div style="background:var(--gray-50);border:1.5px solid var(--gray-100);border-radius:var(--radius-lg);overflow:hidden">' +
+          '<table style="width:100%;border-collapse:collapse;font-size:.875rem">' +
+            '<thead><tr style="background:var(--gray-100)">' +
+              '<th style="text-align:left;padding:.75rem 1rem;font-weight:600;color:var(--gray-600)">Produto</th>' +
+              '<th style="text-align:center;padding:.75rem .5rem;font-weight:600;color:var(--gray-600)">Estoque</th>' +
+              '<th style="text-align:center;padding:.75rem .5rem;font-weight:600;color:var(--gray-600)">Mínimo</th>' +
+              '<th style="text-align:center;padding:.75rem 1rem;font-weight:600;color:var(--gray-600)">Status</th>' +
+            '</tr></thead>' +
+            '<tbody>' +
+              data.items.map(function(item) {
+                var chipClass = item.status === 'Crítico' ? 'chip-red' : (item.status === 'Atenção' ? 'chip-orange' : 'chip-green');
+                return '<tr style="border-top:1px solid var(--gray-100)">' +
+                  '<td style="padding:.75rem 1rem;font-weight:500">' + escapeHtml(item.name) + '</td>' +
+                  '<td style="text-align:center;padding:.75rem .5rem">' + item.stock + '</td>' +
+                  '<td style="text-align:center;padding:.75rem .5rem">' + item.min + '</td>' +
+                  '<td style="text-align:center;padding:.75rem 1rem"><span class="chip ' + chipClass + '" style="font-size:.75rem">' + escapeHtml(item.status) + '</span></td>' +
+                '</tr>';
+              }).join('') +
+            '</tbody>' +
+          '</table>' +
+        '</div>' +
+        '<div style="margin-top:1.25rem;padding:1rem;background:var(--blue-light);border-radius:var(--radius-md);border:1px solid rgba(0,87,255,.15);display:flex;align-items:center;gap:.75rem">' +
+          '<span style="font-size:1.25rem">💡</span>' +
+          '<div style="font-size:.875rem;color:var(--gray-600)">Com o Vapt Vupt, esses itens críticos seriam automaticamente cotados com os melhores fornecedores da sua região.</div>' +
+        '</div>' +
+        '<div style="margin-top:1.25rem;text-align:center">' +
+          '<button class="btn btn-primary" onclick="closeSegmentModal();showPage(\'page-cadastro\')">Criar conta grátis</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+}
+
+function closeSegmentModal() {
+  var modal = document.getElementById('segment-modal');
+  if (modal) modal.remove();
 }
 
 // ═══════════════════════════════
@@ -954,10 +1179,39 @@ function initScrollReveal() {
 // ═══════════════════════════════
 // INIT
 // ═══════════════════════════════
+function showSplashScreen() {
+  var splash = document.createElement('div');
+  splash.id = 'splash-screen';
+  splash.style.cssText = 'position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#0057FF 0%,#3373FF 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .5s ease,transform .5s ease';
+  splash.innerHTML =
+    '<img src="img/favicon.svg" alt="" style="width:80px;height:80px;margin-bottom:1.5rem;animation:splashPulse 1s ease infinite alternate">' +
+    '<div style="color:#fff;font-family:var(--font-display);font-size:2rem;font-weight:400;opacity:0;animation:splashFadeIn .6s ease .3s forwards">Vapt Vupt</div>' +
+    '<div style="color:rgba(255,255,255,.6);font-size:.875rem;margin-top:.5rem;opacity:0;animation:splashFadeIn .6s ease .6s forwards">Reposição Inteligente de Estoque</div>';
+  document.body.appendChild(splash);
+  setTimeout(function() {
+    splash.style.opacity = '0';
+    splash.style.transform = 'scale(1.05)';
+    setTimeout(function() { splash.remove(); }, 500);
+  }, 1800);
+}
+
 window.addEventListener('DOMContentLoaded', function() {
   renderCatalog();
   renderPromos();
   renderCriticalItems();
   renderQuotes();
   initScrollReveal();
+  showSplashScreen();
+  // Auto-login from cached session
+  var session = localStorage.getItem('vv_session');
+  if (session) {
+    try {
+      var user = JSON.parse(session);
+      appState.currentUser = user;
+      showPage('page-dashboard');
+      initDashboard();
+    } catch(e) {
+      localStorage.removeItem('vv_session');
+    }
+  }
 });
