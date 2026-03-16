@@ -370,8 +370,6 @@ vapt-vupt/
 
 <div align="center">
 
-Desenvolvido com 💙 por **João Pedro**
-
 [![GitHub](https://img.shields.io/badge/GitHub-jotape2709-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/jotape2709)
 
 <br/>
