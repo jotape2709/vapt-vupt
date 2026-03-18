@@ -862,13 +862,32 @@ function processUpload(file) {
 // TEMPLATE DOWNLOAD
 // ═══════════════════════════════
 function downloadTemplate() {
-  var csv = 'SKU,Produto,Categoria,Marca,Unidade,Quantidade em Estoque,Estoque Mínimo,Consumo Médio,Observações\n' +
-    '001,Cerveja Heineken long neck 330ml,Bebidas,Heineken,cx24,5,10,8,Reposição urgente\n' +
-    '002,Dipirona 500mg cx30,Farmácia,Genérico,cx,3,15,12,Item crítico\n' +
-    '003,Detergente Ypê 500ml,Limpeza,Ypê,cx24,2,8,6,\n' +
-    '004,Água Mineral 500ml,Bebidas,Crystal,cx24,8,20,16,\n' +
-    '005,Álcool Gel 70% 500ml,Farmácia,Vitalitá,un,10,25,20,\n' +
-    '006,[PREENCHA AQUI],,,,,,,';
+  var csv =
+    'SKU,Produto,Categoria,Marca,Unidade,Quantidade em Estoque,Estoque Mínimo,Consumo Médio Diário,Preço Unitário (R$),Observações\n' +
+    '001,Cerveja Heineken Long Neck 330ml,Bebidas,Heineken,cx24,5,10,1.5,89.90,Reposição urgente\n' +
+    '002,Cerveja Brahma Lata 350ml,Bebidas,Brahma,cx12,8,15,2.0,42.00,\n' +
+    '003,Refrigerante Coca-Cola 2L,Bebidas,Coca-Cola,un,12,18,3.0,8.50,\n' +
+    '004,Energético Red Bull 250ml,Bebidas,Red Bull,cx24,3,12,1.0,189.00,Alto giro\n' +
+    '005,Água Mineral sem Gás 500ml,Bebidas,Crystal,cx12,10,20,4.0,18.00,\n' +
+    '006,Suco Del Valle Laranja 1L,Bebidas,Del Valle,cx12,6,10,0.8,36.00,\n' +
+    '007,Arroz Branco Tipo 1 5kg,Alimentos,Tio João,sc,4,10,0.8,22.00,\n' +
+    '008,Feijão Carioca 1kg,Alimentos,Camil,kg,7,15,1.2,7.50,\n' +
+    '009,Óleo de Soja 900ml,Alimentos,Soya,un,5,12,0.7,8.90,\n' +
+    '010,Açúcar Cristal 5kg,Alimentos,União,sc,3,10,0.6,17.50,\n' +
+    '011,Macarrão Espaguete 500g,Alimentos,Adria,un,20,12,0.5,4.20,\n' +
+    '012,Sal Refinado 1kg,Alimentos,Cisne,un,15,8,0.3,2.50,\n' +
+    '013,Café Torrado Moído 500g,Alimentos,3 Corações,un,6,12,0.8,18.90,\n' +
+    '014,Detergente Líquido Neutro 500ml,Limpeza,Ypê,un,4,12,0.4,3.50,\n' +
+    '015,Desinfetante Pinho 2L,Limpeza,Pinho Sol,un,3,8,0.5,9.90,\n' +
+    '016,Álcool Gel 70% 500ml,Limpeza,Vitalitá,un,6,15,0.6,12.00,\n' +
+    '017,Água Sanitária 1L,Limpeza,Qboa,un,4,10,0.5,5.90,\n' +
+    '018,Sabão em Pó 1kg,Limpeza,OMO,kg,5,8,0.3,14.90,\n' +
+    '019,Copo Plástico 200ml (cx100),Descartáveis,Copobrás,cx,3,8,2.0,12.50,\n' +
+    '020,Guardanapo de Papel (cx100),Descartáveis,Lenox,cx,5,10,2.5,8.90,\n' +
+    '021,Sacola Plástica 40x50 (cx100),Descartáveis,Plashpel,cx,4,8,1.5,15.00,\n' +
+    '022,Dipirona Sódica 500mg (cx30),HPC,Genérico,cx,2,10,0.4,18.50,Item crítico\n' +
+    '023,Protetor Solar FPS 50 120ml,HPC,Sundown,un,6,8,0.3,32.00,\n' +
+    '024,[PRODUTO],[CATEGORIA],[MARCA],[UNIDADE],0,0,0,0,[OBSERVAÇÕES]';
   var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
