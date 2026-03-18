@@ -904,6 +904,113 @@
             </div>
           </div>
 
+          <!-- Template preview -->
+          <div class="card-flat" style="margin-bottom:1.5rem;overflow:hidden">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+              <div>
+                <div style="font-size:.8125rem;font-weight:600;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.25rem">Prévia do modelo</div>
+                <p style="font-size:.875rem;color:var(--gray-400);margin:0">Estrutura organizada por categoria — cobre bares, restaurantes, farmácias, mercados e mais.</p>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="downloadTemplate()" style="flex-shrink:0;margin-left:1rem">📥 Baixar modelo</button>
+            </div>
+            <div style="overflow-x:auto;border:1.5px solid var(--gray-100);border-radius:var(--radius-md)">
+              <table style="width:100%;border-collapse:collapse;font-size:.8125rem;white-space:nowrap">
+                <thead>
+                  <tr style="background:var(--gray-100)">
+                    <th style="text-align:left;padding:.625rem .875rem;font-weight:600;color:var(--gray-600);border-bottom:1.5px solid var(--gray-200)">SKU</th>
+                    <th style="text-align:left;padding:.625rem .875rem;font-weight:600;color:var(--gray-600);border-bottom:1.5px solid var(--gray-200)">Produto</th>
+                    <th style="text-align:left;padding:.625rem .875rem;font-weight:600;color:var(--gray-600);border-bottom:1.5px solid var(--gray-200)">Categoria</th>
+                    <th style="text-align:left;padding:.625rem .875rem;font-weight:600;color:var(--gray-600);border-bottom:1.5px solid var(--gray-200)">Marca</th>
+                    <th style="text-align:center;padding:.625rem .875rem;font-weight:600;color:var(--gray-600);border-bottom:1.5px solid var(--gray-200)">Unidade</th>
+                    <th style="text-align:center;padding:.625rem .875rem;font-weight:600;color:var(--gray-600);border-bottom:1.5px solid var(--gray-200)">Qtd. Estoque</th>
+                    <th style="text-align:center;padding:.625rem .875rem;font-weight:600;color:var(--gray-600);border-bottom:1.5px solid var(--gray-200)">Mínimo</th>
+                    <th style="text-align:center;padding:.625rem .875rem;font-weight:600;color:var(--gray-600);border-bottom:1.5px solid var(--gray-200)">Cons. Médio/dia</th>
+                    <th style="text-align:center;padding:.625rem .875rem;font-weight:600;color:var(--gray-600);border-bottom:1.5px solid var(--gray-200)">Preço Unit. (R$)</th>
+                    <th style="text-align:left;padding:.625rem .875rem;font-weight:600;color:var(--gray-600);border-bottom:1.5px solid var(--gray-200)">Observações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="border-top:1px solid var(--gray-100);background:#FFF5F5">
+                    <td style="padding:.5rem .875rem;color:var(--gray-500)">001</td>
+                    <td style="padding:.5rem .875rem;font-weight:500;color:var(--gray-900)">Cerveja Heineken Long Neck 330ml</td>
+                    <td style="padding:.5rem .875rem"><span style="display:inline-flex;align-items:center;gap:.25rem;background:#FFF0F0;color:#C0392B;font-size:.75rem;font-weight:600;padding:.2rem .5rem;border-radius:100px">🍺 Bebidas</span></td>
+                    <td style="padding:.5rem .875rem;color:var(--gray-600)">Heineken</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">cx24</td>
+                    <td style="padding:.5rem .875rem;text-align:center;font-weight:600;color:var(--danger)">5</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">10</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">1,5</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">89,90</td>
+                    <td style="padding:.5rem .875rem;color:var(--danger);font-size:.75rem;font-weight:500">Reposição urgente</td>
+                  </tr>
+                  <tr style="border-top:1px solid var(--gray-100)">
+                    <td style="padding:.5rem .875rem;color:var(--gray-500)">007</td>
+                    <td style="padding:.5rem .875rem;font-weight:500;color:var(--gray-900)">Arroz Branco Tipo 1 5kg</td>
+                    <td style="padding:.5rem .875rem"><span style="display:inline-flex;align-items:center;gap:.25rem;background:#FFF8E1;color:#E65100;font-size:.75rem;font-weight:600;padding:.2rem .5rem;border-radius:100px">🍽️ Alimentos</span></td>
+                    <td style="padding:.5rem .875rem;color:var(--gray-600)">Tio João</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">sc</td>
+                    <td style="padding:.5rem .875rem;text-align:center;font-weight:600;color:var(--warning)">4</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">10</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">0,8</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">22,00</td>
+                    <td style="padding:.5rem .875rem;color:var(--gray-400);font-size:.75rem">—</td>
+                  </tr>
+                  <tr style="border-top:1px solid var(--gray-100);background:#F8FFF8">
+                    <td style="padding:.5rem .875rem;color:var(--gray-500)">014</td>
+                    <td style="padding:.5rem .875rem;font-weight:500;color:var(--gray-900)">Detergente Líquido Neutro 500ml</td>
+                    <td style="padding:.5rem .875rem"><span style="display:inline-flex;align-items:center;gap:.25rem;background:#E8F5E9;color:#2E7D32;font-size:.75rem;font-weight:600;padding:.2rem .5rem;border-radius:100px">🧴 Limpeza</span></td>
+                    <td style="padding:.5rem .875rem;color:var(--gray-600)">Ypê</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">un</td>
+                    <td style="padding:.5rem .875rem;text-align:center;font-weight:600;color:var(--success)">4</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">12</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">0,4</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">3,50</td>
+                    <td style="padding:.5rem .875rem;color:var(--gray-400);font-size:.75rem">—</td>
+                  </tr>
+                  <tr style="border-top:1px solid var(--gray-100)">
+                    <td style="padding:.5rem .875rem;color:var(--gray-500)">019</td>
+                    <td style="padding:.5rem .875rem;font-weight:500;color:var(--gray-900)">Copo Plástico 200ml (cx100)</td>
+                    <td style="padding:.5rem .875rem"><span style="display:inline-flex;align-items:center;gap:.25rem;background:#E8EAF6;color:#3949AB;font-size:.75rem;font-weight:600;padding:.2rem .5rem;border-radius:100px">📦 Descartáveis</span></td>
+                    <td style="padding:.5rem .875rem;color:var(--gray-600)">Copobrás</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">cx</td>
+                    <td style="padding:.5rem .875rem;text-align:center;font-weight:600;color:var(--danger)">3</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">8</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">2,0</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">12,50</td>
+                    <td style="padding:.5rem .875rem;color:var(--gray-400);font-size:.75rem">—</td>
+                  </tr>
+                  <tr style="border-top:1px solid var(--gray-100);background:#F5F8FF">
+                    <td style="padding:.5rem .875rem;color:var(--gray-500)">022</td>
+                    <td style="padding:.5rem .875rem;font-weight:500;color:var(--gray-900)">Dipirona Sódica 500mg (cx30)</td>
+                    <td style="padding:.5rem .875rem"><span style="display:inline-flex;align-items:center;gap:.25rem;background:#E3F2FD;color:#1565C0;font-size:.75rem;font-weight:600;padding:.2rem .5rem;border-radius:100px">💊 HPC</span></td>
+                    <td style="padding:.5rem .875rem;color:var(--gray-600)">Genérico</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">cx</td>
+                    <td style="padding:.5rem .875rem;text-align:center;font-weight:600;color:var(--danger)">2</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">10</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">0,4</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-600)">18,50</td>
+                    <td style="padding:.5rem .875rem;color:var(--danger);font-size:.75rem;font-weight:500">Item crítico</td>
+                  </tr>
+                  <tr style="border-top:1px solid var(--gray-100);background:var(--gray-50)">
+                    <td style="padding:.5rem .875rem;color:var(--gray-300)">024</td>
+                    <td style="padding:.5rem .875rem;font-style:italic;color:var(--gray-300)">[PRODUTO]</td>
+                    <td style="padding:.5rem .875rem;color:var(--gray-300)">[CATEGORIA]</td>
+                    <td style="padding:.5rem .875rem;color:var(--gray-300)">[MARCA]</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-300)">[UNIDADE]</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-300)">0</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-300)">0</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-300)">0</td>
+                    <td style="padding:.5rem .875rem;text-align:center;color:var(--gray-300)">0</td>
+                    <td style="padding:.5rem .875rem;color:var(--gray-300);font-size:.75rem">Adicione seus produtos</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div style="margin-top:.875rem;font-size:.8125rem;color:var(--gray-400);display:flex;align-items:center;gap:.375rem">
+              <span>ℹ️</span>
+              <span>O modelo completo contém <strong>23 produtos de exemplo</strong> cobrindo Bebidas, Alimentos, Limpeza, Descartáveis e HPC. Baixe, adapte e suba o arquivo.</span>
+            </div>
+          </div>
+
           <!-- Upload zone -->
           <div class="upload-zone" id="upload-zone" ondragover="handleDragOver(event)" ondrop="handleDrop(event)" onclick="document.getElementById('planilha-upload').click()">
             <span class="upload-icon">📂</span>
