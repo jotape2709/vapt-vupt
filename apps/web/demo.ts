@@ -13,7 +13,7 @@ export function loadDemo():Business[] {
  try {
   const raw=localStorage.getItem(key); if(!raw) return initialBusinesses();
   const data:unknown=JSON.parse(raw);
-  if(!Array.isArray(data) || data.length>10) return initialBusinesses();
+  if(!Array.isArray(data) || data.length===0 || data.length>10) return initialBusinesses();
   return data.map((b:Business)=>({
    id:typeof b.id==='string' ? b.id : '', segment:typeof b.segment==='string' ? b.segment.slice(0,40):'Comércio',
    theme:ThemeSchema.parse(b.theme), products:ProductSchema.array().max(1000).parse(b.products),
