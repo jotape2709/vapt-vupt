@@ -17,3 +17,7 @@ Tokens de cor, superfície, texto, foco, alerta e espaçamento no CSS. Paletas c
 Acessibilidade: estrutura semântica, labels, status textuais, navegação por teclado e adaptação responsiva implementadas. Auditoria visual, leitores de tela e medição completa WCAG ainda pendentes. Não declarar certificação.
 
 UX: prioridade de reposição antes de gráficos; ausência de informação aparece como estado vazio; compras/cotações/equipe exibem status planejado; sucesso local não diz sincronizado. Módulos ocultos organizam navegação, não implementam autorização.
+
+## Contraste calculado dos tokens principais
+
+Razão de luminância sRGB (não substitui inspeção da tela): floresta/branco 9,71:1; vinho/branco 9,05:1; terracota/branco 6,95:1; texto secundário claro/branco 5,01:1; alerta claro 5,85:1; texto secundário escuro 7,51:1; botão vinho escuro 8,73:1.

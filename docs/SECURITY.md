@@ -23,3 +23,7 @@ Antes de produção: imagem Docker fixada por digest, banco com volume protegido
 Mapear controlador/operador, finalidade, base legal, retenção, direitos do titular, resposta a incidentes, acesso de suporte e subprocessadores antes de captar dados pessoais. Realizar revisão técnica e jurídica adequada. Isto é backlog de implementação, não declaração de conformidade.
 
 Reportar problemas ao mantenedor pelos canais do perfil GitHub, sem publicar credenciais ou dados pessoais em issues.
+
+## Evidência de testes desta entrega
+
+Isolamento RLS, autorização, idempotência concorrente e rollback passaram em PostgreSQL efêmero no CI. Ver docs/VALIDATION.md. Isso não substitui testes com o provedor OIDC real, revisão de infraestrutura ou pentest. Headers da prévia estática são definidos em vercel.json; a API mantém seus próprios headers via helmet.

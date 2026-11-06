@@ -27,7 +27,7 @@ Node.js 22.12+ e npm. Trabalhe na branch de reconstrução:
 git clone https://github.com/jotape2709/vapt-vupt.git
 cd vapt-vupt
 git switch next/foundation-product
-npm install
+npm ci
 npm run dev
 ```
 
@@ -38,11 +38,14 @@ npm run lint
 npm run build
 npm test
 npm run preview
+# Testes de navegador (após build)
+npx playwright install chromium
+npm run test:browser
 ```
 
 O build publica somente index.html transformado, código compilado e public/. Não sirva a raiz do repositório: legacy/ contém código antigo inseguro e é apenas referência histórica.
 
-**Dependências:** package.json usa intervalos de versões; o lockfile ainda precisa ser gerado, validado e commitado em ambiente com npm. O workflow proposto guarda o lock resolvido como artefato. Antes de release, fixar dependências via package-lock.json e trocar instalação de CI por npm ci. Não há alegação de análise de dependências concluída.
+**Dependências:** package-lock.json registra as versões resolvidas e testadas. Use npm ci. A auditoria npm audit passou sem vulnerabilidades reportadas na execução documentada. Um override de minimatch 11.0.1 corrige o alerta transitivo do parser de lint; revisar esse override ao atualizar a ferramenta.
 
 ## API e banco — desenvolvimento separado
 
@@ -80,8 +83,8 @@ Leia [Segurança](docs/SECURITY.md), [Arquitetura](docs/ARCHITECTURE.md), [Audit
 
 ## Roadmap
 
-- A: auditoria, separação do legado, contratos, migrations e testes; validação executável pendente.
-- B: nova identidade e experiência demonstrativa; revisão visual e acessibilidade pendentes.
+- A: auditoria, separação do legado, contratos, migrations e testes executados no CI.
+- B: nova identidade e experiência demonstrativa; fluxos testados em desktop e celular; revisão visual completa e leitores de tela pendentes.
 - C: integrar UI/OIDC/API, onboarding seguro, gestão de membros, administração central, logos e persistência; validar isolamento e concorrência.
 - D: PWA, política offline, IndexedDB, conflitos, servidor intranet, TLS, backups, atualização e ensaios de restauração.
 - E: fornecedores, compras/cotações reais, POS, rastreabilidade e inteligência com dados reais.
