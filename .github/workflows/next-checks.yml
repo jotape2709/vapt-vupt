@@ -1,0 +1,51 @@
+name: Next foundation checks
+on:
+  push:
+    branches: [next/foundation-product]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: vv_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ephemeral-ci-only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      MIGRATION_DATABASE_URL: postgresql://postgres:ephemeral-ci-only@localhost:5432/vv_test
+      TEST_ADMIN_DATABASE_URL: postgresql://postgres:ephemeral-ci-only@localhost:5432/vv_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Export resolved public dependency lock
+        run: node -e 'console.log("VV_LOCKFILE="+JSON.stringify(JSON.parse(require("fs").readFileSync("package-lock.json","utf8"))))'
+      - name: Dependency advisory report
+        run: npm audit --json
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run db:migrate
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: next-build-and-resolved-lock
+          path: |
+            dist/
+            package-lock.json
+            test-results/
