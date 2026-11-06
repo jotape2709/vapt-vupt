@@ -31,9 +31,10 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Export resolved public dependency lock
+        run: node -e 'console.log("VV_LOCKFILE="+JSON.stringify(JSON.parse(require("fs").readFileSync("package-lock.json","utf8"))))'
       - name: Dependency advisory report
         run: npm audit --json
-        continue-on-error: true
       - run: npm run lint
       - run: npm run build
       - run: npm run db:migrate
