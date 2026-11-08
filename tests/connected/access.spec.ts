@@ -13,6 +13,7 @@ async function fixture(page: Page, role: "manager" | "viewer" = "manager") {
     version = 0;
   const events: Array<Record<string, unknown>> = [];
   const calls: Array<Record<string, unknown>> = [];
+  let originalResult: Record<string, unknown> | undefined;
   const headers = {
     "access-control-allow-origin": "http://127.0.0.1:4173",
     "access-control-allow-headers": "content-type",
@@ -127,6 +128,13 @@ async function fixture(page: Page, role: "manager" | "viewer" = "manager") {
       if (calls.length === 1) {
         quantity += Number(event.quantity);
         version++;
+        originalResult = {
+          eventId: event.eventId,
+          quantity,
+          version,
+          status: "confirmed",
+          replayed: true,
+        };
         events.push({
           id: event.eventId,
           product: "Arroz teste",
@@ -138,13 +146,7 @@ async function fixture(page: Page, role: "manager" | "viewer" = "manager") {
         return route.abort("failed");
       }
       return route.fulfill({
-        json: {
-          eventId: event.eventId,
-          quantity,
-          version,
-          status: "confirmed",
-          replayed: true,
-        },
+        json: originalResult,
       });
     }
     return route.fulfill({
@@ -158,12 +160,19 @@ async function fixture(page: Page, role: "manager" | "viewer" = "manager") {
   await expect(
     page.getByRole("row").filter({ hasText: "Arroz teste" }),
   ).toBeVisible();
-  return calls;
+  return {
+    calls,
+    advance: () => {
+      quantity += 4;
+      version++;
+    },
+  };
 }
 test("PKCE e perda de resposta preservam o evento até confirmar replay", async ({
   page,
 }) => {
-  const calls = await fixture(page);
+  const state = await fixture(page);
+  const { calls } = state;
   await page
     .getByRole("button", { name: "Registrar movimentação", exact: true })
     .click();
@@ -179,6 +188,7 @@ test("PKCE e perda de resposta preservam o evento até confirmar replay", async 
   ).toHaveCount(0);
   const stored = await page.evaluate(() => Object.entries(sessionStorage));
   expect(JSON.stringify(stored)).not.toContain("fixture-access-token");
+  state.advance(); // Another operator commits after the original event.
   // Reload drops in-memory tokens; the receipt must survive a fresh PKCE login.
   await page.reload();
   await page.getByRole("button", { name: "Entrar com segurança" }).click();
@@ -192,7 +202,7 @@ test("PKCE e perda de resposta preservam o evento até confirmar replay", async 
   expect(calls).toHaveLength(2);
   expect(calls[0]).toEqual(calls[1]);
   await expect(
-    page.getByRole("cell", { name: "13 un", exact: true }),
+    page.getByRole("cell", { name: "17 un", exact: true }),
   ).toBeVisible();
   expect(
     await page.evaluate(() =>

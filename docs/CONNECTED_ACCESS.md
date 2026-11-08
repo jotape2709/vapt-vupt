@@ -31,3 +31,5 @@ Recibo local não é fila offline nem backup. Fechar a aba elimina o recibo; lim
 ## Testar o fluxo sem credenciais reais
 
 `npm run test:connected` usa um servidor Vite de teste e intercepta discovery, autorização, token e API com fixtures. A bateria demonstra PKCE, confirmação explícita e perfil de consulta; a segurança criptográfica da API e o isolamento PostgreSQL são testados separadamente. Esses testes não substituem a homologação do provedor real.
+
+Uma confirmação idempotente pode carregar o saldo da época do evento. A interface não substitui um produto já carregado com versão mais recente por esse resultado antigo.

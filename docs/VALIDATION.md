@@ -1,7 +1,7 @@
 # Validação da continuação — 08/11/2026
 
-Execução verificada: https://github.com/jotape2709/vapt-vupt/actions/runs/42515118254
-Commit de código: ece62663b209a70080eeced87d9bb2d87424387f.
+Execução verificada: https://github.com/jotape2709/vapt-vupt/actions/runs/42515331885
+Commit de código: 45b1b0fd4d4f4998e5f14fdec1abc081166cc839.
 
 | Check | Resultado verificado |
 |---|---|
@@ -14,7 +14,7 @@ Commit de código: ece62663b209a70080eeced87d9bb2d87424387f.
 | npm run test:connected | 4 aprovados, desktop/celular, OIDC/API simulados |
 | npm run format:check | Aprovado localmente |
 
-A bateria conectada valida PKCE S256, perfil somente consulta, ausência de tokens no sessionStorage e replay com mesmo UUID/payload após perder resposta. O teste foi ampliado nesta continuação para recarga e novo login antes do replay; consultar o check do HEAD para o resultado dessa asserção adicional. O provedor simulado fica exclusivamente nos testes. Não há bypass de autenticação no aplicativo.
+A bateria conectada valida PKCE S256, perfil somente consulta, ausência de tokens no sessionStorage e replay com mesmo UUID/payload após perder resposta. Recarga e novo login antes do replay também passaram. O check do HEAD inclui ainda o cenário de outro operador movimentar o estoque antes de uma confirmação antiga retornar. O provedor simulado fica exclusivamente nos testes. Não há bypass de autenticação no aplicativo.
 
 O executor local ficou disponível nesta retomada. Build, lint e os testes sem banco passaram localmente (9 aprovados e 1 PostgreSQL explicitamente ignorado). O banco real, as migrações e os testes de navegador foram executados no runner GitHub. Inspeção visual do site e do painel azul feita na prévia local pelo navegador.
 

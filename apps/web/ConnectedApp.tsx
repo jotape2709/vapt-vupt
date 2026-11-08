@@ -174,7 +174,7 @@ export function ConnectedApp({ back }: { back: () => void }) {
       const result = await api.move(operation.org, operation.event);
       setProducts((items) =>
         items.map((p) =>
-          p.id === operation.event.productId
+          p.id === operation.event.productId && result.version >= p.version
             ? { ...p, quantity: result.quantity, version: result.version }
             : p,
         ),
