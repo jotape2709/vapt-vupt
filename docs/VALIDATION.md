@@ -1,3 +1,31 @@
+# Validação da continuação — 08/11/2026
+
+Execução verificada: https://github.com/jotape2709/vapt-vupt/actions/runs/42515118254
+Commit de código: ece62663b209a70080eeced87d9bb2d87424387f.
+
+| Check | Resultado verificado |
+|---|---|
+| npm ci | Concluído |
+| npm audit --json | 0 vulnerabilidades reportadas |
+| npm run lint / npm run build | Aprovados |
+| npm run db:migrate | 001 e 002 aplicadas |
+| npm test | 10 aprovados, 0 ignorados (inclui PostgreSQL) |
+| npm run test:browser | 8 aprovados, desktop/celular |
+| npm run test:connected | 4 aprovados, desktop/celular, OIDC/API simulados |
+| npm run format:check | Aprovado localmente |
+
+A bateria conectada valida PKCE S256, perfil somente consulta, ausência de tokens no sessionStorage e replay com mesmo UUID/payload após perder resposta. O teste foi ampliado nesta continuação para recarga e novo login antes do replay; consultar o check do HEAD para o resultado dessa asserção adicional. O provedor simulado fica exclusivamente nos testes. Não há bypass de autenticação no aplicativo.
+
+O executor local ficou disponível nesta retomada. Build, lint e os testes sem banco passaram localmente (9 aprovados e 1 PostgreSQL explicitamente ignorado). O banco real, as migrações e os testes de navegador foram executados no runner GitHub. Inspeção visual do site e do painel azul feita na prévia local pelo navegador.
+
+Continuam pendentes homologação com provedor real, acessibilidade completa/leitores de tela, gestão de membros, provisionamento comercial, recuperação entre dispositivos e fase D. A prévia está sem OIDC configurado, portanto oferece demonstração e informa indisponibilidade do acesso conectado.
+
+Arquivos e decisões da continuação estão em DELIVERY.md, BRAND.md e CONNECTED_ACCESS.md. A main e a licença original foram preservadas.
+
+---
+
+## Histórico da primeira entrega
+
 # Registro de validação — 6 de novembro de 2026
 
 ## Resultado verificado

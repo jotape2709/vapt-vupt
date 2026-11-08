@@ -27,3 +27,7 @@ A prévia continua demonstrativa sem configuração. /app informa isso sem pedir
 Nenhum provedor ou banco de produção foi provisionado. OIDC real ainda não foi homologado. Testes criptográficos validam o verificador e testes de banco exercitam isolamento, mas não equivalem a um ensaio completo da instalação. Logo, edição visual conectada, cadastro de organizações/unidades, convites, controle de sessões central e recuperação de operações entre dispositivos continuam pendentes. O catálogo conectado limita-se a 1.000 produtos, movimentos a 100 registros; paginação comercial ainda será feita.
 
 Recibo local não é fila offline nem backup. Fechar a aba elimina o recibo; limpar dados do navegador também. Antes de uso comercial, implementar política de recuperação no servidor/por dispositivo e ensaiar perda de resposta, revogação de membership, logout, perda de dispositivo e conflitos. PWA, IndexedDB e operação offline seguem na fase D.
+
+## Testar o fluxo sem credenciais reais
+
+`npm run test:connected` usa um servidor Vite de teste e intercepta discovery, autorização, token e API com fixtures. A bateria demonstra PKCE, confirmação explícita e perfil de consulta; a segurança criptográfica da API e o isolamento PostgreSQL são testados separadamente. Esses testes não substituem a homologação do provedor real.

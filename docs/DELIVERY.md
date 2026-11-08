@@ -1,3 +1,19 @@
+# Continuação — 08/11/2026
+
+Identidade alterada para azul Royal, Marinho e Atlântico no site, tokens, SVGs, favicon e temas das três empresas. Contrato de tema v2; migração preserva os dados da demo e migration 002 atualiza configurações existentes no banco.
+
+A área /app usa oidc-client-ts com Code + PKCE, tokens só em memória e lista de empresas autorizadas pela API. Catálogo, cadastro de produtos, entradas/saídas e histórico conectado têm telas próprias. Recibo de envio em sessionStorage, separado por issuer/subject, mantém UUID/payload para verificar perda de resposta. Não é uma fila offline.
+
+Arquivos novos: apps/api/identity.ts; apps/web/ConnectedApp.tsx, auth.ts, api-client.ts, pending-operation.ts, env.d.ts; db/migrations/002_identity_directory.sql; tests/identity.test.ts, pending-operation.test.ts, connected/access.spec.ts; playwright.connected.config.ts; docs/CONNECTED_ACCESS.md.
+
+Arquivos principais alterados: App.tsx, Landing.tsx, demo.ts, styles.css, packages/domain/index.ts, API app/repository/server/migrate, testes existentes, package.json/lock, README, documentação, Vite, Vercel, workflow e ativos de marca. Os fontes também foram formatados para revisão e manutenção.
+
+Resultados em VALIDATION.md. Fase C ainda parcial: integração com provedor real, onboarding comercial, membros, tema conectado completo, logos remotos e administração central pendentes. Fases D/E não executadas. Sem merge ou deploy de produção.
+
+---
+
+## Histórico da entrega inicial
+
 # Entrega inicial — Vapt-Vupt Next
 
 Branch: next/foundation-product. Sem merge na main. Código original e licença preservados.

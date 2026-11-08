@@ -179,6 +179,12 @@ test("PKCE e perda de resposta preservam o evento até confirmar replay", async 
   ).toHaveCount(0);
   const stored = await page.evaluate(() => Object.entries(sessionStorage));
   expect(JSON.stringify(stored)).not.toContain("fixture-access-token");
+  // Reload drops in-memory tokens; the receipt must survive a fresh PKCE login.
+  await page.reload();
+  await page.getByRole("button", { name: "Entrar com segurança" }).click();
+  await expect(
+    page.getByRole("button", { name: "Verificar confirmação" }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Verificar confirmação" }).click();
   await expect(
     page.getByText("Movimentação confirmada pelo servidor."),
