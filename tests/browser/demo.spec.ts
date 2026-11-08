@@ -6,7 +6,7 @@ test('três empresas, personalização e operação demonstrativa',async({page},
  await page.screenshot({path:info.outputPath('landing.png'),fullPage:true});
  await page.getByRole('button',{name:'Explorar demonstração',exact:true}).click();
  const selector=page.getByLabel('Selecionar empresa demonstrativa');
- for(const [id,name,accent] of [['mercado','Mercado Aurora','forest'],['adega','Adega Vértice','wine'],['bar','Bar da Esquina','copper']]){
+ for(const [id,name,accent] of [['mercado','Mercado Aurora','blue'],['adega','Adega Vértice','navy'],['bar','Bar da Esquina','sky']]){
   await selector.selectOption(id);
   await expect(page.locator('.workspace')).toHaveAttribute('data-accent',accent);
   await expect(page.locator('.topbar')).toContainText(name);
@@ -28,7 +28,7 @@ test('três empresas, personalização e operação demonstrativa',async({page},
  await page.reload();
  await page.getByRole('button',{name:'Explorar demonstração',exact:true}).click();
  await expect(page.locator('.topbar')).toContainText('Aurora Teste');
- await expect(page.locator('.workspace')).toHaveAttribute('data-accent','forest');
+ await expect(page.locator('.workspace')).toHaveAttribute('data-accent','blue');
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);
  expect(overflow).toBe(false);
  expect(errors).toEqual([]);
