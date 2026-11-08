@@ -15,7 +15,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "db:migrate": "node --import tsx apps/api/migrate.ts",
     "test:browser": "playwright test",
-    "format:check": "prettier --check apps packages tests vite.config.ts playwright.config.ts eslint.config.js"
+    "format:check": "prettier --check apps packages tests vite.config.ts playwright.config.ts eslint.config.js",
+    "test:connected": "playwright test --config playwright.connected.config.ts"
   },
   "dependencies": {
     "@fastify/helmet": "^13.0.2",

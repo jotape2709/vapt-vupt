@@ -200,10 +200,12 @@ export function ConnectedApp({ back }: { back: () => void }) {
             ? "O saldo ou registro mudou. Atualize os dados e confira antes de tentar novamente."
             : e.message,
         );
-      } else
+      } else {
+        setModal(null);
         setError(
           "A confirmação não chegou. Use “Verificar confirmação” para consultar o mesmo evento, sem duplicar o registro.",
         );
+      }
       if (e instanceof ApiError && e.status === 401) {
         setUser(null);
         setOrganizations([]);
