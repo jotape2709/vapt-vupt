@@ -17,3 +17,9 @@ Tokens de cor, superfície, texto, foco, alerta e espaçamento no CSS. Paletas c
 Acessibilidade: estrutura semântica, labels, status textuais, navegação por teclado e adaptação responsiva implementadas. Auditoria visual, leitores de tela e medição completa WCAG ainda pendentes. Não declarar certificação.
 
 UX: prioridade de reposição antes de gráficos; ausência de informação aparece como estado vazio; compras/cotações/equipe exibem status planejado; sucesso local não diz sincronizado. Módulos ocultos organizam navegação, não implementam autorização.
+
+## Acabamento (refino visual, 2026-11-08)
+
+Tokens de identidade trancados em `:root` de apps/web/styles.css (`--vv-*`): floresta #174D3C, tinta #203B31, papel #F7F8F3, sálvia #E7EDDC/#E6EACF, lima #DAE65E/#E1ED8F, oliva #88A33C, cobre #BB753E; Trebuchet MS como fonte principal e Georgia itálica só nas áreas expressivas. O refino não cria cores novas: profundidade vem de opacidade, `color-mix` com o acento da empresa, sombras em camadas tingidas de verde e gradientes radiais ultrassutis da própria paleta.
+
+Movimento: `cubic-bezier(.16,1,.3,1)` para entradas e `cubic-bezier(.22,1,.36,1)` para estados táteis; 140 ms (feedback), 240 ms (hover/elevação), 640 ms (entrada). Animações usam `backwards` para não bloquear estados de hover e são desligadas por `prefers-reduced-motion`. Texto operacional mínimo de 11 px; alvos de toque mínimos de 44 px.
