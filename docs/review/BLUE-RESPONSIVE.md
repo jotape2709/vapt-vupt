@@ -24,6 +24,16 @@ Base: `fd357008d40d5b85e2ed834ca098ea7b3bcac8bc`, após a integração do trabal
 
 Os testes de navegador incluem 320, 360, 390, 768, 1024 e 1440 px, cor do botão, presença da marca, título sem corte, ausência de transbordamento da página, tabela contida, diálogo e migração das três paletas com preservação de saldo. A suíte existente mantém a verificação das operações demonstrativas.
 
+## Resultado no CI
+
+[Execução 42530735653](https://github.com/jotape2709/vapt-vupt/actions/runs/42530735653), sobre o commit de implementação `0481bda3af45e251c078b62667773536c0ff3bff`:
+
+- `npm audit --json`: nenhum aviso de vulnerabilidade nas dependências resolvidas nesta execução.
+- `npm run lint`, `npm run build` e `npm run db:migrate`: passaram.
+- `npm test`: **7 passaram, 0 ignorados**, incluindo a integração com PostgreSQL 17.
+- `npm run test:browser`: **18 passaram**, cobrindo a matriz acima nos projetos desktop e mobile.
+- Build, lock resolvido, screenshots e resultados de navegador disponíveis no artefato `next-build-and-resolved-lock` dessa execução.
+
 ## Limites
 
 Esta é uma correção visual e de adaptação de layout. A demonstração continua explicitamente local, sem autenticação comercial nem sincronização. Não há alteração de permissões ou deploy de produção. O wordmark contém texto SVG com fallback de fonte; os símbolos são paths independentes de fonte. A verificação não equivale a uma auditoria WCAG completa.
