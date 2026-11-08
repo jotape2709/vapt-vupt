@@ -2,7 +2,7 @@
 
 Uma nova base de gestão para mercados, adegas, bares e pequenos estabelecimentos. Reconstrução progressiva do projeto acadêmico Vapt-Vupt, com foco em clareza operacional, identidade por empresa e fundamentos seguros.
 
-**Estado: desenvolvimento. Não pronto para produção.** A interface é uma demonstração local com empresas fictícias. A API é uma fundação independente, ainda não conectada à interface. Não há clientes, indicadores comerciais ou conformidade certificada anunciados.
+**Estado: desenvolvimento. Não pronto para produção.** O site oferece uma demonstração com empresas fictícias e uma área conectada em desenvolvimento, acessível por OIDC quando a instalação é configurada. O fluxo com um provedor real ainda precisa de homologação. Não há clientes, indicadores comerciais ou conformidade certificada anunciados.
 
 ## O que existe nesta branch
 
@@ -15,7 +15,8 @@ Uma nova base de gestão para mercados, adegas, bares e pequenos estabelecimento
 | Onboarding | Cria ambiente fictício local, sem conta comercial |
 | Compras, cotações e equipe | Estados explicativos; nenhuma operação externa |
 | API Fastify e PostgreSQL | Código de autenticação por token OIDC, membership, RLS, produtos, tema, movimentações, auditoria |
-| Login/UI integrada, organização via API, administração central | Ainda não implementados |
+| Área conectada: OIDC/PKCE, empresas autorizadas, estoque, cadastro e movimentos | Implementada em código; depende de provedor, API e banco configurados; homologação real pendente |
+| Cadastro comercial de organizações, convites e administração central | Ainda não implementados |
 | GTIN, embalagens, lotes, validade, depósitos, POS | Planejados |
 | PWA instalável, cache, fila IndexedDB, Docker/intranet pronta | Não implementados; fase D depende da conclusão da base C |
 
@@ -47,21 +48,22 @@ O build publica somente index.html transformado, código compilado e public/. N�
 
 **Dependências:** package-lock.json registra as versões resolvidas e testadas. Use npm ci. A auditoria npm audit passou sem vulnerabilidades reportadas na execução documentada. Um override de minimatch 11.0.1 corrige o alerta transitivo do parser de lint; revisar esse override ao atualizar a ferramenta.
 
-## API e banco — desenvolvimento separado
+## API, identidade e banco
 
 1. Provisione PostgreSQL e um provedor OIDC confiável.
-2. Crie uma conta de migração e outra de runtime, sem superusuário ou bypass RLS.
+2. Use uma conta de migração dedicada (002 exige BYPASSRLS para migrar todos os temas) e outra de runtime, sem superusuário, bypass RLS ou ownership. Nunca utilize a conta de migração na API.
 3. Copie .env.example para .env e substitua os placeholders. Os comandos não carregam .env automaticamente; exporte as variáveis no processo ou use o suporte --env-file do runtime.
 4. Execute `npm run db:migrate` com MIGRATION_DATABASE_URL. A migration é transacional e registra versão.
 5. Aplique os grants comentados em db/migrations/001_core.sql ao papel real.
 6. Provisione organização, unidade e membership via administração do banco. **Não há endpoint público de cadastro de organizações nesta fase.**
-7. Execute `npm run dev:api` com DATABASE_URL, OIDC_ISSUER, OIDC_AUDIENCE e OIDC_JWKS_URL configurados.
+7. Configure o cliente público OIDC e o proxy descritos em [docs/CONNECTED_ACCESS.md](docs/CONNECTED_ACCESS.md).
+8. Execute `npm run dev:api` com DATABASE_URL, OIDC_ISSUER, OIDC_AUDIENCE e OIDC_JWKS_URL configurados.
 
-A API falha ao iniciar se configuração de identidade estiver ausente. /health mede somente o processo. Rotas sob /api/organizations/:orgId exigem Bearer OIDC válido e membership. GET/POST products, PUT theme e POST movements estão definidos. Movimentação exige UUID de evento, produto, expectedVersion, kind, quantity inteira e reason. Conflitos retornam 409; nenhuma correção silenciosa.
+A API falha ao iniciar se configuração de identidade estiver ausente. /health mede somente o processo. Rotas sob /api/organizations/:orgId exigem Bearer OIDC válido e membership. GET /api/me/organizations lista somente empresas da identidade verificada. GET/POST products, PUT theme e GET/POST movements estão definidos. Movimentação exige UUID de evento, produto, expectedVersion, kind, quantity inteira e reason. Conflitos retornam 409; nenhuma correção silenciosa.
 
 ## Arquitetura
 
-- apps/web: React, TypeScript e Vite; site e demo na mesma base.
+- apps/web: React, TypeScript e Vite; site, demo e área conectada; oidc-client-ts para Authorization Code + PKCE.
 - apps/api: Fastify, jose, PostgreSQL; validação Zod, headers e rate limiting.
 - packages/domain: contratos de tema, produto, movimentação e políticas.
 - db/migrations: SQL versionado, RLS e chaves por organização.
@@ -85,7 +87,7 @@ Leia [Segurança](docs/SECURITY.md), [Arquitetura](docs/ARCHITECTURE.md), [Audit
 
 - A: auditoria, separação do legado, contratos, migrations e testes executados no CI.
 - B: nova identidade e experiência demonstrativa; fluxos testados em desktop e celular; revisão visual completa e leitores de tela pendentes.
-- C: integrar UI/OIDC/API, onboarding seguro, gestão de membros, administração central, logos e persistência; validar isolamento e concorrência.
+- C: homologar UI/OIDC/API com provedor real; implementar onboarding seguro, gestão de membros, administração central e logos remotos.
 - D: PWA, política offline, IndexedDB, conflitos, servidor intranet, TLS, backups, atualização e ensaios de restauração.
 - E: fornecedores, compras/cotações reais, POS, rastreabilidade e inteligência com dados reais.
 

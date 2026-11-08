@@ -10,7 +10,7 @@ A origem acadêmica fica em legacy/, fora do build. A licença MIT permanece.
 
 O frontend atual usa dados fictícios, preferências e saldos locais em localStorage, jamais autenticação. Persistência é apenas por navegador, pode falhar e não é backup. Histórico de movimentos dura uma sessão; ao recarregar, começa vazio. Sem transmissão, sincronização ou confirmação de servidor.
 
-A API implementada é independente; não existe login de usuário final nem conexão da UI à API nesta entrega. A fundação C não está concluída. Toda chamada operacional exige token OIDC validado por jose, issuer/audience/assinatura/expiração/idade máxima e membership no PostgreSQL. Não existe token demo aceito no servidor real. A injeção de verificador em testes ocorre só no construtor interno, não por header ou variável de bypass.
+A área /app conecta OIDC, diretório de empresas, catálogo e movimentações à API. A demo permanece isolada. A fundação C ainda depende de homologação com provedor real, provisionamento e gestão de membros. Toda chamada operacional exige token OIDC validado por jose, issuer/audience/assinatura/expiração/idade máxima e membership no PostgreSQL. Não existe token demo aceito no servidor real. A injeção de verificador em testes ocorre só no construtor interno, não por header ou variável de bypass.
 
 ## ADR 003 — Tenant e permissões
 
@@ -37,3 +37,13 @@ Pré-requisitos: integração OIDC/UI, persistência testada, permissões comple
 ## Evolução do domínio
 
 GTIN/EAN com dígito verificador, embalagens/fator de conversão, lotes, validade, unidades logísticas, depósitos/localizações, transferências com duas pernas na mesma transação e inventário com aprovação serão agregados independentes com tenant em todas as chaves. Compras, fornecedores, propostas e POS terão contratos e adaptadores externos; nenhuma integração fictícia é produzida. Reposição atual é apenas comparação com mínimo; previsão depende de histórico real e avaliação.
+
+## ADR 006 — Acesso conectado e recibo de envio
+
+Cliente OIDC mantido (oidc-client-ts), Authorization Code + PKCE S256. Tokens apenas em memória; sessionStorage guarda estado transitório do protocolo e recibos de envios por issuer/subject. Recarregar exige autenticar novamente. Não há refresh token, renovação silenciosa, token demo ou login caseiro. Encerrar sessão no app não encerra a sessão do IdP.
+
+/api/me/organizations usa transação com app.subject/app.issuer obtidos exclusivamente do token validado. Políticas RLS SELECT permitem consultar somente memberships da própria identidade e suas organizações. Consultas de produtos e movimentos continuam exigindo tenant + membership. Não há SECURITY DEFINER nem bypass RLS na API.
+
+O recibo em sessionStorage contém org, UUID e payload do evento, é salvo antes do envio e não autentica ninguém. Falha em salvar bloqueia o envio. Perda de resposta mantém o mesmo evento; retentativa explícita usa o UUID original. Sessão expirada preserva recibo para verificar após novo login na mesma aba. A API revalida autorização. Não é fila offline: fechar a aba apaga o recibo; não permite criar operações desconectadas, nem substitui auditoria e recuperação no servidor. A fase D continua pendente.
+
+Contrato de tema v2 usa blue/navy/sky. Preferências v1 da demo são migradas sem apagar catálogo. Migration 002 converte configurações do banco e adiciona diretório de identidade e índice. Não altera a migration 001 já aplicada.
