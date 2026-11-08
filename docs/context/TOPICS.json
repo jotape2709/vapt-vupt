@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "topics": [
+    {
+      "name": "Estoque e movimentos",
+      "keywords": [
+        "estoque",
+        "saldo",
+        "movimentacao",
+        "movimento",
+        "inventory",
+        "replay",
+        "idempotencia",
+        "expectedversion",
+        "conflito"
+      ],
+      "paths": [
+        "apps/api/repository.ts",
+        "packages/domain/index.ts",
+        "apps/web/ConnectedApp.tsx",
+        "apps/web/pending-operation.ts",
+        "tests/database.test.ts",
+        "tests/connected/access.spec.ts"
+      ]
+    },
+    {
+      "name": "Identidade, autorização e tenants",
+      "keywords": [
+        "autenticacao",
+        "oidc",
+        "pkce",
+        "auth",
+        "login",
+        "sessao",
+        "token",
+        "tenant",
+        "rls",
+        "membership",
+        "isolamento",
+        "autorizacao"
+      ],
+      "paths": [
+        "apps/api/identity.ts",
+        "apps/api/app.ts",
+        "apps/api/repository.ts",
+        "apps/api/server.ts",
+        "apps/web/auth.ts",
+        "db/migrations/",
+        "docs/CONNECTED_ACCESS.md",
+        "docs/SECURITY.md"
+      ]
+    },
+    {
+      "name": "Marca e personalização",
+      "keywords": [
+        "azul",
+        "tema",
+        "paleta",
+        "personalizacao",
+        "logo",
+        "marca",
+        "brand",
+        "theme",
+        "design"
+      ],
+      "paths": [
+        "apps/web/styles.css",
+        "apps/web/App.tsx",
+        "apps/web/demo.ts",
+        "packages/domain/index.ts",
+        "public/brand/",
+        "docs/BRAND.md"
+      ]
+    },
+    {
+      "name": "PWA e intranet pendentes",
+      "keywords": [
+        "pwa",
+        "offline",
+        "intranet",
+        "indexeddb",
+        "backup",
+        "tls",
+        "sincronizacao"
+      ],
+      "paths": [
+        "docs/ARCHITECTURE.md",
+        "docs/SECURITY.md",
+        "docs/context/PROJECT_STATE.md",
+        "docs/context/NEXT_TASKS.md",
+        "apps/web/pending-operation.ts"
+      ]
+    },
+    {
+      "name": "Contexto para agentes",
+      "keywords": [
+        "contexto",
+        "rag",
+        "stair",
+        "snapshot",
+        "agentes",
+        "claude",
+        "antigravity",
+        "retrieval"
+      ],
+      "paths": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        "scripts/project-context.mjs",
+        "docs/context/"
+      ]
+    }
+  ]
+}

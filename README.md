@@ -93,6 +93,19 @@ Leia [Segurança](docs/SECURITY.md), [Arquitetura](docs/ARCHITECTURE.md), [Audit
 
 Nenhum deploy público de produção deve ocorrer sem autorização do responsável.
 
+
+## Continuar com Claude ou Antigravity
+
+Leia [docs/context/START_HERE.md](docs/context/START_HERE.md). A branch inclui AGENTS.md, CLAUDE.md, regra de workspace para Antigravity, estado do produto, backlog, mapa de fontes e recuperação local por tarefa.
+
+```bash
+npm run context:check
+npm run context:search -- "replay idempotência estoque"
+npm run context:pack -- "replay idempotência estoque"
+```
+
+O pacote fica em `.context/context-pack.md` e deve ser lido pelo agente. Sem API paga, embeddings ou servidor adicional para a recuperação. É busca lexical/estrutural assistindo o agente, não uma implementação ou treinamento do STAIR da IBM. Ao mudar os fontes, revise o estado manual e execute `npm run context:snapshot` antes do commit.
+
 ## Licença e origem
 
 Originado como projeto acadêmico de João Pedro, em 2026. A versão original permanece no histórico e em legacy/. [LICENSE](LICENSE) mantém integralmente a licença MIT e Copyright (c) 2026 João Pedro. A evolução comercial não revoga direitos concedidos anteriormente; mantenha aviso de copyright e licença em cópias ou partes substanciais.

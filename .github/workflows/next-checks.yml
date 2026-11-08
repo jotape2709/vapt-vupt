@@ -33,6 +33,8 @@ jobs:
       - run: npm ci
       - name: Dependency advisory report
         run: npm audit --json
+      - run: npm run context:check
+      - run: npm run test:context
       - run: npm run lint
       - run: npm run build
       - run: npm run db:migrate

@@ -16,7 +16,13 @@
     "db:migrate": "node --import tsx apps/api/migrate.ts",
     "test:browser": "playwright test",
     "format:check": "prettier --check apps packages tests vite.config.ts playwright.config.ts eslint.config.js",
-    "test:connected": "playwright test --config playwright.connected.config.ts"
+    "test:connected": "playwright test --config playwright.connected.config.ts",
+    "context:index": "node scripts/project-context.mjs index",
+    "context:search": "node scripts/project-context.mjs search",
+    "context:pack": "node scripts/project-context.mjs pack",
+    "context:snapshot": "node scripts/project-context.mjs snapshot",
+    "context:check": "node scripts/project-context.mjs check",
+    "test:context": "node --test scripts/project-context.test.mjs"
   },
   "dependencies": {
     "@fastify/helmet": "^13.0.2",
