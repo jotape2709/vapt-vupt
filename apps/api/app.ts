@@ -41,6 +41,11 @@ export function safeReturnTo(value: unknown) {
  return value;
 }
 
+/** URL para log: sem query string em /auth/* (code, state, erros do provedor). */
+export function logUrl(url: string) {
+ return url.startsWith('/auth/') ? url.split('?')[0] : url;
+}
+
 const identityOf = (s: ActiveSession): Identity => ({ issuer: s.issuer, subject: s.subject, name: s.name });
 
 /**
@@ -51,7 +56,11 @@ export function buildApp(deps: Deps, options: AppOptions) {
  const app = Fastify({
   bodyLimit: 64 * 1024,
   trustProxy: options.trustProxy ?? false,
-  logger: options.logger === false ? false : { redact: ['req.headers.authorization', 'req.headers.cookie', 'req.headers["x-csrf-token"]', 'res.headers["set-cookie"]'] }
+  logger: options.logger === false ? false : {
+   redact: ['req.headers.authorization', 'req.headers.cookie', 'req.headers["x-csrf-token"]', 'res.headers["set-cookie"]'],
+   // O retorno do provedor traz code e state na URL: os logs guardam só o caminho.
+   serializers: { req: (req: { method: string; url: string }) => ({ method: req.method, url: logUrl(req.url) }) }
+  }
  });
  const sessionCookie = options.secureCookies ? '__Host-vv_session' : 'vv_session';
  const loginCookie = options.secureCookies ? '__Host-vv_login' : 'vv_login';

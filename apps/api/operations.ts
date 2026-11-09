@@ -72,7 +72,7 @@ export class Operations {
    const user = (await db.query('SELECT display_name, email, preferences, last_organization_id FROM users WHERE issuer=$1 AND subject=$2', [identity.issuer, identity.subject])).rows[0];
    // Somente as memberships da própria identidade (política self_select) e suas organizações.
    const orgs = await db.query<{ id: string; role: Me['organizations'][number]['role']; segment: Me['organizations'][number]['segment']; settings: OrgSettings }>(
-    `SELECT o.id, m.role, o.segment, s.settings
+    `SELECT o.id, m.role, s.settings->'identity'->>'segment' AS segment, s.settings
      FROM memberships m
      JOIN organizations o ON o.id = m.organization_id
      JOIN organization_settings s ON s.organization_id = o.id AND s.version = o.settings_version
@@ -113,14 +113,14 @@ export class Operations {
  context(identity: Identity, org: string): Promise<Context> {
   return this.db.asMember(identity, org, 'settings.read', async (db, member) => {
    const envelope = await this.envelope(db, org);
-   const o = (await db.query<{ segment: Context['organization']['segment'] }>('SELECT segment FROM organizations WHERE id=$1', [org])).rows[0];
    const units = (await db.query<{ id: string; name: string; is_primary: boolean }>('SELECT id, name, is_primary FROM units WHERE organization_id=$1 ORDER BY is_primary DESC, name', [org])).rows
     .map(u => ({ id: u.id, name: u.name, isPrimary: u.is_primary }));
    const unit = units.find(u => u.isPrimary) ?? units[0];
    if (!unit) throw notFound('Unidade');
    await db.query('UPDATE users SET last_organization_id=$3 WHERE issuer=$1 AND subject=$2', [identity.issuer, identity.subject, org]);
    return {
-    organization: { id: org, displayName: envelope.settings.identity.displayName, segment: o.segment },
+    // O segmento vigente é o da configuração versionada (organizations.segment guarda só o inicial).
+    organization: { id: org, displayName: envelope.settings.identity.displayName, segment: envelope.settings.identity.segment },
     role: member.role, permissions: [...roleMatrix[member.role]],
     unit, units, unitPolicy: 'single-unit-pilot', settings: envelope
    };
@@ -204,6 +204,9 @@ export class Operations {
 
  createProduct(identity: Identity, org: string, input: ProductCreate): Promise<StockItem> {
   return this.db.asMember(identity, org, 'product.create', async db => {
+   // Cadastros da mesma empresa são serializados: dois reenvios simultâneos do mesmo cadastro
+   // (ou dois códigos que diferem só em maiúsculas) não chegam a disputar a chave única.
+   await db.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', ['product-create:' + org]);
    // Repetição do mesmo cadastro (resposta perdida) devolve o produto existente sem duplicar.
    const prior = await db.query('SELECT name, sku, unit, minimum, category, version FROM products WHERE organization_id=$1 AND id=$2', [org, input.id]);
    if (prior.rows[0]) {

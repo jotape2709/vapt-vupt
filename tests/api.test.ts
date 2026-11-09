@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { safeReturnTo } from '../apps/api/app';
+import { logUrl, safeReturnTo } from '../apps/api/app';
 import { loadConfig } from '../apps/api/config';
 import { inspectImage } from '../apps/api/images';
 import { pngImage } from './support/client';
@@ -41,4 +41,9 @@ test('logotipo: valida conteúdo, tipo declarado, dimensões e tamanho', () => {
  const vp8l = Buffer.alloc(30); vp8l.write('RIFF', 0, 'latin1'); vp8l.writeUInt32LE(22, 4); vp8l.write('WEBPVP8L', 8, 'latin1'); vp8l[20] = 0x2f;
  vp8l[21] = 99; vp8l[22] = 0; vp8l[23] = 0x0c; vp8l[24] = 0; // largura 100, altura 49
  assert.deepEqual(inspectImage(vp8l, 'image/webp'), { contentType: 'image/webp', width: 100, height: 49 });
+});
+
+test('logs não guardam code e state do retorno do provedor', () => {
+ assert.equal(logUrl('/auth/callback?code=segredo&state=abc'), '/auth/callback');
+ assert.equal(logUrl('/api/orgs/x/units/y/stock?q=arroz'), '/api/orgs/x/units/y/stock?q=arroz');
 });

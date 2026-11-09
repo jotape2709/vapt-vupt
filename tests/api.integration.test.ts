@@ -259,6 +259,41 @@ test('operação real: autenticação, isolamento, permissões, estoque, histór
    assert.equal(template.appearance.density, 'compact');
   });
 
+  await t.test('regressão: reenvios simultâneos do mesmo cadastro não viram erro de código duplicado', async () => {
+   const p = { id: randomUUID(), name: 'Feijão carioca · 1 kg', sku: 'CONC-' + randomUUID().slice(0, 6), unit: 'un', minimum: 3, category: 'Mercearia' };
+   const results = await Promise.all([1, 2, 3, 4].map(() => c.alice.send('POST', a('/products'), p)));
+   assert.deepEqual(results.map(r => r.statusCode), [201, 201, 201, 201]);
+   const twins = await Promise.all(['x', 'X'].map(sfx => c.alice.send('POST', a('/products'), { ...p, id: randomUUID(), sku: p.sku + sfx })));
+   assert.deepEqual(twins.map(r => r.statusCode).sort(), [201, 409], 'códigos que diferem só em maiúsculas: um entra, o outro é recusado');
+   assert.equal(twins.find(r => r.statusCode === 409)!.json().error, 'duplicate_sku');
+   const stock = (await c.alice.get(stockA + '?q=' + p.sku)).json();
+   assert.equal(stock.items.filter((i: { id: string }) => i.id === p.id).length, 1);
+  });
+
+  await t.test('regressão: personalização não concede acesso e não altera outra empresa', async () => {
+   const ctx = (await c.alice.get(a('/context'))).json();
+   const bBefore = (await c.bob.get(b('/context'))).json().settings;
+   // Módulos fazem parte da identidade da empresa: gestor não altera.
+   const fewer = { ...ctx.settings.settings, modules: ['overview', 'inventory'], navigation: { landing: 'overview' } };
+   assert.equal((await c.mary.send('PUT', a('/settings'), { expectedVersion: ctx.settings.version, settings: fewer })).statusCode, 403);
+   const saved = await c.alice.send('PUT', a('/settings'), { expectedVersion: ctx.settings.version, settings: { ...fewer, identity: { ...fewer.identity, segment: 'bar' } } });
+   assert.equal(saved.statusCode, 200);
+   // Regressão: o segmento exibido acompanha a configuração salva, em /context e em /me.
+   assert.equal((await c.alice.get(a('/context'))).json().organization.segment, 'bar');
+   assert.equal((await c.alice.get('/api/me')).json().organizations.find((o: { id: string }) => o.id === A.organizationId).segment, 'bar');
+   // Esconder "Movimentações" do menu não tira a permissão do operador, nem dá permissão à consulta.
+   const level = (await c.olga.get(stockA + '?q=AUR-001')).json().items[0];
+   assert.equal((await c.olga.send('POST', movesA, { eventId: randomUUID(), productId: level.id, expectedVersion: level.stockVersion, kind: 'receipt', quantity: 1, reason: 'Teste de módulo' })).statusCode, 200);
+   assert.equal((await c.vera.send('POST', movesA, { eventId: randomUUID(), productId: level.id, expectedVersion: level.stockVersion + 1, kind: 'receipt', quantity: 1, reason: 'Teste' })).statusCode, 403);
+   // Campos de autorização não são aceitos na configuração.
+   const escalate = { ...saved.json().settings, roles: { [people.vera.subject]: 'owner' } };
+   assert.equal((await c.alice.send('PUT', a('/settings'), { expectedVersion: saved.json().version, settings: escalate })).statusCode, 400);
+   const bAfter = (await c.bob.get(b('/context'))).json().settings;
+   assert.deepEqual([bAfter.version, bAfter.settings], [bBefore.version, bBefore.settings], 'empresa B intacta');
+   // Restaura os módulos de A para os testes seguintes.
+   assert.equal((await c.alice.send('PUT', a('/settings'), { expectedVersion: saved.json().version, settings: ctx.settings.settings })).statusCode, 200);
+  });
+
   await t.test('histórico isolado: eventos de A não aparecem em B', async () => {
    const bHistory = (await c.bob.get(b(`/units/${B.unitId}/movements`))).json();
    assert.equal(bHistory.total, 0);
