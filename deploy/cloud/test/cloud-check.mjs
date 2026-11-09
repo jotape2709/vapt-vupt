@@ -1,6 +1,8 @@
 // Verificação no navegador da instalação em nuvem (ensaio isolado, deploy/cloud/test/drill.sh).
-//   node deploy/cloud/test/cloud-check.mjs seed|verify
+//   node deploy/cloud/test/cloud-check.mjs seed|verify|load
 // Variáveis: CHECK_APP_ORIGIN, CHECK_AUTH_ORIGIN, CHECK_USER, CHECK_PASSWORD, CHECK_SKU, CHECK_SHOT (opcional).
+// load: movimenta sem parar um produto próprio (CHECK_SKU) pela API real, até existir o arquivo
+// CHECK_STOP_FILE (~3 por segundo, abaixo do limite de requisições da API); imprime quantas movimentações confirmou e o saldo final esperado.
 // O navegador aceita o certificado da CA de teste do Caddy (ignoreHTTPSErrors) e só neste ensaio.
 import { chromium } from '@playwright/test';
 import assert from 'node:assert/strict';
@@ -8,15 +10,15 @@ import assert from 'node:assert/strict';
 const mode = process.argv[2];
 const app = process.env.CHECK_APP_ORIGIN, auth = process.env.CHECK_AUTH_ORIGIN;
 const user = process.env.CHECK_USER, password = process.env.CHECK_PASSWORD, sku = process.env.CHECK_SKU;
-assert.ok(app && auth && user && password && sku && ['seed', 'verify'].includes(mode), 'parâmetros ausentes');
+assert.ok(app && auth && user && password && sku && ['seed', 'verify', 'load'].includes(mode), 'parâmetros ausentes');
 
 const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || undefined });
 const context = await browser.newContext({ ignoreHTTPSErrors: true, locale: 'pt-BR' });
 const page = await context.newPage();
 const ok = msg => console.log('  ✓ ' + msg);
 const api = (method, path, body) => page.evaluate(async ({ method, path, body }) => {
- const session = await (await fetch('/api/session')).json();
- const r = await fetch(path, { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': session.csrfToken ?? '' }, body: body === undefined ? undefined : JSON.stringify(body) });
+ window.__vvCsrf ??= (await (await fetch('/api/session')).json()).csrfToken ?? '';
+ const r = await fetch(path, { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.__vvCsrf }, body: body === undefined ? undefined : JSON.stringify(body) });
  return { status: r.status, body: await r.json().catch(() => null) };
 }, { method, path, body });
 
@@ -46,6 +48,25 @@ try {
  ok(`empresa ${org.displayName} (${org.role})`);
  const stock = async () => (await api('GET', `/api/orgs/${org.id}/units/${unit}/stock?q=${encodeURIComponent(sku)}`)).body.items;
 
+ if (mode === 'load') {
+  const { existsSync } = await import('node:fs');
+  const stopFile = process.env.CHECK_STOP_FILE;
+  assert.ok(stopFile, 'CHECK_STOP_FILE ausente');
+  const id = crypto.randomUUID();
+  const created = await api('POST', `/api/orgs/${org.id}/products`, { id, name: 'Carga contínua ' + sku, sku, unit: 'un', minimum: 0, category: 'Ensaio' });
+  assert.equal(created.status, 201, JSON.stringify(created.body));
+  let version = 0, balance = 0, done = 0;
+  while (!existsSync(stopFile)) {
+   const kind = done % 3 === 2 ? 'issue' : 'receipt', quantity = kind === 'issue' ? 1 : 2;
+   const r = await api('POST', `/api/orgs/${org.id}/units/${unit}/movements`, { eventId: crypto.randomUUID(), productId: id, expectedVersion: version, kind, quantity, reason: 'Carga durante o backup' });
+   assert.equal(r.status, 200, JSON.stringify(r.body));
+   version = r.body.movement?.stockVersion ?? version + 1; balance += kind === 'receipt' ? quantity : -quantity; done++;
+   await new Promise(res => setTimeout(res, 300));   // abaixo do limite de 300 requisições/min por IP da API
+  }
+  const final = (await stock())[0];
+  assert.equal(final.quantity, balance); assert.equal(final.stockVersion, version);
+  console.log(`  ✓ carga: ${done} movimentações confirmadas pela API durante a janela; saldo final ${balance} un (versão ${version})`);
+ } else {
  if (mode === 'seed') {
   const id = crypto.randomUUID();
   const created = await api('POST', `/api/orgs/${org.id}/products`, { id, name: 'Produto do ensaio ' + sku, sku, unit: 'un', minimum: 2, category: 'Ensaio' });
@@ -69,6 +90,7 @@ try {
  await page.getByRole('button', { name: 'Sair', exact: true }).click();
  await page.waitForURL(u => u.href.startsWith(app + '/app?signed_out=1'));
  assert.equal((await page.request.get(app + '/api/session')).status(), 401); ok('logout encerra a sessão');
+ }
 } finally {
  await browser.close();
 }

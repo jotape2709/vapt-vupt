@@ -27,8 +27,9 @@ manifest=$(age -d -i "$identity" "$backup/manifest.json.age") || die "não foi p
 mf() { python3 -I -c 'import json,sys
 v=json.loads(sys.argv[1])
 for k in sys.argv[2].split("."): v=v.get(k) if isinstance(v,dict) else None
-print(" ".join(v) if isinstance(v,dict) else ("null" if v is None else v))' "$manifest" "$1"; }
-log "Backup $(mf createdAt) do projeto $(mf project), schema $(mf schemaVersion), imagem $(mf appImage)"
+print(json.dumps(v) if isinstance(v,(dict,list)) else ("null" if v is None else v))' "$manifest" "$1"; }
+[ "$(mf format)" = 2 ] || die "formato de manifesto $(mf format) não suportado (esperado 2)"
+log "Backup $(mf createdAt) do projeto $(mf project) (modo $(mf mode)), schema $(mf vapt.schemaVersion), imagem $(mf appImage)"
 
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 if [ -z "$envfile" ]; then
@@ -64,23 +65,44 @@ for db in vapt_vupt keycloak; do
  age -d -i "$identity" "$backup/$db.dump.age" | dc exec -T -u postgres postgres pg_restore -d "$db" --exit-on-error --single-transaction
 done
 
+log "Verificando os dados restaurados contra o manifesto (mesmo snapshot do dump)"
+fail=0
+got=$(psql_super -d vapt_vupt -f - < "$VV_CLOUD_DIR/ops/invariants.sql")
+python3 -I - "$(mf vapt)" "$got" <<'PY' || fail=1
+import json, sys
+want, got = json.loads(sys.argv[1]), json.loads(sys.argv[2])
+bad = 0
+for key in sorted(set(want) | set(got)):
+    if key == "rowCounts":
+        for t in sorted(set(want[key]) | set(got.get(key, {}))):
+            w, g = want[key].get(t), got.get(key, {}).get(t)
+            print(f"  {'✓' if w == g else '✗'} {t}: {g}" + ("" if w == g else f" (backup: {w})")); bad += w != g
+    else:
+        ok = want.get(key) == got.get(key)
+        print(f"  {'✓' if ok else '✗'} {key}: {got.get(key)}" + ("" if ok else f" (backup: {want.get(key)})")); bad += not ok
+for key in ("stockMismatches", "chainBreaks"):
+    if got.get(key):
+        print(f"  ✗ invariante violado: {key}={got[key]}"); bad += 1
+if got.get("tableOwners") != "vv_migrator":
+    print(f"  ✗ donos das tabelas: {got.get('tableOwners')}"); bad += 1
+sys.exit(1 if bad else 0)
+PY
+kc_ids=$(psql_super -d keycloak -c "SELECT coalesce(string_agg(u.id, ' ' ORDER BY u.id), '') FROM user_entity u JOIN realm r ON r.id=u.realm_id WHERE r.name='vapt'")
+kc_users=$(wc -w <<<"$kc_ids" | tr -d ' '); kc_hash=$(printf '%s' "$kc_ids" | sha256sum | cut -c1-16)
+[ "$kc_users" = "$(mf keycloak.realmUsers)" ] && [ "$kc_hash" = "$(mf keycloak.userIdsSha256)" ] \
+ && echo "  ✓ usuários do realm vapt: $kc_users (mesmos ids)" || { echo "  ✗ usuários do realm: $kc_users (backup: $(mf keycloak.realmUsers))"; fail=1; }
+issuer=$(mf authOrigin)/realms/vapt
+members=$(psql_super -d vapt_vupt -v iss="$issuer" -f - <<'SQL'
+SELECT coalesce(string_agg(DISTINCT subject, ' ' ORDER BY subject), '') FROM memberships WHERE issuer = :'iss';
+SQL
+)
+orphans=$(comm -23 <(tr ' ' '\n' <<<"$members" | grep . | sort) <(tr ' ' '\n' <<<"$kc_ids" | grep . | sort) | grep -c . || true)
+if [ "$orphans" = "$(mf orphanMemberships)" ]; then
+ echo "  ✓ funções sem usuário no Keycloak: $orphans (igual ao backup)"
+else echo "  ✗ funções sem usuário no Keycloak: $orphans (backup: $(mf orphanMemberships), modo $(mf mode))"; fail=1; fi
+
 log "Migrations (esperado: nada a aplicar se a imagem for a do backup)"
 dc --profile ops run --rm migrate
-
-log "Verificando dados restaurados"
-fail=0
-for t in $(mf rowCounts); do
- want=$(mf "rowCounts.$t"); got=$(psql_super -d vapt_vupt -c "SELECT count(*) FROM public.\"$t\"")
- [ "$want" = "$got" ] && echo "  ✓ $t: $got" || { echo "  ✗ $t: esperado $want, obtido $got"; fail=1; }
-done
-schema=$(psql_super -d vapt_vupt -c "SELECT max(version) FROM schema_migrations")
-[ "$schema" = "$(mf schemaVersion)" ] && echo "  ✓ schema $schema" || { echo "  ✗ schema $schema (backup: $(mf schemaVersion))"; fail=1; }
-rls=$(psql_super -d vapt_vupt -c "SELECT coalesce(string_agg(relname, ',' ORDER BY relname),'') FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND relkind='r' AND relrowsecurity AND relforcerowsecurity")
-[ -n "$rls" ] && [ "$rls" = "$(mf rlsForced)" ] && echo "  ✓ RLS forçada nas mesmas tabelas do backup: $rls" || { echo "  ✗ RLS forçada em: $rls (backup: $(mf rlsForced))"; fail=1; }
-owners=$(psql_super -d vapt_vupt -c "SELECT string_agg(DISTINCT pg_get_userbyid(relowner), ',') FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND relkind='r'")
-[ "$owners" = vv_migrator ] && echo "  ✓ tabelas pertencem a vv_migrator" || { echo "  ✗ donos: $owners"; fail=1; }
-kc=$(psql_super -d keycloak -c "SELECT count(*) FROM user_entity u JOIN realm r ON r.id=u.realm_id WHERE r.name='vapt'")
-[ "$kc" = "$(mf keycloakUsers)" ] && echo "  ✓ usuários do realm vapt: $kc" || { echo "  ✗ usuários do realm: $kc (backup: $(mf keycloakUsers))"; fail=1; }
 
 log "Subindo Keycloak e aplicação sobre os dados restaurados"
 if [ "$proxy" = 1 ]; then dc up -d --wait --wait-timeout 300; else dc up -d --wait --wait-timeout 300 keycloak app; fi
