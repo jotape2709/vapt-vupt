@@ -2,7 +2,7 @@ import { z } from 'zod';
 export const modules = ['overview', 'inventory', 'products', 'movements', 'purchases', 'quotes', 'team'] as const;
 export const ThemeSchema = z.object({
  version: z.literal(1), name: z.string().trim().min(2).max(60),
- accent: z.enum(['forest', 'wine', 'copper']), mode: z.enum(['light','dark']),
+ accent: z.enum(['blue', 'navy', 'sky', 'forest', 'wine', 'copper']), mode: z.enum(['light','dark']),
  density: z.enum(['comfortable','compact']), font: z.enum(['humanist','system']),
  modules: z.array(z.enum(modules)).max(7),
  logo: z.string().max(180000).regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/).optional()
