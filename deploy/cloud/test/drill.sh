@@ -277,7 +277,8 @@ printf 'Plano do ensaio: restaurar o backup tirado por esta atualização (ops/r
 expect "migration incompatível (004) com plano explícito" 0 "$(upd breaking "${image}-breaking" --sem-reversao --plano-recuperacao "$work/plano.txt")" breaking
 [ "$(schema)" = 004 ] || fail "migration 004 não aplicada"
 if VV_APP_IMAGE="${image}-compat" dc up -d --wait --wait-timeout 40 app >/dev/null 2>&1; then fail "versão anterior iniciou sobre schema incompatível"; fi
-dc logs --tail 20 app 2>&1 | grep -q 'não foram declaradas compatíveis' || fail "API anterior não explicou a recusa"
+dc logs --tail 60 app > "$work/app-refusal.log" 2>&1 || true   # arquivo: grep -q num pipe daria SIGPIPE com pipefail
+grep -aq 'não foram declaradas compatíveis' "$work/app-refusal.log" || fail "API anterior não explicou a recusa"
 note "versão anterior sobre o schema 004: a API recusa iniciar (migration 004 declarada incompatível)"
 dc up -d --wait --wait-timeout 90 app >/dev/null; wait_public_ok
 check verify || fail "dados após as atualizações"
