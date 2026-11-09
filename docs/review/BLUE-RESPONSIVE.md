@@ -32,7 +32,7 @@ Os testes de navegador incluem 320, 360, 390, 768, 1024 e 1440 px, cor do botão
 - `npm run lint`, `npm run build` e `npm run db:migrate`: passaram.
 - `npm test`: **7 passaram, 0 ignorados**, incluindo a integração com PostgreSQL 17.
 - `npm run test:browser`: **18 passaram**, cobrindo a matriz acima nos projetos desktop e mobile.
-- Build, lock resolvido, screenshots e resultados de navegador disponíveis no artefato `next-build-and-resolved-lock` dessa execução.
+- Build, lock resolvido, screenshots e resultados de navegador disponíveis no artefato de build anexado a essa execução do workflow.
 
 ## Limites
 

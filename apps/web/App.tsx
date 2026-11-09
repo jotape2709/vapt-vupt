@@ -1,61 +1,190 @@
-import { useState, type CSSProperties, type FormEvent } from 'react';
-import { ThemeSchema, ProductSchema, applyMovement, belowMinimum, modules, type Product, type Theme } from '../../packages/domain';
-import { initialBusinesses, loadDemo, saveDemo, type Business } from './demo';
+import { useState, type CSSProperties } from 'react';
+import { ThemeSchema, modules, type Theme } from '../../packages/domain';
+import { clearDemo, initialBusinesses, loadDemo, MAX_BUSINESSES, saveDemo, type Business } from './demo';
 import { Dialog, Icon, Mark } from './components';
+import { ConfirmReset, MovementForm, Onboarding, ProductForm } from './forms';
+import { formatQuantity, isBelowMinimum, kindLabel, prefillFromSearch, registerMovement, type MovementKind, type StockFilter } from './inventory';
 import { Landing } from './Landing';
-const labels:Record<string,string>={overview:'Visão geral',inventory:'Estoque',products:'Produtos',movements:'Movimentações',purchases:'Compras',quotes:'Cotações',team:'Equipe',settings:'Personalização'};
-const planned:Record<string,{title:string;text:string}>={
- purchases:{title:'Compras com contexto',text:'O fluxo de pedidos e fornecedores será conectado ao estoque. Ainda não é possível enviar ou confirmar compras.'},
- quotes:{title:'Cotações sem adivinhação',text:'Não há fornecedores conectados. Nenhuma solicitação será enviada nesta demonstração.'},
- team:{title:'Cada pessoa, o acesso certo',text:'Convites, sessões e permissões reais dependem da integração de identidade. A troca de empresa nesta demo não representa autorização.'}
+import { labels, MovementsPage, Overview, StockPage, ThemeEditor, type Actions } from './pages';
+
+const planned: Record<string, { title: string; text: string }> = {
+ purchases: { title: 'Compras com contexto', text: 'O fluxo de pedidos e fornecedores será conectado ao estoque. Ainda não é possível enviar ou confirmar compras.' },
+ quotes: { title: 'Cotações sem adivinhação', text: 'Não há fornecedores conectados. Nenhuma solicitação será enviada nesta demonstração.' },
+ team: { title: 'Cada pessoa, o acesso certo', text: 'Convites, sessões e permissões reais dependem da integração de identidade. A troca de empresa nesta demo não representa autorização.' }
 };
-const moneyless=(n:number)=>n.toLocaleString('pt-BR');
-export function App(){
- const [entered,setEntered]=useState(false),[businesses,setBusinesses]=useState(loadDemo),[active,setActive]=useState('mercado'),[page,setPage]=useState('overview');
- const [query,setQuery]=useState(''),[filter,setFilter]=useState('all'),[message,setMessage]=useState(''),[modal,setModal]=useState<'movement'|'product'|'onboarding'|null>(null);
- const b=businesses.find(x=>x.id===active)||businesses[0]||initialBusinesses()[0];
- const [draft,setDraft]=useState<Theme|null>(null);
- const theme=draft||b.theme;
- const commit=(next:Business[])=>{setBusinesses(next);try{saveDemo(next);setMessage('Alteração demonstrativa salva neste navegador.');}catch{setMessage('Alteração apenas em memória: não foi possível salvar neste navegador.');}};
- const update=(patch:Partial<Business>)=>commit(businesses.map(x=>x.id===b.id?{...x,...patch}:x));
- const changePage=(p:string)=>{setPage(p);setQuery('');setFilter('all');setDraft(null);};
- const critical=belowMinimum(b.products);
- if(!entered) return <Landing enter={()=>setEntered(true)}/>;
- return <div className={'workspace '+theme.mode+' '+theme.density+' font-'+theme.font} data-accent={theme.accent} style={{colorScheme:theme.mode} as CSSProperties}>
- <a className="skip" href="#content">Pular para o conteúdo</a><aside className="sidebar"><button className="brand-button" onClick={()=>setEntered(false)} aria-label="Voltar ao site"><Mark/></button>
- <div className="business-box"><span className="avatar">{theme.logo?<img src={theme.logo} alt=""/>:theme.name.slice(0,1)}</span><label>EMPRESA DEMONSTRATIVA<select aria-label="Selecionar empresa demonstrativa" value={b.id} onChange={e=>{setActive(e.target.value);changePage('overview');setMessage('');}}>{businesses.map(x=><option value={x.id} key={x.id}>{x.theme.name}</option>)}</select></label></div>
- <p className="nav-label">OPERAÇÃO</p><nav aria-label="Aplicativo">{modules.filter(m=>m==='overview'||theme.modules.includes(m)).map(m=><button key={m} className={page===m?'selected':''} onClick={()=>changePage(m)} aria-current={page===m?'page':undefined}><Icon name={m}/><span>{labels[m]}</span>{m==='inventory'&&critical.length>0&&<span className="nav-count">{critical.length}</span>}</button>)}</nav>
- <div className="sidebar-bottom"><button className={page==='settings'?'selected':''} onClick={()=>changePage('settings')}><Icon name="settings"/>Personalização</button><button onClick={()=>setModal('onboarding')}><Icon name="plus"/>Criar empresa demo</button><div className="user-strip"><span className="avatar mini">D</span><div>Perfil demonstrativo<small>Sem autenticação</small></div></div></div></aside>
- <div className="work-area"><header className="topbar"><span>{theme.name}<span className="muted"> / Unidade principal</span></span><div><span className="demo-pill">DEMONSTRAÇÃO</span><button onClick={()=>update({theme:{...b.theme,mode:b.theme.mode==='light'?'dark':'light'}})} aria-label="Alternar modo claro e escuro"><Icon name="sun"/></button></div></header>
- <div className="demo-banner"><span>Ambiente de teste • dados fictícios armazenados neste navegador.</span><span>Sem conexão com servidor</span></div>
- <main id="content" tabIndex={-1}><header className="page-heading"><div><p className="eyebrow">{b.segment.toUpperCase()} / {page==='overview'?'SEU DIA, EM ORDEM':'OPERAÇÃO'}</p><h1>{page==='overview'?'Vamos cuidar do seu estoque.':labels[page]}</h1><p>{page==='overview'?'Um olhar rápido no que merece a sua atenção.':page==='settings'?'A mesma plataforma. Com a cara do seu negócio.':'Informações claras para a próxima decisão.'}</p></div>{['overview','inventory','movements'].includes(page)&&<button className="primary" onClick={()=>setModal('movement')}><Icon name="plus"/>Registrar movimentação</button>}{page==='products'&&<button className="primary" onClick={()=>setModal('product')}><Icon name="plus"/>Novo produto</button>}</header>
- {message&&<div className="notice" role="status">{message}<button onClick={()=>setMessage('')} aria-label="Dispensar mensagem">×</button></div>}
- {page==='overview'&&<><section className="metrics" aria-label="Resumo do estoque"><div><span>Produtos cadastrados</span><strong>{moneyless(b.products.length)}<small>itens</small></strong><p>Catálogo desta empresa</p></div><div><span>Abaixo do mínimo</span><strong>{String(critical.length).padStart(2,'0')}<small>itens</small></strong><p className={critical.length?'attention':''}>{critical.length?'Confira antes de comprar':'Todos acima do mínimo'}</p></div><div><span>Movimentações nesta sessão</span><strong>{String(b.movements.length).padStart(2,'0')}<small>registros</small></strong><p>Somente demonstração local</p></div></section>
- <div className="overview-grid"><section className="panel"><div className="section-heading"><div><p className="eyebrow">PRIORIDADE AGORA</p><h2>Precisa de reposição</h2></div><button className="text-button" onClick={()=>{changePage('inventory');setFilter('critical');}}>Ver estoque <Icon name="arrow"/></button></div>{critical.length?critical.map(p=><div className="priority-row" key={p.id}><span className="product-avatar">{p.name.slice(0,1)}</span><div className="grow"><strong>{p.name}</strong><small>{p.sku} · {p.category}</small></div><div className="stock-number"><strong>{p.quantity} <small>{p.unit}</small></strong><small>Mínimo: {p.minimum}</small></div><span className="status warning">Repor</span></div>):<Empty title="Tudo acima do mínimo" text="Os limites cadastrados não indicam falta neste momento."/>}<div className="panel-foot">Critério: saldo abaixo do mínimo cadastrado. Não é previsão de demanda.</div></section>
- <aside className="daily-note"><span className="eyebrow">UMA COISA DE CADA VEZ</span><h2>O próximo passo<br/>fica mais fácil.</h2><p>Conferiu a entrega? Registre a entrada para manter os saldos da demonstração em dia.</p><button onClick={()=>setModal('movement')}>Registrar entrada <Icon name="arrow"/></button><div className="vv-watermark" aria-hidden="true">vv</div><span className="note-footer">CLAREZA PARA QUEM FAZ ACONTECER.</span></aside></div>
- <section className="recent"><div className="section-heading"><h2>Últimas movimentações</h2><button className="text-button" onClick={()=>changePage('movements')}>Ver registros <Icon name="arrow"/></button></div><MovementList business={b}/></section></>}
- {['inventory','products'].includes(page)&&<section className="panel"><div className="toolbar"><label className="search"><Icon name="search"/><span className="sr-only">Buscar produto</span><input placeholder="Buscar por produto ou código..." value={query} onChange={e=>setQuery(e.target.value)}/></label><label className="filter-label">Exibir<select value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Todos os produtos</option><option value="critical">Abaixo do mínimo</option><option value="ok">Estoque suficiente</option></select></label></div><div className="table-scroll" tabIndex={0} role="region" aria-label="Tabela de produtos com rolagem horizontal"><table><caption className="sr-only">Produtos de {theme.name}</caption><thead><tr><th scope="col">Produto / código</th><th scope="col">Categoria</th><th scope="col">Saldo</th><th scope="col">Mínimo</th><th scope="col">Situação</th></tr></thead><tbody>{b.products.filter(p=>(p.name+' '+p.sku).toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR'))&&(filter==='all'||(filter==='critical'?p.quantity<p.minimum:p.quantity>=p.minimum))).map(p=><tr key={p.id}><td><strong>{p.name}</strong><small>{p.sku}</small></td><td>{p.category}</td><td><strong>{p.quantity}</strong> {p.unit}</td><td>{p.minimum} {p.unit}</td><td><span className={'status '+(p.quantity<p.minimum?'warning':'ok')}>{p.quantity<p.minimum?'Repor':'Suficiente'}</span></td></tr>)}</tbody></table></div>{!b.products.some(p=>(p.name+' '+p.sku).toLocaleLowerCase('pt-BR').includes(query.toLocaleLowerCase('pt-BR'))&&(filter==='all'||(filter==='critical'?p.quantity<p.minimum:p.quantity>=p.minimum)))&&<Empty title="Nenhum produto encontrado" text="Tente outro nome, código ou filtro."/>}<div className="panel-foot">Saldos demonstrativos. Quantidades inteiras nesta primeira versão.</div></section>}
- {page==='movements'&&<section className="panel"><MovementList business={b}/><div className="panel-foot">Histórico temporário desta sessão. Não é um registro de auditoria comercial.</div></section>}
- {['purchases','quotes','team'].includes(page)&&<section className="panel"><Empty title={planned[page].title} text={planned[page].text}/><div className="panel-foot">Módulo planejado • sem operações externas</div></section>}
- {page==='settings'&&<ThemeEditor theme={theme} setDraft={setDraft} save={()=>{const result=ThemeSchema.safeParse(theme);if(result.success){update({theme:result.data});setDraft(null);}else setMessage('Confira o nome e as opções do tema.');}} cancel={()=>setDraft(null)}/>}
- <footer className="app-footer"><span>Vapt-Vupt Next · 0.1 / demonstração</span><span>Seus dados reais ainda não pertencem a este ambiente.</span></footer></main></div>
- {modal==='movement'&&<Dialog title="Registrar movimentação demo" close={()=>setModal(null)}><MovementForm business={b} submit={(product,kind,quantity,reason)=>{try{const input={eventId:crypto.randomUUID(),productId:product.id,kind,quantity,reason,expectedVersion:0};const balance=applyMovement(product.quantity,input);update({products:b.products.map(p=>p.id===product.id?{...p,quantity:balance}:p),movements:[{id:input.eventId,product:product.name,kind,quantity,reason,at:new Date().toISOString()},...b.movements]});setModal(null);}catch(e){setMessage(e instanceof Error?e.message:'Não foi possível registrar.');}}}/></Dialog>}
- {modal==='product'&&<Dialog title="Novo produto demonstrativo" close={()=>setModal(null)}><ProductForm existing={b.products} submit={p=>{update({products:[...b.products,p]});setModal(null);}}/></Dialog>}
- {modal==='onboarding'&&<Dialog title="Seu negócio, do seu jeito" close={()=>setModal(null)}><Onboarding submit={(name,segment)=>{if(businesses.length>=10){setMessage('Limite de 10 empresas demonstrativas.');setModal(null);return;}const template=initialBusinesses()[segment];const id=crypto.randomUUID();commit([...businesses,{...template,id,theme:{...template.theme,name},products:[],movements:[]}]);setActive(id);changePage('overview');setModal(null);}}/></Dialog>}
+
+const headings: Record<string, string> = {
+ inventory: 'Confira saldos e registre entradas ou saídas.',
+ products: 'Encontre ou cadastre os produtos desta empresa.',
+ movements: 'O que entrou e saiu, com o saldo antes e depois.',
+ settings: 'A mesma plataforma. Com a cara do seu negócio.'
+};
+
+type Modal =
+ | { type: 'movement'; productId?: string; kind?: MovementKind }
+ | { type: 'product'; prefill?: { name?: string; sku?: string } }
+ | { type: 'onboarding' }
+ | { type: 'reset' };
+
+type Notice = { text: string; tone?: 'success' | 'error'; action?: { label: string; run: () => void } };
+
+export function App() {
+ const [entered, setEntered] = useState(false);
+ const [businesses, setBusinesses] = useState(loadDemo);
+ const [active, setActive] = useState('mercado');
+ const [page, setPage] = useState('overview');
+ const [query, setQuery] = useState('');
+ const [filter, setFilter] = useState<StockFilter>('all');
+ const [historyProduct, setHistoryProduct] = useState('all');
+ const [notice, setNotice] = useState<Notice | null>(null);
+ const [modal, setModal] = useState<Modal | null>(null);
+ const [draft, setDraft] = useState<Theme | null>(null);
+
+ const b = businesses.find(x => x.id === active) || businesses[0] || initialBusinesses()[0];
+ const theme = draft || b.theme;
+ const critical = b.products.filter(isBelowMinimum);
+
+ /** Salva no navegador; se não der, avisa que a alteração ficou só em memória. Retorna se salvou. */
+ const commit = (next: Business[]) => {
+  setBusinesses(next);
+  try { saveDemo(next); return true; } catch { return false; }
+ };
+ const persistNote = (saved: boolean) => saved ? '' : ' Atenção: não foi possível salvar neste navegador; a alteração fica só até recarregar a página.';
+ const replaceBusiness = (updated: Business) => commit(businesses.map(x => (x.id === updated.id ? updated : x)));
+
+ const changePage = (p: string, options: { query?: string; filter?: StockFilter; product?: string } = {}) => {
+  setPage(p); setQuery(options.query ?? ''); setFilter(options.filter ?? 'all'); setHistoryProduct(options.product ?? 'all'); setDraft(null); setNotice(null);
+  document.getElementById('content')?.focus({ preventScroll: true });
+ };
+
+ const actions: Actions = {
+  move: (productId, kind) => setModal({ type: 'movement', productId, kind }),
+  createProduct: term => setModal({ type: 'product', prefill: term ? prefillFromSearch(term) : undefined }),
+  openStock: (q = '', f = 'all') => changePage('inventory', { query: q, filter: f }),
+  openHistory: productId => changePage('movements', { product: productId })
+ };
+
+ if (!entered) return <Landing enter={() => setEntered(true)} />;
+
+ const visibleModules = modules.filter(m => m === 'overview' || theme.modules.includes(m));
+ const primaryAction = ['overview', 'inventory', 'movements'].includes(page)
+  ? <button className="primary" onClick={() => actions.move()}><Icon name="plus" />Registrar movimentação</button>
+  : page === 'products' ? <button className="primary" onClick={() => actions.createProduct(query)}><Icon name="plus" />Novo produto</button> : null;
+
+ return <div className={'workspace ' + theme.mode + ' ' + theme.density + ' font-' + theme.font} data-accent={theme.accent} style={{ colorScheme: theme.mode } as CSSProperties}>
+  <a className="skip" href="#content">Pular para o conteúdo</a>
+  <aside className="sidebar">
+   <button className="brand-button" onClick={() => setEntered(false)} aria-label="Voltar ao site"><Mark /></button>
+   <div className="business-box">
+    <span className="avatar" aria-hidden="true">{theme.logo ? <img src={theme.logo} alt="" /> : theme.name.slice(0, 1)}</span>
+    <label>EMPRESA DEMONSTRATIVA
+     <select aria-label="Selecionar empresa demonstrativa" value={b.id} onChange={e => {
+      const next = businesses.find(x => x.id === e.target.value);
+      setActive(e.target.value); changePage('overview');
+      if (next) setNotice({ text: `Você está vendo ${next.theme.name}, uma empresa fictícia. Catálogo, saldos e histórico são só desta empresa.` });
+     }}>{businesses.map(x => <option value={x.id} key={x.id}>{x.theme.name}</option>)}</select>
+    </label>
+   </div>
+   <p className="nav-label">OPERAÇÃO</p>
+   <div className="nav-scroller">
+   <nav aria-label="Aplicativo">{visibleModules.map(m => <button key={m} className={page === m ? 'selected' : ''} onClick={() => changePage(m)} aria-current={page === m ? 'page' : undefined}>
+    <Icon name={m} /><span>{labels[m]}</span>
+    {m === 'inventory' && critical.length > 0 && <span className="nav-count" aria-label={`${critical.length} abaixo do mínimo`}>{critical.length}</span>}
+   </button>)}</nav>
+   <div className="sidebar-bottom">
+    <button className={page === 'settings' ? 'selected' : ''} onClick={() => changePage('settings')} aria-current={page === 'settings' ? 'page' : undefined}><Icon name="settings" />Personalização</button>
+    <button onClick={() => setModal({ type: 'onboarding' })}><Icon name="plus" />Criar empresa demo</button>
+    <div className="user-strip"><span className="avatar mini" aria-hidden="true">D</span><div>Perfil demonstrativo<small>Sem autenticação</small></div></div>
+   </div>
+   </div>
+  </aside>
+
+  <div className="work-area">
+   <header className="topbar">
+    <span className="topbar-company" title={theme.name}><strong>{theme.name}</strong><span className="muted"> · {b.segment} · Unidade principal</span></span>
+    <div><span className="demo-pill">DEMONSTRAÇÃO</span><button onClick={() => replaceBusiness({ ...b, theme: { ...b.theme, mode: b.theme.mode === 'light' ? 'dark' : 'light' } })} aria-label={b.theme.mode === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'}><Icon name="sun" /></button></div>
+   </header>
+   <div className="demo-banner"><span>Empresa fictícia · dados de demonstração salvos só neste navegador.</span><span>Nada é enviado a servidor ou a terceiros.</span></div>
+
+   <main id="content" tabIndex={-1}>
+    <header className="page-heading">
+     <div>
+      <p className="eyebrow">{theme.name} · {page === 'overview' ? 'SEU DIA, EM ORDEM' : labels[page]}</p>
+      <h1>{page === 'overview' ? 'Vamos cuidar do seu estoque.' : labels[page]}</h1>
+      <p>{page === 'overview' ? 'Um olhar rápido no que merece a sua atenção.' : headings[page] || 'Módulo planejado para as próximas etapas.'}</p>
+     </div>
+     {primaryAction}
+    </header>
+
+    {notice && <div className={'notice' + (notice.tone ? ' ' + notice.tone : '')} role={notice.tone === 'error' ? 'alert' : 'status'}>
+     {notice.tone === 'success' && <Icon name="check" />}
+     <span className="grow-text">{notice.text}</span>
+     {notice.action && <button className="notice-action" onClick={notice.action.run}>{notice.action.label}</button>}
+     <button className="icon-button" onClick={() => setNotice(null)} aria-label="Dispensar mensagem"><Icon name="close" /></button>
+    </div>}
+
+    {page === 'overview' && <Overview business={b} actions={actions} />}
+    {(page === 'inventory' || page === 'products') && <StockPage business={b} mode={page} query={query} setQuery={setQuery} filter={filter} setFilter={setFilter} actions={actions} />}
+    {page === 'movements' && <MovementsPage business={b} productFilter={historyProduct} setProductFilter={setHistoryProduct} actions={actions} />}
+    {planned[page] && <section className="panel"><div className="empty"><Icon name={page} /><h2>{planned[page].title}</h2><p>{planned[page].text}</p></div><div className="panel-foot">Módulo planejado • sem operações externas</div></section>}
+    {page === 'settings' && <ThemeEditor theme={theme} setDraft={setDraft}
+     save={() => {
+      const result = ThemeSchema.safeParse(theme);
+      if (!result.success) { setNotice({ tone: 'error', text: 'Confira o nome (2 a 60 caracteres) e as opções do tema.' }); return; }
+      const saved = replaceBusiness({ ...b, theme: result.data }); setDraft(null);
+      setNotice({ tone: 'success', text: 'Personalização salva neste navegador.' + persistNote(saved) });
+     }}
+     cancel={() => setDraft(null)} reset={() => setModal({ type: 'reset' })} />}
+
+    <footer className="app-footer"><span>Vapt-Vupt · 0.1 / demonstração</span><span>Seus dados reais ainda não pertencem a este ambiente.</span></footer>
+   </main>
+  </div>
+
+  {modal?.type === 'movement' && <Dialog title="Registrar movimentação" description={`${theme.name} · registro local na demonstração. Nada é enviado a servidor.`} close={() => setModal(null)}>
+   <MovementForm products={b.products} initialProductId={modal.productId} initialKind={modal.kind}
+    createProduct={() => setModal({ type: 'product' })}
+    submit={request => {
+     try {
+      const { business, movement } = registerMovement(b, request, crypto.randomUUID(), new Date());
+      const saved = replaceBusiness(business);
+      setModal(null);
+      setNotice({
+       tone: 'success',
+       text: `${kindLabel[movement.kind]} registrada na demonstração: ${movement.kind === 'receipt' ? '+' : '−'}${formatQuantity(movement.quantity)} ${movement.unit} de ${movement.product}. Saldo ${formatQuantity(movement.before)} → ${formatQuantity(movement.after)} ${movement.unit}.` + persistNote(saved),
+       action: page === 'movements' ? undefined : { label: 'Ver histórico', run: () => actions.openHistory(movement.productId) }
+      });
+     } catch (e) {
+      return e instanceof Error ? e.message : 'Não foi possível registrar.';
+     }
+    }} />
+  </Dialog>}
+
+  {modal?.type === 'product' && <Dialog title="Novo produto" description={`Cadastro em ${theme.name}, somente nesta demonstração.`} close={() => setModal(null)}>
+   <ProductForm existing={b.products} prefill={modal.prefill} submit={p => {
+    const saved = replaceBusiness({ ...b, products: [...b.products, p] });
+    setModal(null);
+    if (page === 'inventory' || page === 'products') { setQuery(p.sku); setFilter('all'); }
+    setNotice({ tone: 'success', text: `${p.name} cadastrado com saldo 0 ${p.unit}.` + persistNote(saved), action: { label: 'Registrar entrada', run: () => actions.move(p.id, 'receipt') } });
+   }} />
+  </Dialog>}
+
+  {modal?.type === 'onboarding' && <Dialog title="Seu negócio, do seu jeito" description="Crie uma empresa fictícia neste navegador. Isso não cria uma conta comercial." close={() => setModal(null)}>
+   <Onboarding submit={(name, segment) => {
+    if (businesses.length >= MAX_BUSINESSES) { setModal(null); setNotice({ tone: 'error', text: `Limite de ${MAX_BUSINESSES} empresas demonstrativas neste navegador.` }); return; }
+    const template = initialBusinesses()[segment] ?? initialBusinesses()[0];
+    const id = crypto.randomUUID();
+    const saved = commit([...businesses, { ...template, id, theme: { ...template.theme, name }, products: [], movements: [] }]);
+    setActive(id); changePage('overview'); setModal(null);
+    setNotice({ tone: 'success', text: `${name} criada como empresa fictícia, sem produtos.` + persistNote(saved), action: { label: 'Cadastrar produto', run: () => actions.createProduct() } });
+   }} />
+  </Dialog>}
+
+  {modal?.type === 'reset' && <Dialog title="Restaurar dados de exemplo?" description="As três empresas voltam ao estado inicial. Produtos, saldos, histórico, personalizações e empresas criadas neste navegador serão apagados." close={() => setModal(null)}>
+   <ConfirmReset cancel={() => setModal(null)} confirm={() => {
+    try { clearDemo(); } catch { /* armazenamento indisponível: o estado em memória é restaurado mesmo assim */ }
+    setBusinesses(initialBusinesses()); setActive('mercado'); setModal(null); changePage('overview');
+    setNotice({ tone: 'success', text: 'Dados de exemplo restaurados.' });
+   }} />
+  </Dialog>}
  </div>;
-}
-function Empty({title,text}:{title:string;text:string}){return <div className="empty"><Icon name="inventory"/><h2>{title}</h2><p>{text}</p></div>;}
-function MovementList({business}:{business:Business}) {return business.movements.length?<div className="movement-list">{business.movements.map(m=><article key={m.id}><span className={'movement-sign '+m.kind}>{m.kind==='receipt'?'+':'−'}</span><div className="grow"><strong>{m.product}</strong><small>{m.reason} · {new Date(m.at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</small></div><strong>{m.quantity}</strong><span className="status">Demo local</span></article>)}</div>:<Empty title="Nenhuma movimentação nesta sessão" text="Registre uma entrada ou saída demonstrativa para acompanhar a alteração de saldo."/>;}
-function MovementForm({business,submit}:{business:Business;submit:(p:Product,k:'receipt'|'issue',q:number,r:string)=>void}){
- const [error,setError]=useState('');
- return <form onSubmit={e=>{e.preventDefault();const d=new FormData(e.currentTarget),p=business.products.find(x=>x.id===d.get('product'));const quantity=Number(d.get('quantity'));const kind=d.get('kind')==='issue'?'issue':'receipt';if(!p||!Number.isInteger(quantity)||quantity<=0){setError('Escolha um produto e uma quantidade inteira positiva.');return;}if(kind==='issue'&&quantity>p.quantity){setError('A saída não pode ser maior que o saldo disponível.');return;}submit(p,kind,quantity,String(d.get('reason')));}}><p className="form-help">O saldo muda apenas na demonstração. Nenhum evento é enviado ao servidor.</p><label>Produto<select name="product" aria-label="Produto" required>{business.products.map(p=><option key={p.id} value={p.id}>{p.name} — {p.quantity} {p.unit}</option>)}</select></label><div className="form-grid"><label>Operação<select name="kind" aria-label="Operação"><option value="receipt">Entrada de mercadoria</option><option value="issue">Saída de mercadoria</option></select></label><label>Quantidade<input name="quantity" type="number" min="1" max="1000000" step="1" required/></label></div><label>Motivo<input name="reason" minLength={3} maxLength={160} required placeholder="Ex.: recebimento de mercadoria"/></label>{error&&<p role="alert" className="error">{error}</p>}<button className="primary" disabled={!business.products.length}>Registrar na demonstração</button></form>;
-}
-function ProductForm({existing,submit}:{existing:Product[];submit:(p:Product)=>void}){
- const [error,setError]=useState('');
- return <form onSubmit={(e:FormEvent<HTMLFormElement>)=>{e.preventDefault();const d=new FormData(e.currentTarget);const result=ProductSchema.safeParse({id:crypto.randomUUID(),name:d.get('name'),sku:d.get('sku'),unit:d.get('unit'),category:d.get('category'),quantity:0,minimum:Number(d.get('minimum'))});if(!result.success){setError('Confira os campos do produto.');return;}if(existing.some(p=>p.sku.toLowerCase()===result.data.sku.toLowerCase())){setError('Este código já existe nesta empresa.');return;}submit(result.data);}}><label>Nome do produto<input name="name" required minLength={2} maxLength={120}/></label><div className="form-grid"><label>Código interno<input name="sku" required maxLength={40}/></label><label>Unidade<select name="unit">{['un','kg','cx','L'].map(u=><option key={u}>{u}</option>)}</select></label></div><label>Categoria<input name="category" required maxLength={40}/></label><label>Estoque mínimo<input name="minimum" type="number" min="0" max="1000000" step="1" defaultValue={0} required/></label><p className="form-help">O produto começa com saldo zero. Registre uma entrada para adicionar estoque.</p>{error&&<p role="alert" className="error">{error}</p>}<button className="primary">Salvar produto demo</button></form>;
-}
-function Onboarding({submit}:{submit:(name:string,segment:number)=>void}){return <form onSubmit={e=>{e.preventDefault();const d=new FormData(e.currentTarget);const name=String(d.get('name')).trim();if(name.length>=2)submit(name,Number(d.get('segment')));}}><p className="form-help">Crie uma empresa fictícia neste navegador. Isso não cria uma conta comercial.</p><label>Nome da empresa<input name="name" minLength={2} maxLength={60} required placeholder="Ex.: Mercado do Bairro"/></label><label>Tipo de estabelecimento<select name="segment"><option value="0">Mercado / outros comércios</option><option value="1">Adega</option><option value="2">Bar e restaurante</option></select></label><button className="primary">Criar ambiente demonstrativo</button></form>;}
-function ThemeEditor({theme,setDraft,save,cancel}:{theme:Theme;setDraft:(t:Theme)=>void;save:()=>void;cancel:()=>void}){
- const [error,setError]=useState(''); const patch=(p:Partial<Theme>)=>setDraft({...theme,...p});
- return <div className="theme-layout"><section className="panel theme-controls"><h2>Identidade & aparência</h2><p className="form-help">A prévia atualiza a interface. Salve para manter as alterações neste navegador.</p><label>Nome exibido<input value={theme.name} maxLength={60} onChange={e=>patch({name:e.target.value})}/></label><fieldset><legend>Paleta</legend><div className="swatches">{(['blue','navy','sky'] as const).map((a,i)=><button aria-pressed={theme.accent===a} onClick={()=>patch({accent:a})} key={a}><span className={'swatch '+a}/>{['Azul Royal','Azul Marinho','Azul Atlântico'][i]}</button>)}</div></fieldset><div className="form-grid"><label>Aparência<select value={theme.mode} onChange={e=>patch({mode:e.target.value as Theme['mode']})}><option value="light">Claro</option><option value="dark">Escuro</option></select></label><label>Densidade<select value={theme.density} onChange={e=>patch({density:e.target.value as Theme['density']})}><option value="comfortable">Confortável</option><option value="compact">Compacta</option></select></label></div><label>Tipografia<select value={theme.font} onChange={e=>patch({font:e.target.value as Theme['font']})}><option value="humanist">Humanista — Trebuchet / sistema</option><option value="system">Sistema operacional</option></select></label><label>Logotipo · PNG, JPG ou WebP, até 120 KB<input type="file" accept="image/png,image/jpeg,image/webp" onChange={async e=>{const file=e.target.files?.[0];if(!file)return;if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>120000){setError('Use PNG, JPG ou WebP de até 120 KB.');return;}try{const bitmap=await createImageBitmap(file);if(bitmap.width>2048||bitmap.height>2048){bitmap.close();setError('Use uma imagem de até 2048 × 2048 pixels.');return;}bitmap.close();const reader=new FileReader();reader.onload=()=>{patch({logo:String(reader.result)});setError('');};reader.onerror=()=>setError('Não foi possível ler a imagem.');reader.readAsDataURL(file);}catch{setError('A imagem não pôde ser aberta.');}}}/></label>{theme.logo&&<button onClick={()=>patch({logo:undefined})}>Remover logotipo</button>}<fieldset><legend>Módulos no menu</legend><p className="form-help">Organiza a navegação da demo. Não concede nem remove permissões de acesso.</p>{modules.filter(m=>m!=='overview').map(m=><label className="check" key={m}><input type="checkbox" checked={theme.modules.includes(m)} onChange={e=>patch({modules:e.target.checked?[...theme.modules,m]:theme.modules.filter(x=>x!==m)})}/>{labels[m]}{['quotes','purchases','team'].includes(m)&&<small>Planejado</small>}</label>)}</fieldset>{error&&<p className="error" role="alert">{error}</p>}<div className="form-actions"><button className="primary" onClick={save}>Salvar personalização</button><button onClick={cancel}>Descartar prévia</button></div></section><aside className="theme-preview"><p className="eyebrow">PRÉVIA AO VIVO</p><div className="preview-brand">{theme.logo?<img src={theme.logo} alt="Logotipo em prévia"/>:<Mark small/>}<h2>{theme.name}</h2></div><p>Seu comércio. Sua identidade.<br/>A mesma base Vapt-Vupt.</p><div className="preview-row"><span>Arroz branco · 5 kg</span><span className="status warning">Repor</span></div><button className="primary" disabled>Exemplo de botão</button><p className="fine">Paletas controladas. Nenhum CSS ou script arbitrário é aceito.</p></aside></div>;
 }

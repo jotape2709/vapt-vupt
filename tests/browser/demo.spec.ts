@@ -15,12 +15,12 @@ test('três empresas, personalização e operação demonstrativa',async({page},
  }
  await selector.selectOption('mercado');
  await page.getByRole('button',{name:'Registrar movimentação',exact:true}).click();
- await page.getByLabel('Quantidade',{exact:true}).fill('5');
+ await page.getByLabel(/^Quantidade/).fill('5');
  await page.getByLabel('Motivo',{exact:true}).fill('Recebimento demonstrativo');
- await page.getByRole('button',{name:'Registrar na demonstração'}).click();
+ await page.getByRole('dialog').getByRole('button',{name:'Registrar entrada',exact:true}).click();
  await expect(page.getByRole('dialog')).not.toBeVisible();
  await page.getByRole('button',{name:/^Estoque/}).click();
- await page.getByRole('textbox',{name:'Buscar produto'}).fill('AUR-001');
+ await page.getByRole('searchbox',{name:'Buscar produto'}).fill('AUR-001');
  await expect(page.getByRole('row').filter({hasText:'AUR-001'})).toContainText('13');
  await page.getByRole('button',{name:'Personalização',exact:true}).click();
  await page.getByLabel('Nome exibido',{exact:true}).fill('Aurora Teste');
@@ -37,11 +37,14 @@ test('saída acima do saldo fica no formulário e exibe erro',async({page})=>{
  await page.goto('/');
  await page.getByRole('button',{name:'Explorar demonstração',exact:true}).click();
  await page.getByRole('button',{name:'Registrar movimentação',exact:true}).click();
- await page.getByLabel('Operação',{exact:true}).selectOption('issue');
- await page.getByLabel('Quantidade',{exact:true}).fill('999');
+ await page.getByRole('radio',{name:'Saída'}).check();
+ await page.getByLabel(/^Quantidade/).fill('999');
  await page.getByLabel('Motivo',{exact:true}).fill('Teste de saída');
- await page.getByRole('button',{name:'Registrar na demonstração'}).click();
- await expect(page.getByRole('alert')).toContainText('A saída não pode ser maior');
+ await page.getByRole('dialog').getByRole('button',{name:'Registrar saída',exact:true}).click();
+ const quantity=page.getByLabel(/^Quantidade/);
+ await expect(quantity).toHaveAttribute('aria-invalid','true');
+ await expect(quantity).toHaveAccessibleDescription(/A saída não pode ser maior/);
+ await expect(quantity).toBeFocused();
  await expect(page.getByRole('dialog')).toBeVisible();
  await page.keyboard.press('Escape');
  await expect(page.getByRole('dialog')).not.toBeVisible();
