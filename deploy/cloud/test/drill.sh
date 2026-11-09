@@ -269,7 +269,7 @@ expect "migration declarada compatível (003)" 0 "$(upd compat "${image}-compat"
 VV_APP_IMAGE="${image}-next" dc up -d --wait --wait-timeout 90 app >/dev/null || fail "versão anterior não iniciou sobre o schema 003"
 wait_public_ok; check verify > /dev/null || fail "versão anterior sobre o schema 003"
 note "versão anterior (${image##*:}-next) sobre o schema 003: iniciou e passou login, saldo e histórico no navegador"
-dc up -d --wait --wait-timeout 90 app >/dev/null; wait_public_ok
+VV_APP_IMAGE="$(current)" dc up -d --wait --wait-timeout 90 app >/dev/null; wait_public_ok
 
 expect "migration incompatível (004) sem plano de recuperação" 4 "$(upd breaking-refused "${image}-breaking")" breaking-refused
 [ "$(schema)" = 003 ] && [ "$(current)" = "${image}-compat" ] || fail "migration incompatível aplicada sem plano"
@@ -280,8 +280,9 @@ if VV_APP_IMAGE="${image}-compat" dc up -d --wait --wait-timeout 40 app >/dev/nu
 dc logs --tail 60 app > "$work/app-refusal.log" 2>&1 || true   # arquivo: grep -q num pipe daria SIGPIPE com pipefail
 grep -aq 'não foram declaradas compatíveis' "$work/app-refusal.log" || fail "API anterior não explicou a recusa"
 note "versão anterior sobre o schema 004: a API recusa iniciar (migration 004 declarada incompatível)"
-dc up -d --wait --wait-timeout 90 app >/dev/null; wait_public_ok
+VV_APP_IMAGE="$(current)" dc up -d --wait --wait-timeout 90 app >/dev/null; wait_public_ok
 check verify || fail "dados após as atualizações"
+load_env   # o ensaio exportou o .env no início; relê a imagem registrada pelas atualizações
 
 step "Perda total do servidor (down -v) e ensaio de restauração em projeto separado"
 backup_id=$(basename "$bdir")
