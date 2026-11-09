@@ -17,7 +17,8 @@
     "test:browser": "playwright test",
     "admin": "tsx apps/api/admin-cli.ts",
     "seed:local": "tsx scripts/seed-local.ts",
-    "test:e2e-real": "bash scripts/e2e-real.sh"
+    "test:e2e-real": "bash scripts/e2e-real.sh",
+    "build:server": "node scripts/build-server.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",
@@ -39,6 +40,7 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
+    "esbuild": "^0.28.2",
     "eslint": "^9.39.1",
     "globals": "^16.5.0",
     "tsx": "^4.20.6",

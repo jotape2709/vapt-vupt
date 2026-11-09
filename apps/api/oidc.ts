@@ -15,8 +15,9 @@ export type OidcOptions = {
  /** Somente desenvolvimento: aceitar emissor http em localhost (ex.: Keycloak do Compose). */
  allowHttp: boolean;
  /**
-  * Somente desenvolvimento em contêiner: o navegador usa OIDC_ISSUER (ex.: http://localhost:8080),
-  * mas a API alcança o provedor por outro endereço interno (ex.: http://keycloak:8080).
+  * Provedor no mesmo host da API (Compose de desenvolvimento e instalação em nuvem de deploy/cloud):
+  * o navegador usa OIDC_ISSUER (ex.: https://login.exemplo.com.br), mas a API alcança o provedor pela
+  * rede interna (ex.: http://keycloak:8080), sem sair para a internet.
   * As chamadas de servidor para servidor trocam apenas a origem; o emissor validado não muda.
   */
  internalOrigin?: string;

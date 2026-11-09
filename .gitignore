@@ -1,8 +1,15 @@
 node_modules/
 dist/
+dist-server/
 .env
 .env.*
 !.env.example
 coverage/
 playwright-report/
 test-results/
+# Instalação em nuvem: segredos e backups nunca entram no Git
+*.env
+!*.env.example
+*.age
+age-identity*.txt
+deploy/cloud/releases.log
