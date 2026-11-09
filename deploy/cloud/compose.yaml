@@ -1,0 +1,152 @@
+# Instalação em NUVEM do Vapt-Vupt: uma VPS, uma base multiempresa (docs/adr/0001-hospedagem-em-nuvem.md).
+# Separada do compose.yaml de desenvolvimento da raiz. Nada aqui contém credenciais: todos os valores
+# sensíveis vêm de deploy/cloud/.env (fora do Git, chmod 600), validado por ops/preflight.sh.
+#
+#   cd deploy/cloud && ops/preflight.sh && ops/install.sh       # primeira instalação
+#   ops/backup.sh | ops/update.sh <imagem> | ops/restore.sh ...  # operação (docs/cloud/OPERACAO.md)
+#
+# Ponto único de falha: um servidor, um PostgreSQL, um Keycloak. NÃO é alta disponibilidade.
+name: ${VV_PROJECT:-vapt-vupt}
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "5" }   # até ~50 MB por serviço; rotação pelo Docker
+
+x-app-env: &app-env
+  DATABASE_URL: postgresql://vv_runtime:${VV_RUNTIME_PASSWORD:?}@postgres:5432/vapt_vupt
+  APP_ORIGIN: ${VV_APP_ORIGIN:?}
+  OIDC_ISSUER: ${VV_AUTH_ORIGIN:?}/realms/vapt
+  # A API fala com o Keycloak pela rede interna; o emissor validado continua sendo o público (HTTPS).
+  OIDC_INTERNAL_ORIGIN: http://keycloak:8080
+  OIDC_CLIENT_ID: vapt-vupt-web
+  OIDC_CLIENT_SECRET: ${VV_OIDC_CLIENT_SECRET:?}
+  SESSION_IDLE_MINUTES: ${VV_SESSION_IDLE_MINUTES:-30}
+  SESSION_ABSOLUTE_HOURS: ${VV_SESSION_ABSOLUTE_HOURS:-12}
+  TRUST_PROXY: "true"   # só o Caddy alcança a API (nenhuma porta publicada)
+
+services:
+  caddy:
+    image: ${VV_CADDY_IMAGE:-caddy:2.11}
+    restart: unless-stopped
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      VV_APP_ORIGIN: ${VV_APP_ORIGIN:?}
+      VV_AUTH_ORIGIN: ${VV_AUTH_ORIGIN:?}
+      VV_ACME_EMAIL: ${VV_ACME_EMAIL:?}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy/sites.caddy:/etc/caddy/sites.caddy:ro
+      - caddy_data:/data        # certificados e chaves TLS (reemitidos se perdidos)
+      - caddy_config:/config
+    depends_on:
+      app: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+    healthcheck:   # configuração carregada (a API administrativa só escuta em localhost)
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:2019/config/"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    logging: *logging
+
+  postgres:
+    image: ${VV_POSTGRES_IMAGE:-postgres:17}
+    restart: unless-stopped
+    # Sem "ports": o banco só existe na rede interna do Compose.
+    command: ["postgres", "-c", "max_connections=60", "-c", "log_min_duration_statement=2000", "-c", "log_connections=off"]
+    environment:
+      POSTGRES_DB: vapt_vupt
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${VV_POSTGRES_PASSWORD:?}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --auth-local=peer
+      VV_MIGRATOR_PASSWORD: ${VV_MIGRATOR_PASSWORD:?}
+      VV_RUNTIME_PASSWORD: ${VV_RUNTIME_PASSWORD:?}
+      VV_KEYCLOAK_DB_PASSWORD: ${VV_KEYCLOAK_DB_PASSWORD:?}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    shm_size: 256mb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vapt_vupt"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    logging: *logging
+
+  keycloak:
+    image: ${VV_KEYCLOAK_IMAGE:-keycloak/keycloak:26.4}
+    restart: unless-stopped
+    command: ["start", "--import-realm"]   # importa o realm só se ele ainda não existir
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${VV_KEYCLOAK_DB_PASSWORD:?}
+      KC_HOSTNAME: ${VV_AUTH_ORIGIN:?}
+      # Console administrativo fora da internet: só por túnel SSH (ssh -L 8081:127.0.0.1:8081 servidor).
+      KC_HOSTNAME_ADMIN: http://127.0.0.1:${VV_KC_ADMIN_PORT:-8081}
+      KC_HTTP_ENABLED: "true"            # TLS termina no Caddy; HTTP só na rede interna
+      KC_PROXY_HEADERS: xforwarded
+      KC_HEALTH_ENABLED: "true"
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${VV_KEYCLOAK_BOOTSTRAP_ADMIN:-bootstrap-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${VV_KEYCLOAK_BOOTSTRAP_PASSWORD:?}
+      # Usados apenas pela importação inicial do realm (keycloak/realm-vapt.json).
+      VV_APP_ORIGIN: ${VV_APP_ORIGIN:?}
+      VV_OIDC_CLIENT_SECRET: ${VV_OIDC_CLIENT_SECRET:?}
+    volumes:
+      - ./keycloak/realm-vapt.json:/opt/keycloak/data/import/realm-vapt.json:ro
+    ports: ["127.0.0.1:${VV_KC_ADMIN_PORT:-8081}:8080"]
+    mem_limit: ${VV_KEYCLOAK_MEMORY:-1024m}
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    logging: *logging
+
+  app:
+    image: ${VV_APP_IMAGE:?}
+    restart: unless-stopped
+    environment: *app-env
+    mem_limit: ${VV_APP_MEMORY:-512m}
+    depends_on:
+      postgres: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 90s
+    logging: *logging
+
+  # Operação sob demanda (perfil ops): nunca sobem com "up".
+  migrate:
+    image: ${VV_APP_IMAGE:?}
+    profiles: ["ops"]
+    command: ["node", "dist-server/api/migrate.js"]
+    environment:
+      MIGRATION_DATABASE_URL: postgresql://vv_migrator:${VV_MIGRATOR_PASSWORD:?}@postgres:5432/vapt_vupt
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+    logging: *logging
+
+  admin:
+    image: ${VV_APP_IMAGE:?}
+    profiles: ["ops"]
+    entrypoint: ["node", "dist-server/api/admin-cli.js"]
+    environment:
+      ADMIN_DATABASE_URL: postgresql://vv_migrator:${VV_MIGRATOR_PASSWORD:?}@postgres:5432/vapt_vupt
+      VV_ADMIN_ACTOR: ${VV_ADMIN_ACTOR:-}
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+    logging: *logging
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

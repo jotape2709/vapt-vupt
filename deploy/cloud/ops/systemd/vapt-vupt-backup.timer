@@ -1,0 +1,11 @@
+# Backup diário às 06:30 UTC (03:30 em Brasília) e, se o servidor estava desligado, ao voltar.
+[Unit]
+Description=Vapt-Vupt: agenda do backup diário
+
+[Timer]
+OnCalendar=*-*-* 06:30:00 UTC
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target
