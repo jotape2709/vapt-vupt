@@ -155,26 +155,132 @@ for _ in $(seq 1 30); do pcurl -fsS -m 5 -o /dev/null "$APP/ready" 2>/dev/null &
 check verify || fail "dados após reiniciar todos os contêineres"
 note "todos os contêineres reiniciados: login e dados preservados"
 
-step "Backup cifrado fora do servidor"
-bdir=$("$cloud/ops/backup.sh" 2>&1 | tee "$work/backup.log" | tail -1)
+step "Backup cifrado fora do servidor, em janela de manutenção (--maintenance)"
+s=$(date +%s)
+bdir=$("$cloud/ops/backup.sh" --maintenance 2>&1 | tee "$work/backup.log" | tail -1)
 [ -d "$bdir" ] || { cat "$work/backup.log"; fail "backup.sh"; }
 grep -E 'prontos|Enviado' "$work/backup.log" | sed 's/^\[[^]]*\] /    /' | tee -a "$report"
 for f in "$bdir"/*.age; do head -c 21 "$f" | grep -q 'age-encryption.org/v1' || fail "arquivo não cifrado: $f"; done
 grep -l 'ENSAIO-01\|Mercado do Ensaio' "$bdir"/*.age && fail "texto claro dentro do backup"
 docker run --rm --network host --env-file "$work/backup.env" "$RCLONE_IMAGE" ls offsite:vv-drill-backups/vapt-vupt | tee -a "$report"
 note "arquivos começam com o cabeçalho age e não contêm o texto dos dados"
+note "janela de manutenção: login e operação parados por $(grep -o 'parados por [0-9]*s' "$work/backup.log" | grep -o '[0-9]*s$'); backup completo com envio em $(( $(date +%s) - s ))s"
+for _ in $(seq 1 30); do pcurl -fsS -m 5 -o /dev/null "$APP/ready" 2>/dev/null && break; sleep 2; done
 
-step "Atualização com sucesso e com reversão (ops/update.sh)"
-docker tag "$image" "${image}-next"
-VV_UPDATE_BACKUP_ARGS=--local-only "$cloud/ops/update.sh" "${image}-next" > "$work/update-ok.log" 2>&1 || { tail -30 "$work/update-ok.log"; fail "update.sh"; }
-grep -q "VV_APP_IMAGE=${image}-next" "$work/drill.env" || fail "update não registrou a nova imagem"
-note "atualização para ${image##*/}-next concluída com backup prévio e migrations"
-printf 'FROM %s\nCMD ["node","-e","console.error(\\"falha simulada na inicialização\\");process.exit(1)"]\n' "$image" | docker build -q -t "${image}-broken" - >/dev/null
-if VV_UPDATE_BACKUP_ARGS=--local-only "$cloud/ops/update.sh" "${image}-broken" > "$work/update-broken.log" 2>&1; then fail "update aceitou imagem quebrada"; fi
-grep -q "VV_APP_IMAGE=${image}-next" "$work/drill.env" || fail "imagem quebrada ficou registrada"
-load_env; wait_healthy app 40
-note "imagem que não inicia: atualização revertida automaticamente para a anterior"
-check verify || fail "dados após reversão"
+step "Backup ONLINE com operações simultâneas: movimentações pela API, novos usuários e empresas"
+stop="$work/load.stop"; rm -f "$stop"
+dc exec -T keycloak /opt/keycloak/bin/kcadm.sh config credentials --server http://localhost:8080 --realm master \
+ --user bootstrap-admin --password "$kc_admin_pw" --config /tmp/kcadm.config >/dev/null
+(cd "$repo" && CHECK_APP_ORIGIN=$APP CHECK_AUTH_ORIGIN=$AUTH CHECK_USER=dona.ensaio CHECK_PASSWORD="$owner_pw" \
+ CHECK_SKU=CARGA-01 CHECK_STOP_FILE="$stop" node deploy/cloud/test/cloud-check.mjs load) > "$work/load.log" 2>&1 & loadpid=$!
+( i=0; while [ ! -f "$stop" ]; do i=$((i+1))
+  uid=$(kc create users -r vapt -s username="carga.$i" -s enabled=true -i | tr -d '\r')
+  dc --profile ops run --rm -T admin provision --name "Empresa da carga $i" --segment bar --unit Loja \
+   --owner-issuer "$AUTH/realms/vapt" --owner-subject "$uid" >/dev/null 2>&1 || exit 1
+ done; echo "$i" > "$work/identity.count" ) & idpid=$!
+events() { psql_super -d vapt_vupt -c "SELECT count(*) FROM inventory_events"; }
+e0=$(events); for _ in $(seq 1 60); do [ "$(events)" -ge $((e0 + 10)) ] && break; sleep 1; done
+[ "$(events)" -ge $((e0 + 10)) ] || { cat "$work/load.log"; fail "carga não começou"; }
+online=$("$cloud/ops/backup.sh" --local-only 2>&1 | tee "$work/backup-online.log" | tail -1)
+[ -d "$online" ] || { cat "$work/backup-online.log"; fail "backup online sob carga"; }
+# Reprodução do achado: o método anterior (93d1124) contava as linhas ANTES e fora do snapshot dos dumps.
+old="$work/old-method"; mkdir -p "$old/ops"
+for f in "$cloud"/*; do [ "$(basename "$f")" = ops ] || ln -sfn "$f" "$old/"; done
+cp "$cloud/ops/lib.sh" "$old/ops/"
+git -C "$repo" show 93d1124:deploy/cloud/ops/backup.sh > "$old/ops/backup.sh"
+legacy=$(bash "$old/ops/backup.sh" --local-only 2>&1 | tee "$work/backup-old.log" | tail -1)
+[ -d "$legacy" ] || { cat "$work/backup-old.log"; fail "backup pelo método anterior"; }
+sleep 2; touch "$stop"
+wait "$loadpid" || { cat "$work/load.log"; fail "carga pela API falhou durante o backup"; }
+wait "$idpid" || fail "criação de usuários/empresas falhou durante o backup"
+sed 's/^/  /' "$work/load.log" | grep '✓ carga' | tee -a "$report"
+note "durante a janela: $(cat "$work/identity.count") usuários criados no Keycloak e $(cat "$work/identity.count") empresas provisionadas"
+grep -E 'prontos' "$work/backup-online.log" | sed 's/^\[[^]]*\] /    /' | tee -a "$report"
+
+s=$(date +%s)
+VV_KC_ADMIN_PORT=18082 VV_COMPOSE_EXTRA="" "$cloud/ops/restore.sh" --backup "$online" --identity "$work/age-identity.txt" --project vv-drill-online > "$work/restore-online.log" 2>&1 || { cat "$work/restore-online.log"; fail "restauração do backup feito sob carga"; }
+grep -E '✓|✗' "$work/restore-online.log" | grep -vE '✓ [a-z_]+: [0-9]+$' | sed 's/^/    /' | tee -a "$report"
+note "backup online sob carga restaurado em projeto separado e verificado em $(( $(date +%s) - s ))s: contagens, somas, cadeia de saldos, empresas e identidade iguais ao snapshot"
+
+age -d -i "$work/age-identity.txt" "$legacy/manifest.json.age" > "$work/old-manifest.json"
+psql_super -d postgres -c "DROP DATABASE IF EXISTS vv_repro_old" >/dev/null 2>&1
+psql_super -d postgres -c "CREATE DATABASE vv_repro_old" >/dev/null
+age -d -i "$work/age-identity.txt" "$legacy/vapt_vupt.dump.age" | dc exec -T -u postgres postgres pg_restore -d vv_repro_old --exit-on-error --single-transaction
+psql_super -d vv_repro_old -f - < "$cloud/ops/invariants.sql" > "$work/old-restored.json"
+psql_super -d postgres -c "DROP DATABASE vv_repro_old" >/dev/null
+python3 -I - "$work/old-manifest.json" "$work/old-restored.json" <<'PY' | tee -a "$report"
+import json, sys
+want = json.load(open(sys.argv[1]))["rowCounts"]; got = json.load(open(sys.argv[2]))
+diff = {t: (want.get(t), got["rowCounts"].get(t)) for t in sorted(set(want) | set(got["rowCounts"])) if want.get(t) != got["rowCounts"].get(t)}
+print("    método anterior (contagem fora do snapshot): " + (", ".join(f"{t} manifesto {a} × cópia {b}" for t, (a, b) in diff.items()) or "nenhuma divergência nesta execução"))
+print(f"    ... e a mesma cópia está íntegra: stockMismatches={got['stockMismatches']}, chainBreaks={got['chainBreaks']}"
+      + (" → o restore antigo a teria REPROVADO falsamente" if diff else ""))
+PY
+
+step "Atualização e reversão (ops/update.sh): sucesso, falhas da nova versão e falhas externas"
+upd() { # nome do log, argumentos; devolve o código de saída
+ local rc=0; VV_UPDATE_WAIT=90 VV_UPDATE_BACKUP_ARGS=--local-only "$cloud/ops/update.sh" "${@:2}" > "$work/update-$1.log" 2>&1 || rc=$?
+ echo "$rc"
+}
+current() { grep '^VV_APP_IMAGE=' "$work/drill.env" | cut -d= -f2; }
+schema() { psql_super -d vapt_vupt -c "SELECT max(version) FROM schema_migrations"; }
+expect() { # cenário, código esperado, código obtido, log
+ [ "$3" = "$2" ] || { tail -25 "$work/update-$4.log"; fail "$1: saída $3, esperada $2"; }
+  note "$1 → saída $3: $(grep -aE 'Atualizado|NOVA VERSÃO|FORA DA|RECUSADO|SEM REVERSÃO' "$work/update-$4.log" | head -1 | sed 's/^\[[^]]*\] //')"
+}
+docker tag "$image" "${image}-next"; docker tag "$image" "${image}-next2"
+mkimg() { printf 'FROM %s\n%s\n' "$2" "$3" | docker build -q -t "$1" - >/dev/null; }
+mkimg "${image}-broken" "$image" 'CMD ["node","-e","console.error(\"falha simulada na inicialização\");process.exit(1)"]'
+mkimg "${image}-loopback" "$image" 'ENV API_HOST=127.0.0.1'   # saudável por dentro, inalcançável pelo proxy
+mkdir -p "$work/mig"   # contexto de build só com as migrations (nunca o diretório com segredos)
+printf '%s\n' '-- compatibilidade-anterior: sim — coluna anulável que a versão anterior ignora (ensaio)' \
+ 'ALTER TABLE products ADD COLUMN drill_note text;' > "$work/mig/003_drill_note.sql"
+# Incompatibilidade SIMULADA: a imagem do ensaio tem o mesmo código; o que se testa é o procedimento
+# diante da declaração "não" (recusa sem plano, sem reversão de imagem, API anterior recusando iniciar).
+printf '%s\n' '-- compatibilidade-anterior: não — simulação do ensaio de uma mudança incompatível' \
+ 'CREATE TABLE drill_incompatible_marker(id int PRIMARY KEY);' > "$work/mig/004_drill_incompatible.sql"
+printf 'FROM %s\nCOPY 003_drill_note.sql /app/db/migrations/\n' "$image" | docker build -q -t "${image}-compat" -f - "$work/mig" >/dev/null
+printf 'FROM %s\nCOPY 004_drill_incompatible.sql /app/db/migrations/\n' "${image}-compat" | docker build -q -t "${image}-breaking" -f - "$work/mig" >/dev/null
+
+expect "atualização normal" 0 "$(upd ok "${image}-next")" ok
+[ "$(current)" = "${image}-next" ] || fail "update não registrou a nova imagem"
+expect "imagem que não inicia" 1 "$(upd broken "${image}-broken")" broken
+[ "$(current)" = "${image}-next" ] || fail "imagem quebrada ficou registrada"
+expect "saudável por dentro, mas inacessível pelo endereço público" 1 "$(upd loopback "${image}-loopback")" loopback
+[ "$(current)" = "${image}-next" ] || fail "imagem inacessível ficou registrada"
+grep -aq 'verificação pública' "$work/update-loopback.log" || fail "falha pública não identificada"
+
+dc stop keycloak >/dev/null
+expect "Keycloak fora do ar ANTES da atualização" 3 "$(upd kc-before "${image}-next2")" kc-before
+[ "$(current)" = "${image}-next" ] && [ "$(schema)" = 002 ] || fail "algo mudou com a pré-condição falhando"
+dc start keycloak >/dev/null; wait_healthy keycloak 60
+# Keycloak cai DURANTE a atualização, no momento em que o contêiner da nova versão é criado.
+( for _ in $(seq 1 600); do id=$(dc ps -aq app); [ -n "$id" ] && [ "$(docker inspect -f '{{.Config.Image}}' "$id" 2>/dev/null)" = "${image}-next2" ] && { docker stop "$(dc ps -q keycloak)" >/dev/null; exit 0; }; sleep 0.2; done ) & killer=$!
+expect "Keycloak cai durante a atualização (externo)" 2 "$(upd kc-during "${image}-next2")" kc-during
+wait "$killer" || true
+[ "$(current)" = "${image}-next" ] || fail "falha externa registrou a nova imagem"
+grep -aq 'Reverter não resolve' "$work/update-kc-during.log" || fail "falha externa não diferenciada"
+dc start keycloak >/dev/null; wait_healthy keycloak 60; wait_healthy app 60
+wait_public_ok() { for _ in $(seq 1 30); do pcurl -fsS -m 5 -o /dev/null "$APP/ready" 2>/dev/null && return 0; sleep 2; done; return 1; }
+wait_public_ok || fail "serviço não voltou depois do Keycloak"
+
+expect "migration declarada compatível (003)" 0 "$(upd compat "${image}-compat")" compat
+[ "$(schema)" = 003 ] || fail "migration 003 não aplicada"
+VV_APP_IMAGE="${image}-next" dc up -d --wait --wait-timeout 90 app >/dev/null || fail "versão anterior não iniciou sobre o schema 003"
+wait_public_ok; check verify > /dev/null || fail "versão anterior sobre o schema 003"
+note "versão anterior (${image##*:}-next) sobre o schema 003: iniciou e passou login, saldo e histórico no navegador"
+dc up -d --wait --wait-timeout 90 app >/dev/null; wait_public_ok
+
+expect "migration incompatível (004) sem plano de recuperação" 4 "$(upd breaking-refused "${image}-breaking")" breaking-refused
+[ "$(schema)" = 003 ] && [ "$(current)" = "${image}-compat" ] || fail "migration incompatível aplicada sem plano"
+printf 'Plano do ensaio: restaurar o backup tirado por esta atualização (ops/restore.sh --with-proxy) e voltar para %s.\n' "${image}-compat" > "$work/plano.txt"
+expect "migration incompatível (004) com plano explícito" 0 "$(upd breaking "${image}-breaking" --sem-reversao --plano-recuperacao "$work/plano.txt")" breaking
+[ "$(schema)" = 004 ] || fail "migration 004 não aplicada"
+if VV_APP_IMAGE="${image}-compat" dc up -d --wait --wait-timeout 40 app >/dev/null 2>&1; then fail "versão anterior iniciou sobre schema incompatível"; fi
+dc logs --tail 20 app 2>&1 | grep -q 'não foram declaradas compatíveis' || fail "API anterior não explicou a recusa"
+note "versão anterior sobre o schema 004: a API recusa iniciar (migration 004 declarada incompatível)"
+dc up -d --wait --wait-timeout 90 app >/dev/null; wait_public_ok
+check verify || fail "dados após as atualizações"
 
 step "Perda total do servidor (down -v) e ensaio de restauração em projeto separado"
 backup_id=$(basename "$bdir")
