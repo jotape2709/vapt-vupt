@@ -38,7 +38,7 @@ Matriz de permissões: [AUTHORIZATION.md](AUTHORIZATION.md). Ambiente local, usu
 
 ## Resultados
 
-Executado em 09/11/2026 num container Linux (Node 22.23.4, npm 10.9.9, Docker com `postgres:17` e `keycloak/keycloak:26.4`), sobre o commit final indicado no registro de passagem.
+Executado em 09/11/2026 num container Linux (Node 22.23.4, npm 10.9.9, Docker com `postgres:17` e `keycloak/keycloak:26.4`), sobre o código do commit `be4d64a9ba321b42211cbf4bed60ec67e4210c35`; commits posteriores no PR alteram só documentação.
 
 | Verificação | Resultado |
 |---|---|
