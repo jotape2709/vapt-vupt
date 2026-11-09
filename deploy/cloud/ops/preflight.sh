@@ -42,7 +42,9 @@ pairs = [("postgres", "POSTGRES_PASSWORD", "VV_POSTGRES_PASSWORD"), ("postgres",
          ("postgres", "VV_RUNTIME_PASSWORD", "VV_RUNTIME_PASSWORD"), ("keycloak", "KC_DB_PASSWORD", "VV_KEYCLOAK_DB_PASSWORD"),
          ("keycloak", "KC_BOOTSTRAP_ADMIN_PASSWORD", "VV_KEYCLOAK_BOOTSTRAP_PASSWORD"), ("app", "OIDC_CLIENT_SECRET", "VV_OIDC_CLIENT_SECRET"),
          ("app", "DATABASE_PASSWORD", "VV_RUNTIME_PASSWORD")]
-print(" ".join(var for svc, key, var in pairs if cfg[svc]["environment"].get(key) != os.environ.get(var)))'); then
+# "compose config" reescreve "$" como "$$" na saída; o contêiner recebe o valor literal.
+got = lambda svc, key: (cfg[svc]["environment"].get(key) or "").replace("$$", "$")
+print(" ".join(var for svc, key, var in pairs if got(svc, key) != os.environ.get(var, "")))'); then
  [ -z "$parity" ] && ok "Compose e scripts leem os mesmos segredos" || bad "Compose lê valor diferente do bash para: $parity"
 else bad "não foi possível conferir a leitura do .env pelo Compose"; fi
 

@@ -20,8 +20,8 @@ step() { printf '\n=== %s\n' "$*"; echo "[$(( $(date +%s) - t0 ))s] $*" >> "$rep
 note() { echo "$*"; echo "    $*" >> "$report"; }
 fail() { echo "ENSAIO FALHOU: $*" >&2; echo "FALHOU: $*" >> "$report"; exit 1; }
 rnd() { head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | cut -c1-40; }
-# Segredos de configuração com caracteres reservados de URL garantidos (achado da revisão do lote 3).
-secret() { printf '%s/@:%%' "$("$cloud/ops/gen-secret.sh" 36)"; }
+# Segredos de configuração com caracteres reservados de URL e "$" garantidos (achado da revisão do lote 3).
+secret() { printf '%s/@:%%$' "$("$cloud/ops/gen-secret.sh" 35)"; }
 APP=https://app.vv-drill.test:8443 AUTH=https://auth.vv-drill.test:8443
 RCLONE_IMAGE="${VV_RCLONE_IMAGE:-rclone/rclone:1.71}"
 # Os nomes do ensaio resolvem para 127.0.0.1 e nunca passam por proxy de saída.
