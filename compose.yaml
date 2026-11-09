@@ -49,7 +49,8 @@ services:
     build: .
     command: ["node", "--import", "tsx", "apps/api/migrate.ts"]
     environment:
-      MIGRATION_DATABASE_URL: postgresql://vv_migrator:${VV_MIGRATOR_PASSWORD:-dev-only-migrator}@postgres:5432/vapt_vupt
+      MIGRATION_DATABASE_URL: postgresql://vv_migrator@postgres:5432/vapt_vupt
+      MIGRATION_DATABASE_PASSWORD: ${VV_MIGRATOR_PASSWORD:-dev-only-migrator}
     depends_on:
       postgres: { condition: service_healthy }
     restart: "no"
@@ -58,7 +59,8 @@ services:
     image: vapt-vupt-dev-app:local
     build: .
     environment:
-      DATABASE_URL: postgresql://vv_runtime:${VV_RUNTIME_PASSWORD:-dev-only-runtime}@postgres:5432/vapt_vupt
+      DATABASE_URL: postgresql://vv_runtime@postgres:5432/vapt_vupt
+      DATABASE_PASSWORD: ${VV_RUNTIME_PASSWORD:-dev-only-runtime}
       APP_ORIGIN: http://localhost:3001
       OIDC_ISSUER: http://localhost:8080/realms/vapt
       OIDC_INTERNAL_ORIGIN: http://keycloak:8080
@@ -85,7 +87,8 @@ services:
     profiles: ["tools"]
     command: ["node", "--import", "tsx", "scripts/seed-local.ts"]
     environment:
-      ADMIN_DATABASE_URL: postgresql://vv_migrator:${VV_MIGRATOR_PASSWORD:-dev-only-migrator}@postgres:5432/vapt_vupt
+      ADMIN_DATABASE_URL: postgresql://vv_migrator@postgres:5432/vapt_vupt
+      ADMIN_DATABASE_PASSWORD: ${VV_MIGRATOR_PASSWORD:-dev-only-migrator}
     depends_on:
       migrate: { condition: service_completed_successfully }
 
@@ -95,7 +98,8 @@ services:
     profiles: ["tools"]
     entrypoint: ["node", "--import", "tsx", "apps/api/admin-cli.ts"]
     environment:
-      ADMIN_DATABASE_URL: postgresql://vv_migrator:${VV_MIGRATOR_PASSWORD:-dev-only-migrator}@postgres:5432/vapt_vupt
+      ADMIN_DATABASE_URL: postgresql://vv_migrator@postgres:5432/vapt_vupt
+      ADMIN_DATABASE_PASSWORD: ${VV_MIGRATOR_PASSWORD:-dev-only-migrator}
     depends_on:
       postgres: { condition: service_healthy }
 

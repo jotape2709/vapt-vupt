@@ -13,7 +13,9 @@ x-logging: &logging
   options: { max-size: "10m", max-file: "5" }   # até ~50 MB por serviço; rotação pelo Docker
 
 x-app-env: &app-env
-  DATABASE_URL: postgresql://vv_runtime:${VV_RUNTIME_PASSWORD:?}@postgres:5432/vapt_vupt
+  # Senha FORA da URL: segredos com / @ : % quebrariam postgresql://usuario:senha@… (pg-connection.ts)
+  DATABASE_URL: postgresql://vv_runtime@postgres:5432/vapt_vupt
+  DATABASE_PASSWORD: ${VV_RUNTIME_PASSWORD:?}
   APP_ORIGIN: ${VV_APP_ORIGIN:?}
   OIDC_ISSUER: ${VV_AUTH_ORIGIN:?}/realms/vapt
   # A API fala com o Keycloak pela rede interna; o emissor validado continua sendo o público (HTTPS).
@@ -128,7 +130,8 @@ services:
     profiles: ["ops"]
     command: ["node", "dist-server/api/migrate.js"]
     environment:
-      MIGRATION_DATABASE_URL: postgresql://vv_migrator:${VV_MIGRATOR_PASSWORD:?}@postgres:5432/vapt_vupt
+      MIGRATION_DATABASE_URL: postgresql://vv_migrator@postgres:5432/vapt_vupt
+      MIGRATION_DATABASE_PASSWORD: ${VV_MIGRATOR_PASSWORD:?}
     depends_on:
       postgres: { condition: service_healthy }
     restart: "no"
@@ -139,7 +142,8 @@ services:
     profiles: ["ops"]
     entrypoint: ["node", "dist-server/api/admin-cli.js"]
     environment:
-      ADMIN_DATABASE_URL: postgresql://vv_migrator:${VV_MIGRATOR_PASSWORD:?}@postgres:5432/vapt_vupt
+      ADMIN_DATABASE_URL: postgresql://vv_migrator@postgres:5432/vapt_vupt
+      ADMIN_DATABASE_PASSWORD: ${VV_MIGRATOR_PASSWORD:?}
       VV_ADMIN_ACTOR: ${VV_ADMIN_ACTOR:-}
     depends_on:
       postgres: { condition: service_healthy }

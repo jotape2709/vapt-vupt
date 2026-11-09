@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { connectionFromEnv } from '../apps/api/pg-connection';
 import { grant, provision } from '../apps/api/admin';
 
 /**
@@ -9,8 +10,8 @@ import { grant, provision } from '../apps/api/admin';
  */
 const issuer = process.env.VV_SEED_ISSUER ?? 'http://localhost:8080/realms/vapt';
 if (!['localhost', '127.0.0.1'].includes(new URL(issuer).hostname)) throw new Error('seed-local só roda com emissor em localhost.');
-const url = process.env.ADMIN_DATABASE_URL;
-if (!url) throw new Error('Defina ADMIN_DATABASE_URL (conta de migração local).');
+const url = connectionFromEnv('ADMIN_DATABASE');
+if (!url) throw new Error('Defina ADMIN_DATABASE_URL (e ADMIN_DATABASE_PASSWORD) da conta de migração local.');
 
 const users = { ana: 'a0000000-0000-4000-8000-0000000000a1', bruno: 'a0000000-0000-4000-8000-0000000000b2', carla: 'a0000000-0000-4000-8000-0000000000c3', davi: 'a0000000-0000-4000-8000-0000000000d4' };
 const orgs = { aurora: 'b0000000-0000-4000-8000-00000000a001', vertice: 'b0000000-0000-4000-8000-00000000b002' };

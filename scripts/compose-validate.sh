@@ -67,7 +67,7 @@ echo "API seguiu no mesmo processo e voltou a responder após reiniciar o Postgr
 step "Falha explícita sem configuração obrigatória"
 if msg=$(dc run --rm --no-deps -e OIDC_CLIENT_SECRET= app 2>&1); then fail "API iniciou sem OIDC_CLIENT_SECRET"; fi
 echo "$msg" | grep -m1 -E 'OIDC_CLIENT_SECRET' || fail "mensagem não cita a variável ausente"
-if msg=$(dc run --rm --no-deps -e DATABASE_URL=postgresql://vv_migrator:${VV_MIGRATOR_PASSWORD:-dev-only-migrator}@postgres:5432/vapt_vupt app 2>&1); then fail "API iniciou com papel dono das tabelas"; fi
+if msg=$(dc run --rm --no-deps -e DATABASE_URL=postgresql://vv_migrator@postgres:5432/vapt_vupt -e DATABASE_PASSWORD="${VV_MIGRATOR_PASSWORD:-dev-only-migrator}" app 2>&1); then fail "API iniciou com papel dono das tabelas"; fi
 echo "$msg" | grep -m1 'papel restrito' || fail "mensagem de papel restrito ausente"
 
 echo; echo "Compose de desenvolvimento validado."

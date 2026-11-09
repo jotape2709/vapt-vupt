@@ -32,7 +32,7 @@ log "Backup $(mf createdAt) do projeto $(mf project), schema $(mf schemaVersion)
 
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 if [ -z "$envfile" ]; then
- rnd() { head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | cut -c1-40; }
+ rnd() { "$(dirname "$0")/gen-secret.sh"; }
  envfile="$tmp/restore.env"
  cat > "$envfile" <<ENV
 VV_PROJECT=${project:-vv-restore-$(date -u +%Y%m%d%H%M%S)}
@@ -40,12 +40,12 @@ VV_APP_IMAGE=$(mf appImage)
 VV_APP_ORIGIN=$(mf appOrigin)
 VV_AUTH_ORIGIN=$(mf authOrigin)
 VV_ACME_EMAIL=restore-drill@example.invalid
-VV_POSTGRES_PASSWORD=$(rnd)
-VV_MIGRATOR_PASSWORD=$(rnd)
-VV_RUNTIME_PASSWORD=$(rnd)
-VV_KEYCLOAK_DB_PASSWORD=$(rnd)
-VV_KEYCLOAK_BOOTSTRAP_PASSWORD=$(rnd)
-VV_OIDC_CLIENT_SECRET=$(rnd)
+VV_POSTGRES_PASSWORD='$(rnd)'
+VV_MIGRATOR_PASSWORD='$(rnd)'
+VV_RUNTIME_PASSWORD='$(rnd)'
+VV_KEYCLOAK_DB_PASSWORD='$(rnd)'
+VV_KEYCLOAK_BOOTSTRAP_PASSWORD='$(rnd)'
+VV_OIDC_CLIENT_SECRET='$(rnd)'
 VV_KC_ADMIN_PORT=${VV_KC_ADMIN_PORT:-18081}
 ENV
  log "Ensaio: segredos aleatórios descartáveis (login real não é testado sem o .env original)"

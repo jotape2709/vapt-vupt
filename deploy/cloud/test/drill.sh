@@ -20,6 +20,8 @@ step() { printf '\n=== %s\n' "$*"; echo "[$(( $(date +%s) - t0 ))s] $*" >> "$rep
 note() { echo "$*"; echo "    $*" >> "$report"; }
 fail() { echo "ENSAIO FALHOU: $*" >&2; echo "FALHOU: $*" >> "$report"; exit 1; }
 rnd() { head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | cut -c1-40; }
+# Segredos de configuração com caracteres reservados de URL garantidos (achado da revisão do lote 3).
+secret() { printf '%s/@:%%' "$("$cloud/ops/gen-secret.sh" 36)"; }
 APP=https://app.vv-drill.test:8443 AUTH=https://auth.vv-drill.test:8443
 RCLONE_IMAGE="${VV_RCLONE_IMAGE:-rclone/rclone:1.71}"
 # Os nomes do ensaio resolvem para 127.0.0.1 e nunca passam por proxy de saída.
@@ -58,20 +60,20 @@ ENV
 chmod 600 "$work/backup.env"
 docker run --rm --entrypoint mkdir -v vv-drill-offsite:/srv "$RCLONE_IMAGE" -p /srv/vv-drill-backups   # o "bucket"
 
-kc_admin_pw=$(rnd)
+kc_admin_pw=$(secret)
 cat > "$work/drill.env" <<ENV
 VV_PROJECT=vv-drill
 VV_APP_IMAGE=$image
 VV_APP_ORIGIN=$APP
 VV_AUTH_ORIGIN=$AUTH
 VV_ACME_EMAIL=drill@example.invalid
-VV_POSTGRES_PASSWORD=$(rnd)
-VV_MIGRATOR_PASSWORD=$(rnd)
-VV_RUNTIME_PASSWORD=$(rnd)
-VV_KEYCLOAK_DB_PASSWORD=$(rnd)
+VV_POSTGRES_PASSWORD='$(secret)'
+VV_MIGRATOR_PASSWORD='$(secret)'
+VV_RUNTIME_PASSWORD='$(secret)'
+VV_KEYCLOAK_DB_PASSWORD='$(secret)'
 VV_KEYCLOAK_BOOTSTRAP_ADMIN=bootstrap-admin
-VV_KEYCLOAK_BOOTSTRAP_PASSWORD=$kc_admin_pw
-VV_OIDC_CLIENT_SECRET=$(rnd)
+VV_KEYCLOAK_BOOTSTRAP_PASSWORD='$kc_admin_pw'
+VV_OIDC_CLIENT_SECRET='$(secret)'
 VV_KC_ADMIN_PORT=18080
 VV_BACKUP_AGE_RECIPIENT=$recipient
 VV_BACKUP_DIR=$work/backups
@@ -89,7 +91,7 @@ step "Recusas: modelo não preenchido e senha de desenvolvimento"
 cp "$cloud/.env.example" "$work/example.env"; chmod 600 "$work/example.env"
 if VV_ENV_FILE="$work/example.env" "$cloud/ops/preflight.sh" > "$work/preflight-example.log" 2>&1; then fail "preflight aceitou o modelo"; fi
 note "preflight recusou .env.example: $(grep -c '✗' "$work/preflight-example.log") problemas apontados"
-sed "s/^VV_PROJECT=.*/VV_PROJECT=vv-drill-neg/; s/^VV_RUNTIME_PASSWORD=.*/VV_RUNTIME_PASSWORD=dev-only-runtime/" "$work/drill.env" > "$work/neg.env"; chmod 600 "$work/neg.env"
+sed "s/^VV_PROJECT=.*/VV_PROJECT=vv-drill-neg/; s/^VV_RUNTIME_PASSWORD=.*/VV_RUNTIME_PASSWORD='dev-only-runtime-0000000000000'/" "$work/drill.env" > "$work/neg.env"; chmod 600 "$work/neg.env"
 if VV_ENV_FILE="$work/neg.env" "$cloud/ops/preflight.sh" > "$work/preflight-neg.log" 2>&1; then fail "preflight aceitou senha de desenvolvimento"; fi
 VV_ENV_FILE="$work/neg.env" bash -c "source '$cloud/ops/lib.sh'; load_env; dc up -d postgres >/dev/null 2>&1; sleep 8; dc logs postgres 2>&1 | grep -m1 'init: VV_RUNTIME_PASSWORD' ; dc down -v >/dev/null 2>&1" > "$work/neg-init.log" || true
 grep -q 'init: VV_RUNTIME_PASSWORD' "$work/neg-init.log" || fail "init do PostgreSQL aceitou senha de desenvolvimento"

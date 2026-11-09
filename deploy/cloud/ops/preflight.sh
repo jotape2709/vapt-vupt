@@ -20,6 +20,32 @@ for v in "${secrets[@]}"; do
  val="${!v:-}"; [ "${#val}" -ge 24 ] || bad "$v com menos de 24 caracteres"
  [[ "$val" == dev-only* ]] && bad "$v é credencial de desenvolvimento"
 done
+# Formato seguro: segredos entre aspas simples, sem aspas, barra invertida, espaço, chaves ou crase.
+# Assim o bash (ops/*.sh) e o Docker Compose leem exatamente o mesmo valor, e o realm do Keycloak
+# (JSON) recebe o segredo sem escapes. Nenhum valor é impresso.
+badfmt=$(python3 -I - "$VV_ENV_FILE" "${secrets[@]}" <<'PY'
+import re, sys
+lines = {}
+for raw in open(sys.argv[1], encoding="utf-8"):
+    m = re.match(r"([A-Z0-9_]+)=(.*)$", raw.rstrip("\n"))
+    if m: lines[m.group(1)] = m.group(2)
+ok = re.compile(r"'[^'\"\\\s{}`]+'")
+print(" ".join(v for v in sys.argv[2:] if not ok.fullmatch(lines.get(v, ""))))
+PY
+)
+[ -z "$badfmt" ] && ok "segredos entre aspas simples e sem caracteres proibidos" \
+ || bad "formato inseguro em: $badfmt (use NOME='valor' sem ' \" \\ espaço { } crase; gere com ops/gen-secret.sh)"
+if parity=$(dc config --format json 2>/dev/null | python3 -I -c '
+import json, os, sys
+cfg = json.load(sys.stdin)["services"]
+pairs = [("postgres", "POSTGRES_PASSWORD", "VV_POSTGRES_PASSWORD"), ("postgres", "VV_MIGRATOR_PASSWORD", "VV_MIGRATOR_PASSWORD"),
+         ("postgres", "VV_RUNTIME_PASSWORD", "VV_RUNTIME_PASSWORD"), ("keycloak", "KC_DB_PASSWORD", "VV_KEYCLOAK_DB_PASSWORD"),
+         ("keycloak", "KC_BOOTSTRAP_ADMIN_PASSWORD", "VV_KEYCLOAK_BOOTSTRAP_PASSWORD"), ("app", "OIDC_CLIENT_SECRET", "VV_OIDC_CLIENT_SECRET"),
+         ("app", "DATABASE_PASSWORD", "VV_RUNTIME_PASSWORD")]
+print(" ".join(var for svc, key, var in pairs if cfg[svc]["environment"].get(key) != os.environ.get(var)))'); then
+ [ -z "$parity" ] && ok "Compose e scripts leem os mesmos segredos" || bad "Compose lê valor diferente do bash para: $parity"
+else bad "não foi possível conferir a leitura do .env pelo Compose"; fi
+
 dups=$(for v in "${secrets[@]}"; do echo "${!v:-}"; done | sort | uniq -d | grep -c . || true)
 [ "$dups" = 0 ] && ok "segredos distintos entre si" || bad "há segredos repetidos"
 

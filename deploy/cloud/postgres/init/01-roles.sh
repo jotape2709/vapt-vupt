@@ -9,7 +9,7 @@ set -euo pipefail
 for var in VV_MIGRATOR_PASSWORD VV_RUNTIME_PASSWORD VV_KEYCLOAK_DB_PASSWORD POSTGRES_PASSWORD; do
  value="${!var:-}"
  if [ "${#value}" -lt 24 ] || [[ "$value" == dev-only* ]] || [[ "$value" == *REPLACE* ]] || [[ "$value" == *CHANGE* ]]; then
-  echo "init: $var ausente, curta (<24) ou de exemplo. Gere com: openssl rand -base64 32" >&2
+  echo "init: $var ausente, curta (<24) ou de exemplo. Gere com ops/gen-secret.sh" >&2
   exit 1
  fi
 done

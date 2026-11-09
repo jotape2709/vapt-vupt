@@ -1,13 +1,14 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { Pool } from 'pg';
+import { connectionFromEnv } from './pg-connection';
 
 /**
  * Aplica, em uma única transação, as migrations de db/migrations ainda não registradas.
  * Migrations aplicadas nunca são editadas: correções entram como um novo arquivo.
  * Depois, se o papel de grupo vv_app existir, aplica os grants mínimos de db/grants/runtime.sql.
  */
-const connectionString = process.env.MIGRATION_DATABASE_URL;
-if (!connectionString) throw new Error('Defina MIGRATION_DATABASE_URL com a conta de migração.');
+const connectionString = connectionFromEnv('MIGRATION_DATABASE');
+if (!connectionString) throw new Error('Defina MIGRATION_DATABASE_URL (e MIGRATION_DATABASE_PASSWORD) com a conta de migração.');
 const dir = new URL('../../db/migrations/', import.meta.url);
 const files = (await readdir(dir)).filter(f => /^\d{3}_[a-z0-9_]+\.sql$/.test(f)).sort();
 const pool = new Pool({ connectionString });

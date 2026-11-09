@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { connectionString } from './pg-connection';
 
 /**
  * Configuração do servidor, lida somente do ambiente. Qualquer item obrigatório ausente impede a
@@ -7,6 +8,7 @@ import { z } from 'zod';
 const bool = z.enum(['true', 'false']).default('false').transform(v => v === 'true');
 const EnvSchema = z.object({
  DATABASE_URL: z.string().min(1),
+ DATABASE_PASSWORD: z.string().optional(),
  APP_ORIGIN: z.string().url(),
  OIDC_ISSUER: z.string().url(),
  OIDC_CLIENT_ID: z.string().min(1),
@@ -34,7 +36,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env) {
  if (origin.pathname !== '/' || origin.search || origin.hash) throw new Error('APP_ORIGIN deve ser apenas a origem, sem caminho (ex.: https://estoque.exemplo.com.br).');
  if (origin.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(origin.hostname)) throw new Error('APP_ORIGIN exige HTTPS fora de localhost.');
  return {
-  databaseUrl: c.DATABASE_URL,
+  databaseUrl: connectionString(c.DATABASE_URL, c.DATABASE_PASSWORD, { url: 'DATABASE_URL', password: 'DATABASE_PASSWORD' }),
   appOrigin: origin.origin,
   secureCookies: origin.protocol === 'https:',
   oidc: { issuer: c.OIDC_ISSUER, clientId: c.OIDC_CLIENT_ID, clientSecret: c.OIDC_CLIENT_SECRET, allowHttp: c.OIDC_ALLOW_HTTP, internalOrigin: c.OIDC_INTERNAL_ORIGIN },

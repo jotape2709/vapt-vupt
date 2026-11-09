@@ -1,13 +1,14 @@
 import { parseArgs } from 'node:util';
 import { Pool } from 'pg';
+import { connectionFromEnv } from './pg-connection';
 import { exportOrganization, grant, provision, revoke, revokeSessions } from './admin';
 
 /** Linha de comando administrativa. Documentação: docs/LOCAL-DEV.md. */
 const [command, ...rest] = process.argv.slice(2);
 const { values } = parseArgs({ args: rest, strict: true, options: Object.fromEntries(
  ['name', 'segment', 'unit', 'owner-issuer', 'owner-subject', 'org-id', 'org', 'issuer', 'subject', 'role'].map(k => [k, { type: 'string' as const }])) });
-const url = process.env.ADMIN_DATABASE_URL || process.env.MIGRATION_DATABASE_URL;
-if (!url) throw new Error('Defina ADMIN_DATABASE_URL (conta administrativa, nunca a de runtime).');
+const url = connectionFromEnv('ADMIN_DATABASE') ?? connectionFromEnv('MIGRATION_DATABASE');
+if (!url) throw new Error('Defina ADMIN_DATABASE_URL e ADMIN_DATABASE_PASSWORD (conta administrativa, nunca a de runtime).');
 const pool = new Pool({ connectionString: url, max: 2 });
 try {
  if (command === 'provision') console.info(JSON.stringify(await provision(pool, values as never)));
