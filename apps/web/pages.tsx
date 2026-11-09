@@ -124,7 +124,7 @@ export function StockPage({ displayName, mode, query, setQuery, filter, setFilte
     {(['all', 'critical', 'ok'] as const).map(f => <button key={f} type="button" className={'chip' + (f === 'critical' ? ' warning' : '')} aria-pressed={filter === f} onClick={() => setFilter(f)}>{filterLabels[f]} <span className="chip-count">{counts ? formatQuantity(counts[f]) : '…'}</span></button>)}
    </div>
   </div>
-  <p className="result-count" role="status">{counts && counts.catalog > 0 && !stock.loading ? `Mostrando ${formatQuantity(stock.items.length)} de ${formatQuantity(filter === 'all' && !query ? counts.catalog : counts[filter])} ${filter === 'all' && !query ? 'produtos' : 'resultados'}${filter === 'all' && !query ? '' : ` · ${formatQuantity(counts.catalog)} produtos no catálogo`}` : ''}</p>
+  <p className="result-count" role="status">{counts && counts.catalog > 0 && !stock.loading ? resultCount(stock.items.length, filter === 'all' && !query ? counts.catalog : counts[filter], filter === 'all' && !query, counts.catalog) : ''}</p>
   <LoadState loading={stock.loading} error={stock.error} retry={stock.retry} label="os produtos" />
 
   {!stock.loading && !stock.error && (stock.items.length > 0
@@ -174,7 +174,9 @@ function ProductRow({ product: p, mode, actions, canMove }: { product: StockItem
 
 function NoResults({ catalog, query, filter, clear, actions, canCreate }: { catalog: number; query: string; filter: StockFilter; clear: () => void; actions: Actions; canCreate: boolean }) {
  if (!catalog) return <Empty title="Nenhum produto cadastrado" text={canCreate ? 'Cadastre o primeiro produto desta empresa. Ele começa com saldo zero.' : 'Ainda não há produtos. Peça a um gestor ou proprietário para cadastrar.'}>
-  {canCreate && <button className="primary" onClick={() => actions.createProduct()}><Icon name="plus" />Cadastrar produto</button>}
+  {canCreate && (query.trim()
+   ? <button className="primary" onClick={() => actions.createProduct(query)}><Icon name="plus" />Cadastrar “{query.trim().slice(0, 40)}”</button>
+   : <button className="primary" onClick={() => actions.createProduct()}><Icon name="plus" />Cadastrar produto</button>)}
  </Empty>;
  if (query.trim()) return <Empty icon="search" title={`Nenhum produto para “${query.trim()}”`} text={filter === 'all' ? `Confira a grafia ou o código.${canCreate ? ' Se o produto ainda não existe nesta empresa, cadastre agora.' : ''}` : `Nenhum resultado no filtro “${filterLabels[filter]}”. Confira a grafia, limpe a busca${canCreate ? ' ou cadastre o produto' : ''}.`}>
   {canCreate && <button className="primary" onClick={() => actions.createProduct(query)}><Icon name="plus" />Cadastrar “{query.trim().slice(0, 40)}”</button>}
@@ -208,7 +210,7 @@ export function MovementsPage({ history, product, setProduct, kind, setKind, act
     {(['all', 'receipt', 'issue'] as const).map(k => <button key={k} type="button" className="chip" aria-pressed={kind === k} onClick={() => setKind(k)}>{k === 'all' ? 'Todas' : kindLabel[k] + 's'}</button>)}
    </div>
   </div>}
-  {total > 0 && !history.loading && <p className="result-count" role="status">Mostrando {formatQuantity(history.items.length)} de {formatQuantity(total)} registros</p>}
+  {total > 0 && !history.loading && <p className="result-count" role="status">Mostrando {formatQuantity(history.items.length)} de {formatQuantity(total)} {total === 1 ? 'registro' : 'registros'}</p>}
   <LoadState loading={history.loading} error={history.error} retry={history.retry} label="o histórico" />
   {!history.loading && !history.error && <MovementList movements={history.items} empty={filtered
    ? <Empty icon="search" title="Nenhuma movimentação neste filtro" text="Altere o produto ou a operação para ver outros registros."><button onClick={() => { setProduct(null); setKind('all'); }}>Limpar filtros</button></Empty>
@@ -236,4 +238,10 @@ export function MovementList({ movements, empty }: { movements: MovementRecord[]
    </div>
   </li>)}
  </ol>;
+}
+
+function resultCount(shown: number, total: number, wholeCatalog: boolean, catalog: number) {
+ const noun = wholeCatalog ? (total === 1 ? 'produto' : 'produtos') : (total === 1 ? 'resultado' : 'resultados');
+ const base = `Mostrando ${formatQuantity(shown)} de ${formatQuantity(total)} ${noun}`;
+ return wholeCatalog ? base : `${base} · ${formatQuantity(catalog)} ${catalog === 1 ? 'produto' : 'produtos'} no catálogo`;
 }

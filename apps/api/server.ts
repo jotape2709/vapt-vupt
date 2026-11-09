@@ -23,7 +23,16 @@ if (!p || p.rolsuper || p.rolbypassrls || p.owns_tables || p.inherits_bypass) {
 }
 
 const db = new Database(pool);
-const oidc = await createOidcProvider(config.oidc);
+// O provedor pode subir depois da API (ex.: docker compose): tenta por até ~1 minuto e então falha.
+let oidc;
+for (let attempt = 1; ; attempt++) {
+ try { oidc = await createOidcProvider(config.oidc); break; }
+ catch (err) {
+  if (attempt >= 30) { await pool.end(); throw err; }
+  console.warn(`Provedor OIDC indisponível (tentativa ${attempt}/30): ${(err as Error).message}`);
+  await new Promise(r => setTimeout(r, 2000));
+ }
+}
 const app = buildApp(
  { ops: new Operations(db), sessions: new SessionStore(db, config.session), oidc },
  { appOrigin: config.appOrigin, secureCookies: config.secureCookies, webDistDir: config.webDistDir ? resolve(config.webDistDir) : undefined, trustProxy: config.trustProxy }

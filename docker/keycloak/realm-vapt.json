@@ -1,0 +1,141 @@
+{
+ "realm": "vapt",
+ "displayName": "Vapt-Vupt (desenvolvimento local)",
+ "enabled": true,
+ "sslRequired": "external",
+ "registrationAllowed": false,
+ "resetPasswordAllowed": false,
+ "rememberMe": false,
+ "loginWithEmailAllowed": true,
+ "duplicateEmailsAllowed": false,
+ "bruteForceProtected": true,
+ "accessTokenLifespan": 300,
+ "ssoSessionIdleTimeout": 1800,
+ "ssoSessionMaxLifespan": 43200,
+ "internationalizationEnabled": true,
+ "supportedLocales": [
+  "pt-BR",
+  "en"
+ ],
+ "defaultLocale": "pt-BR",
+ "clients": [
+  {
+   "clientId": "vapt-vupt-web",
+   "name": "Vapt-Vupt (BFF local)",
+   "enabled": true,
+   "protocol": "openid-connect",
+   "publicClient": false,
+   "clientAuthenticatorType": "client-secret",
+   "secret": "dev-only-client-secret-not-for-production",
+   "standardFlowEnabled": true,
+   "implicitFlowEnabled": false,
+   "directAccessGrantsEnabled": false,
+   "serviceAccountsEnabled": false,
+   "frontchannelLogout": false,
+   "redirectUris": [
+    "http://localhost:3001/auth/callback",
+    "http://localhost:5173/auth/callback"
+   ],
+   "webOrigins": [],
+   "attributes": {
+    "pkce.code.challenge.method": "S256",
+    "post.logout.redirect.uris": "http://localhost:3001/app?signed_out=1##http://localhost:5173/app?signed_out=1"
+   },
+   "defaultClientScopes": [
+    "web-origins",
+    "acr",
+    "profile",
+    "roles",
+    "basic",
+    "email"
+   ]
+  }
+ ],
+ "users": [
+  {
+   "id": "a0000000-0000-4000-8000-0000000000a1",
+   "username": "ana",
+   "enabled": true,
+   "email": "ana@aurora.example.invalid",
+   "emailVerified": true,
+   "firstName": "Ana",
+   "lastName": "Proprietária",
+   "credentials": [
+    {
+     "type": "password",
+     "value": "dev-ana-local",
+     "temporary": false
+    }
+   ],
+   "requiredActions": []
+  },
+  {
+   "id": "a0000000-0000-4000-8000-0000000000b2",
+   "username": "bruno",
+   "enabled": true,
+   "email": "bruno@aurora.example.invalid",
+   "emailVerified": true,
+   "firstName": "Bruno",
+   "lastName": "Operador",
+   "credentials": [
+    {
+     "type": "password",
+     "value": "dev-bruno-local",
+     "temporary": false
+    }
+   ],
+   "requiredActions": []
+  },
+  {
+   "id": "a0000000-0000-4000-8000-0000000000c3",
+   "username": "carla",
+   "enabled": true,
+   "email": "carla@vertice.example.invalid",
+   "emailVerified": true,
+   "firstName": "Carla",
+   "lastName": "Proprietária",
+   "credentials": [
+    {
+     "type": "password",
+     "value": "dev-carla-local",
+     "temporary": false
+    }
+   ],
+   "requiredActions": []
+  },
+  {
+   "id": "a0000000-0000-4000-8000-0000000000d4",
+   "username": "davi",
+   "enabled": true,
+   "email": "davi@aurora.example.invalid",
+   "emailVerified": true,
+   "firstName": "Davi",
+   "lastName": "Consulta",
+   "credentials": [
+    {
+     "type": "password",
+     "value": "dev-davi-local",
+     "temporary": false
+    }
+   ],
+   "requiredActions": []
+  },
+  {
+   "id": "a0000000-0000-4000-8000-0000000000e5",
+   "username": "eva",
+   "enabled": true,
+   "email": "eva@example.invalid",
+   "emailVerified": true,
+   "firstName": "Eva",
+   "lastName": "Sem Acesso",
+   "credentials": [
+    {
+     "type": "password",
+     "value": "dev-eva-local",
+     "temporary": false
+    }
+   ],
+   "requiredActions": []
+  }
+ ]
+}

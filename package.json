@@ -15,7 +15,9 @@
     "preview": "vite preview --host 127.0.0.1",
     "db:migrate": "tsx apps/api/migrate.ts",
     "test:browser": "playwright test",
-    "admin": "tsx apps/api/admin-cli.ts"
+    "admin": "tsx apps/api/admin-cli.ts",
+    "seed:local": "tsx scripts/seed-local.ts",
+    "test:e2e-real": "bash scripts/e2e-real.sh"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",

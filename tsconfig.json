@@ -21,7 +21,10 @@
   "include": [
     "apps",
     "packages",
+    "scripts",
     "tests",
-    "vite.config.ts"
+    "vite.config.ts",
+    "playwright.config.ts",
+    "playwright.real.config.ts"
   ]
 }
