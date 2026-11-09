@@ -8,10 +8,12 @@ export function initialBusinesses():Business[] { return [
  {id:'adega',segment:'Adega',theme:{version:1,name:'Adega Vértice',accent:'navy',mode:'dark',density:'comfortable',font:'humanist',modules:['overview','inventory','products','movements','quotes']},products:[product(11,'Vinho tinto seco · 750 ml','VER-001',5,12,'Vinhos'),product(12,'Cerveja pilsen · caixa 12','VER-002',24,10,'Cervejas','cx'),product(13,'Água com gás · 500 ml','VER-003',8,20,'Sem álcool'),product(14,'Suco de uva · 1 L','VER-004',16,8,'Sem álcool')],movements:[]},
  {id:'bar',segment:'Bar e cozinha',theme:{version:1,name:'Bar da Esquina',accent:'sky',mode:'light',density:'compact',font:'system',modules:['overview','inventory','products','movements','purchases']},products:[product(21,'Água tônica · 350 ml','ESQ-001',6,18,'Bebidas'),product(22,'Arroz branco · 1 kg','ESQ-002',20,12,'Cozinha'),product(23,'Guardanapo · pacote','ESQ-003',3,10,'Descartáveis'),product(24,'Óleo de soja · 900 ml','ESQ-004',12,6,'Cozinha')],movements:[]}
  ]; }
-const key='vv-next-demo-v1';
+// Chave atual e chave anterior (lida uma vez para migrar dados salvos por versões antigas da demo).
+const key='vv-demo-v1';
+const legacyKey='vv-next-demo-v1';
 export function loadDemo():Business[] {
  try {
-  const raw=localStorage.getItem(key); if(!raw) return initialBusinesses();
+  const raw=localStorage.getItem(key)??localStorage.getItem(legacyKey); if(!raw) return initialBusinesses();
   const data:unknown=JSON.parse(raw);
   if(!Array.isArray(data) || data.length===0 || data.length>10) return initialBusinesses();
   return data.map((b:Business)=>({

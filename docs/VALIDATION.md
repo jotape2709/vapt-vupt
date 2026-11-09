@@ -10,7 +10,7 @@ Leitura e escrita via conector GitHub. Tentativa de execução local `pwd && ls 
 |---|---|
 | Árvore completa do repositório e licença | Recuperadas pelo GitHub |
 | Evidências estáticas de autenticação, importação, mensagens e duplicação | Registradas em AUDIT.md |
-| Branch separada | next/foundation-product |
+| Branch separada | Branch de reconstrução, integrada à main pelo PR #7 |
 | Build: npm run build | Escrito; resultado ainda não obtido |
 | Lint: npm run lint | Escrito; resultado ainda não obtido |
 | Testes: npm test | Escritos; resultado ainda não obtido |
@@ -20,7 +20,7 @@ Leitura e escrita via conector GitHub. Tentativa de execução local `pwd && ls 
 | Preview | Não disponibilizado nesta sessão |
 | Deploy de produção / merge main | Não realizados |
 
-Workflow em .github/workflows/next-checks.yml propõe os checks em runner GitHub hospedado. Uma execução só pode ser considerada aprovada após consulta do resultado. Integração PostgreSQL é pulada localmente sem TEST_ADMIN_DATABASE_URL.
+Workflow em .github/workflows/checks.yml (renomeado no ciclo 01) propõe os checks em runner GitHub hospedado. Uma execução só pode ser considerada aprovada após consulta do resultado. Integração PostgreSQL é pulada localmente sem TEST_ADMIN_DATABASE_URL.
 
 ## Aceite manual a executar
 

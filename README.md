@@ -1,4 +1,4 @@
-# Vapt-Vupt Next
+# Vapt-Vupt
 
 Uma nova base de gestão para mercados, adegas, bares e pequenos estabelecimentos. Reconstrução progressiva do projeto acadêmico Vapt-Vupt, com foco em clareza operacional, identidade por empresa e fundamentos seguros.
 
@@ -21,12 +21,11 @@ Uma nova base de gestão para mercados, adegas, bares e pequenos estabelecimento
 
 ## Desenvolvimento
 
-Node.js 22.12+ e npm. Trabalhe na branch de reconstrução:
+Node.js 22.12+ e npm.
 
 ```bash
 git clone https://github.com/jotape2709/vapt-vupt.git
 cd vapt-vupt
-git switch next/foundation-product
 npm install
 npm run dev
 ```
@@ -68,7 +67,7 @@ A API falha ao iniciar se configuração de identidade estiver ausente. /health 
 
 ## Testes e limites
 
-`npm test` roda testes unitários/API e **pula integração PostgreSQL** se TEST_ADMIN_DATABASE_URL não estiver definida. A integração cria papel e dados: só executar em banco descartável recém-migrado, nunca num banco de produção. O workflow Next foundation checks prevê PostgreSQL efêmero e execução de lint, build, migration e testes.
+`npm test` roda testes unitários/API e **pula integração PostgreSQL** se TEST_ADMIN_DATABASE_URL não estiver definida. A integração cria papel e dados: só executar em banco descartável recém-migrado, nunca num banco de produção. O workflow Vapt-Vupt checks prevê PostgreSQL efêmero e execução de lint, build, migration e testes.
 
 Veja [docs/VALIDATION.md](docs/VALIDATION.md) para distinguir checks escritos de resultados realmente executados. Código e testes escritos não equivalem a testes aprovados.
 

@@ -43,10 +43,10 @@ test('preferências antigas migram para azul sem perder o saldo',async({page})=>
   await page.getByRole('button',{name:'Personalização',exact:true}).click();
   await page.getByRole('button',{name:'Salvar personalização'}).click();
   await page.evaluate(()=>{
-    const data=JSON.parse(localStorage.getItem('vv-next-demo-v1')!);
+    const data=JSON.parse(localStorage.getItem('vv-demo-v1')!);
     data[0].theme.accent='forest';data[0].products[0].quantity=71;
     data[1].theme.accent='wine';data[2].theme.accent='copper';
-    localStorage.setItem('vv-next-demo-v1',JSON.stringify(data));
+    localStorage.setItem('vv-demo-v1',JSON.stringify(data));
   });
   await page.reload();await page.getByRole('button',{name:'Explorar demonstração',exact:true}).click();
   const select=page.getByLabel('Selecionar empresa demonstrativa');
