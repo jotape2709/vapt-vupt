@@ -48,3 +48,38 @@ jobs:
           path: |
             dist/
             test-results/
+
+  # Fluxo real: Compose de desenvolvimento construído do zero (PostgreSQL 17, Keycloak 26, migração,
+  # API com papel restrito), validação da instalação e testes de navegador com login no Keycloak.
+  # Credenciais são as descartáveis de exemplo do compose.yaml/realm local, nunca segredos reais.
+  e2e-real:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Compose do zero (build, readiness, migração, seed, provisionamento, OIDC, papéis, falhas explícitas)
+        run: VV_COMPOSE_CLEAN=1 bash scripts/compose-validate.sh
+      - name: Fluxo real no navegador e verificação após reiniciar PostgreSQL, Keycloak e API
+        env:
+          E2E_ADMIN_DATABASE_URL: postgresql://vv_migrator:dev-only-migrator@localhost:5432/vapt_vupt
+          E2E_SCREENSHOTS_DIR: e2e-real-screenshots
+        run: mkdir -p e2e-real-screenshots && npm run test:e2e-real
+      - name: Estado e logs dos serviços
+        if: always()
+        run: |
+          docker compose ps -a > compose-logs.txt
+          docker compose logs --no-color --timestamps >> compose-logs.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-real-results
+          path: |
+            compose-logs.txt
+            e2e-real-screenshots/
+            test-results/

@@ -64,6 +64,7 @@ test('1. login pelo Keycloak e apenas empresas autorizadas', async ({ browser })
 });
 
 test('2. proprietária configura a identidade e a configuração persiste no servidor', async () => {
+ const verticeBefore = (await api(ana, 'GET', `/api/orgs/${ids.vertice}/context`)).body.settings;
  await ana.getByRole('button', { name: 'Personalização', exact: true }).click();
  // Logotipo fictício desenhado no próprio navegador (sol nascente "MA"), enviado como PNG real.
  const logo = Buffer.from(await ana.evaluate(async () => {
@@ -79,7 +80,15 @@ test('2. proprietária configura a identidade e a configuração persiste no ser
  await ana.getByRole('button', { name: 'Salvar personalização' }).click();
  await expect(ana.getByRole('status').filter({ hasText: /Personalização salva no servidor \(versão \d+\)/ })).toBeVisible();
  await shot(ana, '02-ana-settings');
+ // Alterar a empresa A não modifica a empresa B (Ana é consulta na Adega e pode ler a configuração dela).
+ const vertice = (await api(ana, 'GET', `/api/orgs/${ids.vertice}/context`)).body;
+ expect({ version: vertice.settings.version, settings: vertice.settings.settings }).toEqual({ version: verticeBefore.version, settings: verticeBefore.settings });
+ expect(vertice.settings.settings.identity.logoAssetId).toBeNull();
+ // E a personalização da empresa não é aceita como permissão: Ana segue consulta na Adega.
+ expect(vertice.role).toBe('viewer');
  await ana.reload();
+ // Abrir o contexto da Adega acima tornou-a a "última empresa usada"; Ana volta ao Mercado.
+ await ana.getByLabel('Selecionar empresa').selectOption({ label: 'Mercado Aurora · Proprietário' });
  await expect(ana.locator('.business-box img')).toBeVisible();
  await expect(ana.getByRole('heading', { level: 1, name: 'Estoque' })).toBeVisible();
 });
@@ -223,6 +232,28 @@ test('10. outra empresa com identidade própria; conta sem empresa não acessa n
  await expect(eva.getByRole('heading', { name: 'Sua conta ainda não tem acesso a uma empresa' })).toBeVisible();
  await expect(eva.locator('.identity-box')).toContainText('a0000000-0000-4000-8000-0000000000e5');
  await shot(eva, '10-eva-no-access');
+});
+
+test('10b. celular: operador consulta e abre o registro em 390 px sem rolagem horizontal', async ({ browser }) => {
+ const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+ const page = await context.newPage();
+ await page.goto('/app');
+ await page.getByRole('button', { name: 'Entrar com a conta da empresa' }).click();
+ await page.locator('#username').fill('bruno');
+ await page.locator('#password').fill('dev-bruno-local');
+ await page.locator('#kc-login').click();
+ await page.waitForURL(/\/app/);
+ await expect(page.locator('.topbar')).toContainText('Mercado Aurora');
+ const overflow = () => page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+ expect(await overflow()).toBe(false);
+ await page.getByRole('button', { name: 'Registrar movimentação', exact: true }).first().click();
+ const dialog = page.getByRole('dialog', { name: 'Registrar movimentação' });
+ await expect(dialog).toBeVisible();
+ expect(await overflow()).toBe(false);
+ await shot(page, '10b-bruno-mobile-form');
+ await page.keyboard.press('Escape');
+ await expect(dialog).not.toBeVisible();
+ await context.close();
 });
 
 test('11. sessão expirada descarta os dados; logout encerra no servidor e no provedor', async () => {
