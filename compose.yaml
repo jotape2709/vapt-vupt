@@ -45,8 +45,9 @@ services:
       retries: 60
 
   migrate:
+    image: vapt-vupt-dev-app:local
     build: .
-    command: ["npx", "tsx", "apps/api/migrate.ts"]
+    command: ["node", "--import", "tsx", "apps/api/migrate.ts"]
     environment:
       MIGRATION_DATABASE_URL: postgresql://vv_migrator:${VV_MIGRATOR_PASSWORD:-dev-only-migrator}@postgres:5432/vapt_vupt
     depends_on:
@@ -54,6 +55,7 @@ services:
     restart: "no"
 
   app:
+    image: vapt-vupt-dev-app:local
     build: .
     environment:
       DATABASE_URL: postgresql://vv_runtime:${VV_RUNTIME_PASSWORD:-dev-only-runtime}@postgres:5432/vapt_vupt
@@ -70,21 +72,28 @@ services:
       keycloak: { condition: service_healthy }
     ports: ["127.0.0.1:3001:3001"]
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
 
   # Ferramentas sob demanda: docker compose --profile tools run --rm seed
   seed:
+    image: vapt-vupt-dev-app:local
     build: .
     profiles: ["tools"]
-    command: ["npx", "tsx", "scripts/seed-local.ts"]
+    command: ["node", "--import", "tsx", "scripts/seed-local.ts"]
     environment:
       ADMIN_DATABASE_URL: postgresql://vv_migrator:${VV_MIGRATOR_PASSWORD:-dev-only-migrator}@postgres:5432/vapt_vupt
     depends_on:
       migrate: { condition: service_completed_successfully }
 
   admin:
+    image: vapt-vupt-dev-app:local
     build: .
     profiles: ["tools"]
-    entrypoint: ["npx", "tsx", "apps/api/admin-cli.ts"]
+    entrypoint: ["node", "--import", "tsx", "apps/api/admin-cli.ts"]
     environment:
       ADMIN_DATABASE_URL: postgresql://vv_migrator:${VV_MIGRATOR_PASSWORD:-dev-only-migrator}@postgres:5432/vapt_vupt
     depends_on:

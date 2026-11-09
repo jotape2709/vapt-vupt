@@ -37,6 +37,11 @@ const app = buildApp(
  { ops: new Operations(db), sessions: new SessionStore(db, config.session), oidc },
  { appOrigin: config.appOrigin, secureCookies: config.secureCookies, webDistDir: config.webDistDir ? resolve(config.webDistDir) : undefined, trustProxy: config.trustProxy }
 );
+// Prontidão: banco alcançável com o papel de runtime. O provedor OIDC já foi descoberto antes do listen.
+app.get('/ready', async (_req, reply) => {
+ try { await pool.query('SELECT 1'); return { status: 'ready' }; }
+ catch { return reply.code(503).send({ status: 'unavailable', dependency: 'database' }); }
+});
 app.addHook('onClose', async () => { await pool.end(); });
 for (const signal of ['SIGTERM', 'SIGINT'] as const) process.once(signal, () => { void app.close(); });
 await app.listen({ host: config.host, port: config.port });

@@ -15,7 +15,7 @@ restart="${E2E_RESTART_CMD:-docker compose restart postgres keycloak app}"
 npx playwright test -c playwright.real.config.ts --trace off tests/e2e-real/real-flow.spec.ts
 echo "Reiniciando serviços: $restart"
 bash -c "$restart"
-# A API só escuta depois de descobrir o provedor OIDC, então /health respondendo basta.
+# A API só escuta depois de descobrir o provedor OIDC, então /ready (banco alcançável) basta.
 sleep 3
-for i in $(seq 1 90); do curl -sf "$E2E_BASE_URL/health" >/dev/null && break; sleep 2; done
+for i in $(seq 1 90); do curl -sf "$E2E_BASE_URL/ready" >/dev/null && break; sleep 2; done
 E2E_AFTER_RESTART=1 npx playwright test -c playwright.real.config.ts --trace off tests/e2e-real/after-restart.spec.ts
