@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import { Pool } from 'pg';
 import { buildApp } from './app';
 import { loadConfig } from './config';
+import { APPLIED_SQL, listMigrations, schemaRefusal, type AppliedRow } from './migrations';
 import { Database } from './db';
 import { createOidcProvider } from './oidc';
 import { Operations } from './operations';
@@ -24,6 +25,12 @@ if (!p || p.rolsuper || p.rolbypassrls || p.owns_tables || p.inherits_bypass) {
  await pool.end();
  throw new Error('A API exige papel restrito: sem superusuário, sem BYPASSRLS e sem ownership das tabelas.');
 }
+
+// Versão anterior sobre schema mais novo (ex.: reversão de imagem): só opera se cada migration
+// desconhecida por esta versão foi declarada compatível. Caso contrário, recusa iniciar.
+const known = (await listMigrations(new URL('../../db/migrations/', import.meta.url))).map(m => m.version);
+const refusal = schemaRefusal((await pool.query<AppliedRow>(APPLIED_SQL)).rows, known);
+if (refusal) { await pool.end(); throw new Error(refusal); }
 
 const db = new Database(pool);
 // O provedor pode subir depois da API (ex.: docker compose): tenta por até ~1 minuto e então falha.

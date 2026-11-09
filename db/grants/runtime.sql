@@ -34,3 +34,7 @@ GRANT EXECUTE ON FUNCTION vv_normalize(text) TO vv_app;
 
 -- Não conceder UPDATE/DELETE em inventory_events, audit_log ou organization_settings,
 -- nem escrita em memberships, organizations.name ou units: isso é provisionamento administrativo.
+
+-- Leitura do registro de migrations: a API confere, ao iniciar, se pode operar sobre o schema
+-- encontrado (versão anterior sobre schema novo só se declarado compatível; apps/api/migrations.ts).
+GRANT SELECT ON schema_migrations TO vv_app;
