@@ -1,0 +1,49 @@
+{
+ "realm": "vapt",
+ "displayName": "Vapt-Vupt",
+ "enabled": true,
+ "sslRequired": "external",
+ "registrationAllowed": false,
+ "resetPasswordAllowed": false,
+ "rememberMe": false,
+ "verifyEmail": false,
+ "loginWithEmailAllowed": true,
+ "duplicateEmailsAllowed": false,
+ "editUsernameAllowed": false,
+ "bruteForceProtected": true,
+ "permanentLockout": false,
+ "failureFactor": 8,
+ "waitIncrementSeconds": 60,
+ "maxFailureWaitSeconds": 900,
+ "maxDeltaTimeSeconds": 43200,
+ "passwordPolicy": "length(12) and notUsername(undefined) and notEmail(undefined) and passwordHistory(3)",
+ "accessTokenLifespan": 300,
+ "ssoSessionIdleTimeout": 1800,
+ "ssoSessionMaxLifespan": 43200,
+ "internationalizationEnabled": true,
+ "supportedLocales": ["pt-BR"],
+ "defaultLocale": "pt-BR",
+ "clients": [
+  {
+   "clientId": "vapt-vupt-web",
+   "name": "Vapt-Vupt",
+   "enabled": true,
+   "protocol": "openid-connect",
+   "publicClient": false,
+   "clientAuthenticatorType": "client-secret",
+   "secret": "${VV_OIDC_CLIENT_SECRET}",
+   "standardFlowEnabled": true,
+   "implicitFlowEnabled": false,
+   "directAccessGrantsEnabled": false,
+   "serviceAccountsEnabled": false,
+   "frontchannelLogout": false,
+   "redirectUris": ["${VV_APP_ORIGIN}/auth/callback"],
+   "webOrigins": [],
+   "attributes": {
+    "pkce.code.challenge.method": "S256",
+    "post.logout.redirect.uris": "${VV_APP_ORIGIN}/app?signed_out=1"
+   },
+   "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email"]
+  }
+ ]
+}

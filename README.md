@@ -2,25 +2,24 @@
 
 Uma nova base de gestão para mercados, adegas, bares e pequenos estabelecimentos. Reconstrução progressiva do projeto acadêmico Vapt-Vupt, com foco em clareza operacional, identidade por empresa e fundamentos seguros.
 
-**Estado: desenvolvimento. Não pronto para produção.** A interface é uma demonstração local com empresas fictícias. A API é uma fundação independente, ainda não conectada à interface. Não há clientes, indicadores comerciais ou conformidade certificada anunciados.
+**Estado: piloto em desenvolvimento. Não pronto para produção.** O ciclo 02 conectou a interface à API: login OIDC, empresas autorizadas, configuração, catálogo, entradas/saídas, saldo e histórico ficam no PostgreSQL. A demonstração pública continua separada, com empresas fictícias no navegador. Não há clientes, indicadores comerciais ou conformidade certificada anunciados.
 
 ## O que existe hoje
 
 | Experiência | Estado real |
 |---|---|
-| Site público e nova identidade VV | Código React/CSS e ativos SVG |
-| Mercado Aurora, Adega Vértice, Bar da Esquina | Empresas fictícias com catálogos e temas distintos |
-| Busca, filtros, cadastro de produtos, entradas/saídas | Funcionais na demonstração local: busca sem acento, cadastro a partir da busca, entrada/saída por produto com prévia do saldo |
-| Histórico de movimentações | Salvo no navegador com os saldos (últimos 200 por empresa), com saldo antes/depois; não é trilha de auditoria |
-| Nome, logo, paleta, claro/escuro, densidade, fonte, módulos | Preferências por empresa no navegador; prévia e salvamento |
-| Onboarding | Cria ambiente fictício local, sem conta comercial |
-| Compras, cotações e equipe | Estados explicativos; nenhuma operação externa |
-| API Fastify e PostgreSQL | Código de autenticação por token OIDC, membership, RLS, produtos, tema, movimentações, auditoria |
-| Login/UI integrada, organização via API, administração central | Ainda não implementados |
-| GTIN, embalagens, lotes, validade, depósitos, POS | Planejados |
-| PWA instalável, cache, fila IndexedDB, Docker/intranet pronta | Não implementados; fase D depende da conclusão da base C |
+| Site público e identidade VV (azul) | React/CSS e ativos SVG |
+| Demonstração em `/demo` | Mercado Aurora, Adega Vértice e Bar da Esquina fictícios, salvos só no navegador; sandbox separada da operação real |
+| Operação real em `/app` | Login OIDC (Keycloak no ambiente local), sessão de servidor com cookie HttpOnly, CSRF, expiração e logout |
+| Empresas e funções | Decididas pelo servidor (membership no PostgreSQL + RLS); proprietário, gestor, operador e consulta ([matriz](docs/AUTHORIZATION.md)) |
+| Configuração da empresa | Versionada no servidor: nome, segmento, logotipo validado, paleta, módulos, navegação, visão geral; modelos de mercado, adega e bar |
+| Catálogo, saldo e histórico | Busca e paginação no servidor; saldo por unidade com versão; movimentações idempotentes, com autor e horário do servidor, sem edição direta do saldo |
+| Unidades | Piloto com uma unidade por empresa, mostrada na interface |
+| Provisionamento | Comando administrativo auditado (`npm run admin`); não há cadastro público de empresas nem convites |
+| Compras, cotações, equipe, POS, fiscal | Não implementados; a interface só explica o que está planejado |
+| PWA, offline, câmera, IA | Não implementados |
 
-## Desenvolvimento
+## Começar
 
 Node.js 22.12+ e npm.
 
@@ -28,71 +27,56 @@ Node.js 22.12+ e npm.
 git clone https://github.com/jotape2709/vapt-vupt.git
 cd vapt-vupt
 npm ci
-npm run dev
+npm run dev        # site e demonstração (/demo), sem servidor
 ```
 
-Abra o endereço local informado pelo Vite e entre em **Explorar demonstração**. Nenhuma credencial é solicitada. Roteiro sugerido para o mercado demonstrativo:
+Para a operação real com PostgreSQL e Keycloak locais, siga [docs/LOCAL-DEV.md](docs/LOCAL-DEV.md):
 
-1. Em **Estoque**, busque um produto que não existe e use **Cadastrar “termo”**.
-2. Na confirmação, use **Registrar entrada**; confira a prévia do saldo e registre.
-3. Confira o novo saldo na tabela e use **Ver histórico**.
-4. Troque de empresa no seletor e alterne claro/escuro. Em Personalização, **Restaurar dados de exemplo** volta ao início.
+```bash
+docker compose up -d --build
+docker compose --profile tools run --rm seed
+# http://localhost:3001/app  — usuários ana, bruno, carla, davi, eva (senhas no guia)
+```
+
+O `compose.yaml` é **apenas para desenvolvimento** (HTTP, senhas de exemplo, Keycloak em modo dev).
+
+**Hospedagem em nuvem (proposta, não contratada):** a modalidade padrão proposta é o serviço hospedado e administrado pelo fornecedor, numa base multiempresa ([ADR 0001](docs/adr/0001-hospedagem-em-nuvem.md)). Os arquivos de instalação ficam em `deploy/cloud/`, separados do desenvolvimento, e foram ensaiados só em ambiente isolado (`bash deploy/cloud/test/drill.sh`). Veja [operação e continuidade](docs/cloud/OPERACAO.md), [custos](docs/cloud/CUSTOS.md) e [responsabilidades](docs/cloud/RESPONSABILIDADES.md). Não há instalação de produção.
+
+## Verificações
 
 ```bash
 npm run lint
 npm run build
-npm test
-npm run test:browser   # Playwright; requer `npx playwright install chromium` uma vez
-npm run preview
+npm test                 # integração PostgreSQL só roda com TEST_ADMIN_DATABASE_URL (banco descartável)
+npm run test:browser     # demonstração e regressões visuais (Playwright)
+npm run test:e2e-real    # fluxo real contra o ambiente local, com reinício dos serviços
+bash scripts/compose-validate.sh   # instalação do Compose: readiness, OIDC, papéis, falhas explícitas
 ```
 
-Em ambientes com Chromium já instalado (sem download), defina `PLAYWRIGHT_CHROMIUM_PATH` com o caminho do executável.
+Em ambientes com Chromium já instalado, defina `PLAYWRIGHT_CHROMIUM_PATH`. O workflow `.github/workflows/checks.yml` roda `npm ci`, audit, lint, build, migração, `npm test` com PostgreSQL efêmero e `test:browser`. O job `e2e-real` constrói o Compose de desenvolvimento do zero, valida a instalação (`scripts/compose-validate.sh`) e roda `test:e2e-real` com Keycloak, API e PostgreSQL reais. Resultados realmente executados ficam em [docs/VALIDATION.md](docs/VALIDATION.md) e [docs/PRODUCT-CYCLE-02.md](docs/PRODUCT-CYCLE-02.md).
 
-O build publica somente index.html transformado, código compilado e public/. Não sirva a raiz do repositório: legacy/ contém código antigo inseguro e é apenas referência histórica.
-
-**Dependências:** `package-lock.json` está versionado e foi validado com `npm ci` (Node 22, npm 10.9). O CI instala com `npm ci` e publica `npm audit --json`; em 09/11/2026 o relatório local indicou 0 vulnerabilidades conhecidas, o que não substitui uma análise de dependências completa.
-
-## API e banco — desenvolvimento separado
-
-1. Provisione PostgreSQL e um provedor OIDC confiável.
-2. Crie uma conta de migração e outra de runtime, sem superusuário ou bypass RLS.
-3. Copie .env.example para .env e substitua os placeholders. Os comandos não carregam .env automaticamente; exporte as variáveis no processo ou use o suporte --env-file do runtime.
-4. Execute `npm run db:migrate` com MIGRATION_DATABASE_URL. A migration é transacional e registra versão.
-5. Aplique os grants comentados em db/migrations/001_core.sql ao papel real.
-6. Provisione organização, unidade e membership via administração do banco. **Não há endpoint público de cadastro de organizações nesta fase.**
-7. Execute `npm run dev:api` com DATABASE_URL, OIDC_ISSUER, OIDC_AUDIENCE e OIDC_JWKS_URL configurados.
-
-A API falha ao iniciar se configuração de identidade estiver ausente. /health mede somente o processo. Rotas sob /api/organizations/:orgId exigem Bearer OIDC válido e membership. GET/POST products, PUT theme e POST movements estão definidos. Movimentação exige UUID de evento, produto, expectedVersion, kind, quantity inteira e reason. Conflitos retornam 409; nenhuma correção silenciosa.
+O build publica somente o `index.html` transformado, o código compilado e `public/`. Não sirva a raiz do repositório: `legacy/` contém o código acadêmico antigo, inseguro, mantido só como referência.
 
 ## Arquitetura
 
-- apps/web: React, TypeScript e Vite; site e demo na mesma base (App, pages, forms, components, inventory, demo).
-- apps/api: Fastify, jose, PostgreSQL; validação Zod, headers e rate limiting.
-- packages/domain: contratos de tema, produto, movimentação e políticas.
-- db/migrations: SQL versionado, RLS e chaves por organização.
-- tests: testes de domínio, regras de estoque da demo, API, integração com banco descartável e navegador (tests/browser).
-- docs: auditoria, decisões, identidade, segurança e validação.
-- legacy: versão acadêmica preservada, fora do build.
-
-## Testes e limites
-
-`npm test` roda testes unitários/API e **pula integração PostgreSQL** se TEST_ADMIN_DATABASE_URL não estiver definida. A integração cria papel e dados: só executar em banco descartável recém-migrado, nunca num banco de produção. O workflow Vapt-Vupt checks (.github/workflows/checks.yml) roda em PRs para a main com PostgreSQL efêmero: `npm ci`, audit, lint, build, migration, testes e testes de navegador.
-
-Veja [docs/VALIDATION.md](docs/VALIDATION.md) e [docs/UX-CYCLE-01.md](docs/UX-CYCLE-01.md) para distinguir checks escritos de resultados realmente executados. Código e testes escritos não equivalem a testes aprovados.
+- `apps/web`: React + TypeScript + Vite. Site (`/`), demonstração (`/demo`, `DemoGateway` em localStorage) e operação real (`/app`, `ApiGateway`), com o mesmo `Workspace`.
+- `apps/api`: Fastify como BFF. OIDC (`openid-client`), sessões, CSRF, rotas `/api/orgs/:orgId/...`, logotipos, serve o build do frontend no mesmo domínio. `admin-cli.ts` para provisionamento.
+- `packages/domain`: contratos Zod compartilhados (`contracts.ts`), matriz de permissões, modelos de segmento.
+- `db/migrations` e `db/grants`: SQL versionado (001 do ciclo anterior, intocado; 002 aditiva com migração dos dados) e grants mínimos do runtime.
+- `deploy/cloud`: instalação em nuvem (imagem de produção, Compose com Caddy/TLS, Keycloak `start`, PostgreSQL sem porta pública, backup cifrado, restauração, atualização e ensaio isolado).
+- `tests`: unidade, API, integração com PostgreSQL real e papel restrito, navegador (demo) e `tests/e2e-real` (fluxo real).
+- `docs`: [autenticação](docs/AUTH.md), [permissões](docs/AUTHORIZATION.md), [ambiente local](docs/LOCAL-DEV.md), [arquitetura](docs/ARCHITECTURE.md), [segurança](docs/SECURITY.md), [ciclo 02](docs/PRODUCT-CYCLE-02.md).
 
 ## Segurança e dados
 
-Demo usa localStorage apenas para preferências e dados fictícios, não como autenticação. Não inserir dados pessoais reais. Tema não controla autorização. API valida tokens via provedor externo e membership no banco; RLS depende de papel configurado corretamente. Eventos têm idempotência e controle de versão. Histórico demo fica no navegador e não é trilha de auditoria. Estoque por unidade, quantidades fracionárias e armazenamento comercial de logos ainda pendentes.
-
-Leia [Segurança](docs/SECURITY.md), [Arquitetura](docs/ARCHITECTURE.md), [Auditoria](docs/AUDIT.md) e [Identidade](docs/BRAND.md).
+Tokens nunca chegam ao navegador; a sessão é um cookie opaco HttpOnly com hash no banco. O servidor confere membership e função a cada operação e a RLS filtra por empresa com um papel sem privilégios. Movimentações e auditoria são append-only. A demonstração usa localStorage só para dados fictícios e nunca envia nada à API. Não insira dados pessoais reais em ambientes de desenvolvimento. Leia [Segurança](docs/SECURITY.md).
 
 ## Roadmap
 
-- A: auditoria, separação do legado, contratos, migrations e testes; validação executável pendente.
-- B: nova identidade e experiência demonstrativa; ciclo 01 refinou o fluxo de estoque (docs/UX-CYCLE-01.md). Auditoria com leitor de tela e Safari/Firefox pendentes.
-- C: integrar UI/OIDC/API, onboarding seguro, gestão de membros, administração central, logos e persistência; validar isolamento e concorrência.
-- D: PWA, política offline, IndexedDB, conflitos, servidor intranet, TLS, backups, atualização e ensaios de restauração.
-- E: fornecedores, compras/cotações reais, POS, rastreabilidade e inteligência com dados reais.
+- A–B: auditoria, contratos, nova identidade e demonstração (ciclos anteriores e ciclo 01).
+- C: **ciclo 02** entregou o fluxo real ponta a ponta. Pendentes: convites e gestão de membros na interface, várias unidades, quantidades fracionárias, back-channel logout, observabilidade.
+- D: hospedagem em nuvem administrada pelo fornecedor (preparada e ensaiada no ciclo 02, lote 3; não contratada). Depois: PWA, política offline, fila local; instalação em intranet ou dedicada como modalidades opcionais.
+- E: fornecedores, compras/cotações, POS, fiscal, rastreabilidade e inteligência com dados reais.
 
 Nenhum deploy público de produção deve ocorrer sem autorização do responsável.
 

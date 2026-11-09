@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-server
+.git
+test-results
+playwright-report
+legacy
+docs/review
+.env
+.env.*
+**/.env
+**/.env.*
+**/*.env
+**/*.age
+deploy

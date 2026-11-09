@@ -1,0 +1,16 @@
+# Rotas compartilhadas por produção e ensaio. Sem log de acesso: a API registra as requisições já
+# sem query string em /auth/* (código e state do OIDC), e o Caddy não grava cabeçalhos nem cookies.
+
+{$VV_APP_ORIGIN} {
+	encode zstd gzip
+	# Um único destino: sem verificação ativa no proxy (ela só acrescentaria 503 após reinícios);
+	# a prontidão é vigiada pelo healthcheck do Compose e pelo monitor externo em /ready.
+	reverse_proxy app:3001
+}
+
+{$VV_AUTH_ORIGIN} {
+	# Console administrativo e métricas do Keycloak não ficam na internet (túnel SSH, ver OPERACAO.md).
+	@restricted path /admin /admin/* /metrics /metrics/* /health /health/*
+	respond @restricted 404
+	reverse_proxy keycloak:8080
+}

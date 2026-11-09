@@ -1,0 +1,7 @@
+# Produção: certificados públicos automáticos (ACME/Let's Encrypt). Exige DNS apontando para o
+# servidor e as portas 80 e 443 abertas. O ensaio isolado usa test/Caddyfile.local no lugar deste.
+{
+	email {$VV_ACME_EMAIL}
+}
+
+import /etc/caddy/sites.caddy

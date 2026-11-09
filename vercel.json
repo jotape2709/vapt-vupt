@@ -20,5 +20,15 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/demo",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/app",
+      "destination": "/index.html"
+    }
   ]
 }

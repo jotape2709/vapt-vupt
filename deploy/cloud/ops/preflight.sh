@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# Confere o .env da instalação em nuvem antes de instalar ou atualizar. Não altera nada.
+# VV_ALLOW_TEST_DOMAINS=1 aceita domínios .test/.invalid (somente ensaio isolado).
+source "$(dirname "$0")/lib.sh"
+load_env
+errors=0; bad() { echo "  ✗ $*"; errors=$((errors+1)); }; ok() { echo "  ✓ $*"; }
+
+echo "Arquivo: $VV_ENV_FILE"
+perm=$(stat -c %a "$VV_ENV_FILE"); [ "$perm" = 600 ] && ok "permissão 600" || bad "permissão $perm (use chmod 600)"
+
+for v in VV_APP_IMAGE VV_APP_ORIGIN VV_AUTH_ORIGIN VV_ACME_EMAIL VV_POSTGRES_PASSWORD VV_MIGRATOR_PASSWORD \
+         VV_RUNTIME_PASSWORD VV_KEYCLOAK_DB_PASSWORD VV_KEYCLOAK_BOOTSTRAP_PASSWORD VV_OIDC_CLIENT_SECRET \
+         VV_BACKUP_AGE_RECIPIENT VV_BACKUP_DIR; do
+ val="${!v:-}"
+ if [ -z "$val" ]; then bad "$v vazio"; elif [[ "$val" == *REPLACE* ]]; then bad "$v ainda tem valor de modelo"; fi
+done
+
+secrets=(VV_POSTGRES_PASSWORD VV_MIGRATOR_PASSWORD VV_RUNTIME_PASSWORD VV_KEYCLOAK_DB_PASSWORD VV_KEYCLOAK_BOOTSTRAP_PASSWORD VV_OIDC_CLIENT_SECRET)
+for v in "${secrets[@]}"; do
+ val="${!v:-}"; [ "${#val}" -ge 24 ] || bad "$v com menos de 24 caracteres"
+ [[ "$val" == dev-only* ]] && bad "$v é credencial de desenvolvimento"
+done
+# Formato seguro: segredos entre aspas simples, sem aspas, barra invertida, espaço, chaves ou crase.
+# Assim o bash (ops/*.sh) e o Docker Compose leem exatamente o mesmo valor, e o realm do Keycloak
+# (JSON) recebe o segredo sem escapes. Nenhum valor é impresso.
+badfmt=$(python3 -I - "$VV_ENV_FILE" "${secrets[@]}" <<'PY'
+import re, sys
+lines = {}
+for raw in open(sys.argv[1], encoding="utf-8"):
+    m = re.match(r"([A-Z0-9_]+)=(.*)$", raw.rstrip("\n"))
+    if m: lines[m.group(1)] = m.group(2)
+ok = re.compile(r"'[^'\"\\\s{}`]+'")
+print(" ".join(v for v in sys.argv[2:] if not ok.fullmatch(lines.get(v, ""))))
+PY
+)
+[ -z "$badfmt" ] && ok "segredos entre aspas simples e sem caracteres proibidos" \
+ || bad "formato inseguro em: $badfmt (use NOME='valor' sem ' \" \\ espaço { } crase; gere com ops/gen-secret.sh)"
+if parity=$(dc config --format json 2>/dev/null | python3 -I -c '
+import json, os, sys
+cfg = json.load(sys.stdin)["services"]
+pairs = [("postgres", "POSTGRES_PASSWORD", "VV_POSTGRES_PASSWORD"), ("postgres", "VV_MIGRATOR_PASSWORD", "VV_MIGRATOR_PASSWORD"),
+         ("postgres", "VV_RUNTIME_PASSWORD", "VV_RUNTIME_PASSWORD"), ("keycloak", "KC_DB_PASSWORD", "VV_KEYCLOAK_DB_PASSWORD"),
+         ("keycloak", "KC_BOOTSTRAP_ADMIN_PASSWORD", "VV_KEYCLOAK_BOOTSTRAP_PASSWORD"), ("app", "OIDC_CLIENT_SECRET", "VV_OIDC_CLIENT_SECRET"),
+         ("app", "DATABASE_PASSWORD", "VV_RUNTIME_PASSWORD")]
+# "compose config" reescreve "$" como "$$" na saída; o contêiner recebe o valor literal.
+got = lambda svc, key: (cfg[svc]["environment"].get(key) or "").replace("$$", "$")
+print(" ".join(var for svc, key, var in pairs if got(svc, key) != os.environ.get(var, "")))'); then
+ [ -z "$parity" ] && ok "Compose e scripts leem os mesmos segredos" || bad "Compose lê valor diferente do bash para: $parity"
+else bad "não foi possível conferir a leitura do .env pelo Compose"; fi
+
+dups=$(for v in "${secrets[@]}"; do echo "${!v:-}"; done | sort | uniq -d | grep -c . || true)
+[ "$dups" = 0 ] && ok "segredos distintos entre si" || bad "há segredos repetidos"
+
+for v in VV_APP_ORIGIN VV_AUTH_ORIGIN; do
+ val="${!v:-}"
+ [[ "$val" =~ ^https://[a-z0-9.-]+(:[0-9]+)?$ ]] || bad "$v deve ser https://host sem caminho"
+ if [ "${VV_ALLOW_TEST_DOMAINS:-0}" != 1 ] && [[ "$val" =~ \.(test|invalid|example|localhost)(:[0-9]+)?$ ]]; then bad "$v usa domínio reservado"; fi
+done
+[ "${VV_APP_ORIGIN:-}" != "${VV_AUTH_ORIGIN:-}" ] && ok "origens da aplicação e do login separadas" || bad "app e login precisam de origens diferentes"
+
+case "${VV_APP_IMAGE:-}" in *:latest|*:latest@*) bad "VV_APP_IMAGE não pode usar latest";; *:*) ok "imagem com versão: $VV_APP_IMAGE";; *) bad "VV_APP_IMAGE sem versão";; esac
+[[ "${VV_BACKUP_AGE_RECIPIENT:-}" == age1* ]] && ok "destinatário age definido" || bad "VV_BACKUP_AGE_RECIPIENT deve ser uma chave pública age (age1...)"
+if [ -z "${VV_BACKUP_REMOTE:-}" ]; then bad "VV_BACKUP_REMOTE vazio: backup ficaria só no servidor"; fi
+if [ -f "$VV_BACKUP_ENV_FILE" ]; then bp=$(stat -c %a "$VV_BACKUP_ENV_FILE"); [ "$bp" = 600 ] && ok "credencial de backup com permissão 600" || bad "$VV_BACKUP_ENV_FILE com permissão $bp"
+else bad "credencial do armazenamento externo ausente ($VV_BACKUP_ENV_FILE)"; fi
+
+command -v docker >/dev/null && docker compose version >/dev/null 2>&1 && ok "docker compose disponível" || bad "docker compose ausente"
+command -v age >/dev/null && ok "age disponível" || bad "age ausente (apt install age)"
+dc config -q && ok "compose válido" || bad "compose inválido"
+
+if [ "$errors" -gt 0 ]; then echo "Preflight: $errors problema(s)."; exit 1; fi
+echo "Preflight aprovado."

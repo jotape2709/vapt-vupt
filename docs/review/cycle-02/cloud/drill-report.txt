@@ -1,0 +1,151 @@
+[0s] Preparação (trabalho em /tmp/vv-drill-final)
+    imagem: vapt-vupt-app:drill-d567c87 (387 MB)
+[3s] Recusas: modelo não preenchido e senha de desenvolvimento
+    preflight recusou .env.example: 21 problemas apontados
+    init do PostgreSQL recusou senha de desenvolvimento: init: VV_RUNTIME_PASSWORD ausente, curta (<24) ou de exemplo. Gere com ops/gen-secret.sh
+[12s] Instalação limpa (ops/install.sh)
+    install.sh concluído em 51s (inclui primeiro start do Keycloak)
+    Preflight aprovado.
+    [2026-11-09T13:52:04Z] Instalação concluída: https://app.vv-drill.test:8443/app. Próximos passos em docs/cloud/OPERACAO.md (admin do Keycloak, backup, monitor).
+[63s] Exposição de rede
+    portas: só Caddy (127.0.0.1:8443 no ensaio; 80/443 em produção) e console Keycloak em 127.0.0.1; banco e API sem porta
+    console administrativo pelo domínio público: HTTP 404
+    aplicação conectada só como vv_runtime; banco keycloak separado (dono: keycloak)
+    cabeçalhos: content-security-policy: default-src 'self';script-src 'self;strict-transport-security: max-age=31536000; includeSubDomai;
+[63s] Usuário no Keycloak e empresa provisionada
+    usuária dona.ensaio criada no realm vapt (sub 67e77e56-a842-4678-9917-30cc7be9d2f0)
+    empresa provisionada: "organizationId":"5d494c6d-75f7-4694-9904-cc45f055b201"
+[68s] Navegador: HTTPS, login OIDC, cadastro e entrada (seed)
+  ✓ HSTS presente
+  ✓ redirecionado ao login em https://auth.vv-drill.test:8443
+  ✓ login concluído e de volta a https://app.vv-drill.test:8443
+  ✓ cookie __Host-vv_session Secure, HttpOnly, SameSite=Lax
+  ✓ nenhum token no armazenamento do navegador
+  ✓ empresa Mercado do Ensaio (owner)
+  ✓ produto ENSAIO-01 criado com entrada de 7 un
+  ✓ saldo 7 un e histórico presentes (seed)
+  ✓ produto visível na tela de estoque
+  ✓ logout encerra a sessão
+[71s] Consumo de recursos com a pilha ociosa após uso
+vv-drill-caddy-1 23.25MiB / 15.71GiB 0.00%
+vv-drill-app-1 44.23MiB / 512MiB 0.02%
+vv-drill-keycloak-1 609.3MiB / 1GiB 0.93%
+vv-drill-postgres-1 68.43MiB / 15.71GiB 0.04%
+    volumes: vv-drill_caddy_data=4.255kB vv-drill_pgdata=78.79MB vv-drill_caddy_config=899B 
+[74s] Falhas: PostgreSQL reiniciado e processo da API encerrado
+    PostgreSQL reiniciado: API seguiu no mesmo processo e voltou a responder
+    processo da API encerrado: reiniciado pela política de restart (RestartCount=1)
+  ✓ HSTS presente
+  ✓ redirecionado ao login em https://auth.vv-drill.test:8443
+  ✓ login concluído e de volta a https://app.vv-drill.test:8443
+  ✓ cookie __Host-vv_session Secure, HttpOnly, SameSite=Lax
+  ✓ nenhum token no armazenamento do navegador
+  ✓ empresa Mercado do Ensaio (owner)
+  ✓ saldo 7 un e histórico presentes (verify)
+  ✓ produto visível na tela de estoque
+  ✓ logout encerra a sessão
+    todos os contêineres reiniciados: login e dados preservados
+[107s] Backup cifrado fora do servidor, em janela de manutenção (--maintenance)
+    Arquivos cifrados prontos (284K); funções sem usuário no Keycloak: 0
+    Enviado e conferido em offsite:vv-drill-backups/vapt-vupt/20261109T135248Z
+    52073 20261109T135248Z/vapt_vupt.dump.age
+   221574 20261109T135248Z/keycloak.dump.age
+     1195 20261109T135248Z/manifest.json.age
+      259 20261109T135248Z/SHA256SUMS
+    arquivos começam com o cabeçalho age e não contêm o texto dos dados
+    janela de manutenção: login e operação parados por 19s; backup completo com envio em 21s
+[128s] Backup ONLINE com operações simultâneas: movimentações pela API, novos usuários e empresas
+    ✓ carga: 32 movimentações confirmadas pela API durante a janela; saldo final 34 un (versão 32)
+    durante a janela: 6 usuários criados no Keycloak e 6 empresas provisionadas
+    Arquivos cifrados prontos (288K); funções sem usuário no Keycloak: 0
+      ✓ chainBreaks: 0
+      ✓ eventsSignedSum: 21
+      ✓ orgsWithoutOwner: 0
+      ✓ rlsForced: audit_log,inventory_events,memberships,organization_assets,organization_settings,organizations,products,stock_levels,units,users
+      ✓ schemaVersion: 002
+      ✓ stockMismatches: 0
+      ✓ stockQuantitySum: 21
+      ✓ tableOwners: vv_migrator
+      ✓ usuários do realm vapt: 4 (mesmos ids)
+      ✓ funções sem usuário no Keycloak: 0 (igual ao backup)
+      ✓ /ready: ready
+      ✓ realm vapt restaurado; emissor https://auth.vv-drill.test:8443/realms/vapt
+    backup online sob carga restaurado em projeto separado e verificado em 54s: contagens, somas, cadeia de saldos, empresas e identidade iguais ao snapshot
+    método anterior (contagem fora do snapshot): audit_log manifesto 24 × cópia 32, inventory_events manifesto 19 × cópia 25, memberships manifesto 4 × cópia 5, organization_settings manifesto 4 × cópia 5, organizations manifesto 4 × cópia 5, units manifesto 4 × cópia 5
+    ... e a mesma cópia está íntegra: stockMismatches=0, chainBreaks=0 → o restore antigo a teria REPROVADO falsamente
+[198s] Atualização e reversão (ops/update.sh): sucesso, falhas da nova versão e falhas externas
+    atualização normal → saída 0: Atualizado para vapt-vupt-app:drill-d567c87-next e verificado publicamente (aplicação, banco e página de login).
+    imagem que não inicia → saída 1: A NOVA VERSÃO falhou: a nova versão não ficou saudável internamente em 90s. Revertido para vapt-vupt-app:drill-d567c87-next e verificado publicamente.
+    saudável por dentro, mas inacessível pelo endereço público → saída 1: A NOVA VERSÃO falhou: verificação pública: aplicação: https://app.vv-drill.test:8443/ready respondeu HTTP 502. Revertido para vapt-vupt-app:drill-d567c87-next e verificado publicamente.
+    Keycloak fora do ar ANTES da atualização → saída 3: RECUSADO: o serviço já falha na verificação pública (login: página do Keycloak em https://auth.vv-drill.test:8443 respondeu HTTP 502). Isso não é causado pela nova versão e uma atualização não resolve. Nada foi alterado.
+    Keycloak cai durante a atualização (externo) → saída 2: FALHA FORA DA NOVA VERSÃO: com vapt-vupt-app:drill-d567c87-next a verificação também falha (a versão anterior também não ficou saudável internamente). Reverter não resolve:
+    migration declarada compatível (003) → saída 0: Atualizado para vapt-vupt-app:drill-d567c87-compat e verificado publicamente (aplicação, banco e página de login).
+  ✓ HSTS presente
+  ✓ redirecionado ao login em https://auth.vv-drill.test:8443
+  ✓ login concluído e de volta a https://app.vv-drill.test:8443
+  ✓ cookie __Host-vv_session Secure, HttpOnly, SameSite=Lax
+  ✓ nenhum token no armazenamento do navegador
+  ✓ empresa Mercado do Ensaio (owner)
+  ✓ saldo 7 un e histórico presentes (verify)
+  ✓ produto visível na tela de estoque
+  ✓ logout encerra a sessão
+    versão anterior (drill-d567c87-next) sobre o schema 003: iniciou e passou login, saldo e histórico no navegador
+    migration incompatível (004) sem plano de recuperação → saída 4: RECUSADO: há migration não declarada compatível com vapt-vupt-app:drill-d567c87-compat. Depois dela, reverter só a imagem não é seguro.
+    migration incompatível (004) com plano explícito → saída 0: Atualizado para vapt-vupt-app:drill-d567c87-breaking e verificado publicamente (aplicação, banco e página de login).
+    versão anterior sobre o schema 004: a API recusa iniciar (migration 004 declarada incompatível)
+  ✓ HSTS presente
+  ✓ redirecionado ao login em https://auth.vv-drill.test:8443
+  ✓ login concluído e de volta a https://app.vv-drill.test:8443
+  ✓ cookie __Host-vv_session Secure, HttpOnly, SameSite=Lax
+  ✓ nenhum token no armazenamento do navegador
+  ✓ empresa Mercado do Ensaio (owner)
+  ✓ saldo 7 un e histórico presentes (verify)
+  ✓ produto visível na tela de estoque
+  ✓ logout encerra a sessão
+[525s] Perda total do servidor (down -v) e ensaio de restauração em projeto separado
+    projeto vv-drill e volumes removidos (simula servidor perdido)
+      ✓ chainBreaks: 0
+      ✓ eventsSignedSum: 7
+      ✓ orgsWithoutOwner: 0
+      ✓ rlsForced: audit_log,inventory_events,memberships,organization_assets,organization_settings,organizations,products,stock_levels,units,users
+      ✓ audit_log: 3
+      ✓ auth_transactions: 0
+      ✓ inventory_events: 1
+      ✓ memberships: 1
+      ✓ organization_assets: 0
+      ✓ organization_settings: 1
+      ✓ organizations: 1
+      ✓ products: 1
+      ✓ schema_migrations: 2
+      ✓ sessions: 2
+      ✓ stock_levels: 1
+      ✓ units: 1
+      ✓ users: 1
+      ✓ schemaVersion: 002
+      ✓ stockMismatches: 0
+      ✓ stockQuantitySum: 7
+      ✓ tableOwners: vv_migrator
+      ✓ usuários do realm vapt: 1 (mesmos ids)
+      ✓ funções sem usuário no Keycloak: 0 (igual ao backup)
+      ✓ /ready: ready
+      ✓ realm vapt restaurado; emissor https://auth.vv-drill.test:8443/realms/vapt
+    Restauração verificada. Ambiente de ensaio removido.
+    ensaio de restauração (banco + migrations + Keycloak + API, sem proxy) em 33s
+    chave errada: restauração recusada (não foi possível decifrar com esta chave)
+[561s] Recuperação com os segredos do cofre (.env original) e novo login
+    recuperação até a API pronta em 42s (sem contar provisionar servidor, DNS e download)
+  ✓ HSTS presente
+  ✓ redirecionado ao login em https://auth.vv-drill.test:8443
+  ✓ login concluído e de volta a https://app.vv-drill.test:8443
+  ✓ cookie __Host-vv_session Secure, HttpOnly, SameSite=Lax
+  ✓ nenhum token no armazenamento do navegador
+  ✓ empresa Mercado do Ensaio (owner)
+  ✓ saldo 7 un e histórico presentes (verify)
+  ✓ produto visível na tela de estoque
+  ✓ logout encerra a sessão
+    login OIDC com a mesma conta e dados do backup após a recuperação
+[607s] Exportação dos dados da empresa (portabilidade/encerramento)
+    exportação JSON: organization_settings=1, units=1, memberships=1, products=1, stock_levels=1, inventory_events=1, organization_assets=0, audit_log=3
+[608s] Logs sem segredos
+    238 linhas de log dos 4 serviços: nenhuma senha, segredo de cliente ou código OIDC; rotação json-file 10 MB x 5
+[610s] ENSAIO CONCLUÍDO em 610s

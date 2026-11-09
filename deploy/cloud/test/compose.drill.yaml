@@ -1,0 +1,11 @@
+# SOMENTE ENSAIO ISOLADO (drill.sh): mesma pilha de deploy/cloud/compose.yaml, com o Caddy usando a
+# CA de teste e escutando só em 127.0.0.1:8443. Não usar em servidor comercial.
+services:
+  caddy:
+    ports: !override ["127.0.0.1:8443:8443"]
+    volumes: !override
+      - ./test/Caddyfile.local:/etc/caddy/Caddyfile:ro
+      - ./caddy/sites.caddy:/etc/caddy/sites.caddy:ro
+      - ${VV_DRILL_CA_DIR:?}:/etc/caddy/test-ca:ro
+      - caddy_data:/data
+      - caddy_config:/config

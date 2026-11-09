@@ -10,36 +10,43 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "lint": "eslint .",
-    "test": "tsx --test tests/*.test.ts",
+    "test": "tsx --test --test-concurrency=1 tests/*.test.ts",
     "dev:api": "tsx watch apps/api/server.ts",
     "preview": "vite preview --host 127.0.0.1",
     "db:migrate": "tsx apps/api/migrate.ts",
-    "test:browser": "playwright test"
+    "test:browser": "playwright test",
+    "admin": "tsx apps/api/admin-cli.ts",
+    "seed:local": "tsx scripts/seed-local.ts",
+    "test:e2e-real": "bash scripts/e2e-real.sh",
+    "build:server": "node scripts/build-server.mjs"
   },
   "dependencies": {
+    "@fastify/cookie": "^11.1.5",
     "@fastify/helmet": "^13.0.2",
     "@fastify/rate-limit": "^10.3.0",
+    "@fastify/static": "^10.1.10",
     "fastify": "^5.6.2",
+    "openid-client": "^6.8.9",
     "pg": "^8.16.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "zod": "^4.1.12",
-    "jose": "^6.1.2"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.56.1",
     "@types/node": "^22.19.0",
     "@types/pg": "^8.15.6",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
+    "esbuild": "^0.28.2",
     "eslint": "^9.39.1",
     "globals": "^16.5.0",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.3",
-    "vite": "^7.2.2",
-    "@playwright/test": "^1.56.1"
+    "vite": "^7.2.2"
   },
   "overrides": {
     "@typescript-eslint/typescript-estree": {

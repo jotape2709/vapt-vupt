@@ -1,5 +1,35 @@
 # Registro de validação
 
+## Ciclo 02, revisão do lote 3 — 2026-11-09
+
+Executado de fato: ensaio completo `deploy/cloud/test/drill.sh` na imagem reconstruída de `d567c87`, com todos os segredos contendo `/@:%$` (aprovado em 610 s): backup em manutenção; backup online sob carga real (movimentações pela API, usuários e empresas sendo criados) restaurado em projeto separado com invariantes iguais; reprodução da falsa reprovação do método anterior; oito cenários de atualização (normal, imagem que não inicia, inacessível pelo domínio, Keycloak fora antes e durante, migration compatível com a versão anterior iniciando sobre o schema novo, migration incompatível recusada sem plano e com a versão anterior recusando iniciar); perda total, restauração e recuperação. `npm test` com PostgreSQL: 50 aprovados. `scripts/compat-previous.sh 93d1124`: aprovado (e reprovado, como esperado, com migration incompatível). **Não executado:** provedor real, Object Lock real, teste de carga. Detalhes em [PRODUCT-CYCLE-02.md](PRODUCT-CYCLE-02.md#revisão-do-lote-3--achados-de-joão-e-correções).
+
+## Ciclo 02, lote 3 (hospedagem em nuvem) — 2026-11-09
+
+Executado de fato: build da imagem de produção (`deploy/cloud/Dockerfile`) e ensaio isolado `deploy/cloud/test/drill.sh` com essa imagem reconstruída do zero. O ensaio cobriu:
+
+- recusas de modelo e de senha de desenvolvimento;
+- instalação limpa com proxy TLS (CA de teste);
+- login OIDC real no navegador;
+- cadastro e entrada;
+- exposição de rede;
+- reinício do banco, da API e de todos os contêineres;
+- backup cifrado enviado a um S3 falso;
+- atualização com reversão automática;
+- perda total do servidor;
+- ensaio de restauração em projeto separado, recuperação com novo login e exportação da empresa;
+- logs sem segredos.
+
+Também passaram: `npm test` com PostgreSQL (40 aprovados, incluindo a exportação), lint e build. **Não executado** (depende de contratação): ACME/DNS reais, provedor real, teste de carga, e-mail e monitores reais. Detalhes em [PRODUCT-CYCLE-02.md](PRODUCT-CYCLE-02.md#lote-3--preparação-para-hospedagem-em-nuvem).
+
+## Ciclo 02, lote 2 — 2026-11-09
+
+Executado de fato: build da imagem Docker, `scripts/compose-validate.sh` do zero (readiness, migração, seed, provisionamento, emissor e redirects OIDC, papéis do banco, queda do banco sem derrubar a API, falha explícita sem configuração e com papel privilegiado), `test:e2e-real` contra o Compose (12 aprovados + 1 após reinício), `npm test` com PostgreSQL (39 aprovados), sem banco (22 aprovados, 1 ignorado), lint, build e Playwright da demo (32 aprovados). O CI ganhou o job `e2e-real`. Detalhes, correções e o que segue não executado em [PRODUCT-CYCLE-02.md](PRODUCT-CYCLE-02.md#lote-2--validação-reproduzível).
+
+## Ciclo 02, lote 1 — 2026-11-09
+
+Executado de fato em container Linux (Node 22.23.4, npm 10.9.9, Docker com PostgreSQL 17 e Keycloak 26.4): `npm ci`, `npm audit` (0 vulnerabilidades), lint, build, migração, `npm test` com PostgreSQL real e papel restrito (36 aprovados), sem banco (21 aprovados, 1 ignorado), Playwright da demonstração (32 aprovados) e fluxo real com Keycloak (11 aprovados + 1 após reinício dos serviços). **Não executados**: build da imagem Docker da aplicação, fluxo real no CI, leitores de tela, Safari/Firefox, zoom real do navegador. Detalhes em [PRODUCT-CYCLE-02.md](PRODUCT-CYCLE-02.md#resultados).
+
 ## Ciclo 01 — 2026-11-09
 
 Checks executados de fato em container Linux (Node 22.23.4, npm 10.9.9): `npm ci`, `npm audit` (0 vulnerabilidades), lint, build, `npm test` (14 aprovados, 1 ignorado por falta de PostgreSQL) e Playwright (32 aprovados, desktop e mobile). Comandos, cobertura e limitações em [UX-CYCLE-01.md](UX-CYCLE-01.md#5-verificação-executada-09112026-container-linux-node-22234-npm-1099).

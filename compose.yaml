@@ -1,0 +1,108 @@
+# Ambiente de DESENVOLVIMENTO e integração local. Não é instalação de produção:
+# HTTP sem TLS, senhas de exemplo, Keycloak em modo dev e imagem da aplicação sem digest.
+# Passo a passo: docs/LOCAL-DEV.md
+name: vapt-vupt-dev
+
+x-db: &db
+  POSTGRES_DB: vapt_vupt
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      <<: *db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${VV_POSTGRES_PASSWORD:-dev-only-postgres}
+      VV_MIGRATOR_PASSWORD: ${VV_MIGRATOR_PASSWORD:-dev-only-migrator}
+      VV_RUNTIME_PASSWORD: ${VV_RUNTIME_PASSWORD:-dev-only-runtime}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports: ["127.0.0.1:5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vapt_vupt"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  keycloak:
+    image: keycloak/keycloak:26.4
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${VV_KEYCLOAK_ADMIN_PASSWORD:-dev-only-admin}
+      # O navegador e a API enxergam o mesmo emissor (http://localhost:8080/realms/vapt).
+      KC_HOSTNAME: http://localhost:8080
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - kcdata:/opt/keycloak/data
+      - ./docker/keycloak/realm-vapt.json:/opt/keycloak/data/import/realm-vapt.json:ro
+    ports: ["127.0.0.1:8080:8080"]
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q '\"UP\"' <&3"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  migrate:
+    image: vapt-vupt-dev-app:local
+    build: .
+    command: ["node", "--import", "tsx", "apps/api/migrate.ts"]
+    environment:
+      MIGRATION_DATABASE_URL: postgresql://vv_migrator@postgres:5432/vapt_vupt
+      MIGRATION_DATABASE_PASSWORD: ${VV_MIGRATOR_PASSWORD:-dev-only-migrator}
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  app:
+    image: vapt-vupt-dev-app:local
+    build: .
+    environment:
+      DATABASE_URL: postgresql://vv_runtime@postgres:5432/vapt_vupt
+      DATABASE_PASSWORD: ${VV_RUNTIME_PASSWORD:-dev-only-runtime}
+      APP_ORIGIN: http://localhost:3001
+      OIDC_ISSUER: http://localhost:8080/realms/vapt
+      OIDC_INTERNAL_ORIGIN: http://keycloak:8080
+      OIDC_ALLOW_HTTP: "true"
+      OIDC_CLIENT_ID: vapt-vupt-web
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-dev-only-client-secret-not-for-production}
+      SESSION_IDLE_MINUTES: ${SESSION_IDLE_MINUTES:-30}
+      SESSION_ABSOLUTE_HOURS: ${SESSION_ABSOLUTE_HOURS:-12}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      keycloak: { condition: service_healthy }
+    ports: ["127.0.0.1:3001:3001"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/ready').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  # Ferramentas sob demanda: docker compose --profile tools run --rm seed
+  seed:
+    image: vapt-vupt-dev-app:local
+    build: .
+    profiles: ["tools"]
+    command: ["node", "--import", "tsx", "scripts/seed-local.ts"]
+    environment:
+      ADMIN_DATABASE_URL: postgresql://vv_migrator@postgres:5432/vapt_vupt
+      ADMIN_DATABASE_PASSWORD: ${VV_MIGRATOR_PASSWORD:-dev-only-migrator}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  admin:
+    image: vapt-vupt-dev-app:local
+    build: .
+    profiles: ["tools"]
+    entrypoint: ["node", "--import", "tsx", "apps/api/admin-cli.ts"]
+    environment:
+      ADMIN_DATABASE_URL: postgresql://vv_migrator@postgres:5432/vapt_vupt
+      ADMIN_DATABASE_PASSWORD: ${VV_MIGRATOR_PASSWORD:-dev-only-migrator}
+    depends_on:
+      postgres: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  kcdata:

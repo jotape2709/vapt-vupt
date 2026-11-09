@@ -1,0 +1,15 @@
+# SOMENTE ENSAIO ISOLADO: certificados da CA de teste gerada por drill.sh (nada de ACME/internet).
+{
+	local_certs
+	skip_install_trust
+	pki {
+		ca local {
+			root {
+				cert /etc/caddy/test-ca/root.crt
+				key /etc/caddy/test-ca/root.key
+			}
+		}
+	}
+}
+
+import /etc/caddy/sites.caddy

@@ -12,7 +12,7 @@ test('encontrar ou cadastrar → registrar entrada → conferir saldo e históri
  await page.getByRole('button', { name: /^Estoque/ }).click();
  await page.getByRole('searchbox', { name: 'Buscar produto' }).fill('pão de queijo');
  await expect(page.getByRole('heading', { name: 'Nenhum produto para “pão de queijo”' })).toBeVisible();
- await expect(page.getByRole('status').filter({ hasText: 'Mostrando 0 de 6 produtos' })).toBeVisible();
+ await expect(page.getByRole('status').filter({ hasText: 'Mostrando 0 de 0 resultados · 6 produtos no catálogo' })).toBeVisible();
 
  await page.getByRole('button', { name: 'Cadastrar “pão de queijo”' }).click();
  const dialog = page.getByRole('dialog', { name: 'Novo produto' });
@@ -55,7 +55,7 @@ test('encontrar ou cadastrar → registrar entrada → conferir saldo e históri
  await expect(entry).toContainText('Saldo 0 → 24');
 
  await page.reload();
- await enter(page);
+ await expect(page).toHaveURL(/\/demo$/);
  await expect(page.locator('.recent .movement-list')).toContainText('pão de queijo');
  await expect(page.getByText('Movimentações registradas').locator('..')).toContainText('1');
  expect(await noPageOverflow(page)).toBe(true);
@@ -135,21 +135,29 @@ test('três empresas em claro e escuro: diálogo segue o tema e a empresa ativa 
  }
 });
 
-test('zoom de 200% (1440 × 1000 → 720 × 500) mantém ações e tabela contidas', async ({ page }) => {
- await page.setViewportSize({ width: 720, height: 500 });
- await enter(page);
- await page.getByRole('button', { name: /^Estoque/ }).click();
- expect(await noPageOverflow(page)).toBe(true);
- const region = page.getByRole('region', { name: 'Tabela de produtos com rolagem horizontal' });
- const box = (await region.boundingBox())!;
- expect(box.x + box.width).toBeLessThanOrEqual(721);
- const action = page.getByRole('button', { name: 'Registrar entrada de Arroz branco · 5 kg' });
- const actionBox = (await action.boundingBox())!;
- expect(actionBox.x + actionBox.width).toBeLessThanOrEqual(box.x + box.width + 1);
- await action.click();
- const submit = page.getByRole('dialog').getByRole('button', { name: 'Registrar entrada', exact: true });
- await submit.scrollIntoViewIfNeeded();
- await expect(submit).toBeInViewport();
+/*
+ * O que este teste verifica: o layout num viewport de 720 × 500 pixels CSS com densidade 2,
+ * que é a geometria que o Chromium produz ao aplicar zoom de 200% numa janela de 1440 × 1000.
+ * O que ele NÃO verifica: o controle de zoom do navegador (Ctrl +), o zoom só de texto e
+ * a ampliação por pinça. Esses itens continuam como verificação manual (docs/PRODUCT-CYCLE-02.md).
+ */
+test.describe('geometria equivalente a zoom de 200%', () => {
+ test.use({ viewport: { width: 720, height: 500 }, deviceScaleFactor: 2 });
+ test('viewport de 720 × 500 CSS px com DPR 2 mantém ações e tabela contidas', async ({ page }) => {
+  await enter(page);
+  await page.getByRole('button', { name: /^Estoque/ }).click();
+  expect(await noPageOverflow(page)).toBe(true);
+  const region = page.getByRole('region', { name: 'Tabela de produtos com rolagem horizontal' });
+  const box = (await region.boundingBox())!;
+  expect(box.x + box.width).toBeLessThanOrEqual(721);
+  const action = page.getByRole('button', { name: 'Registrar entrada de Arroz branco · 5 kg' });
+  const actionBox = (await action.boundingBox())!;
+  expect(actionBox.x + actionBox.width).toBeLessThanOrEqual(box.x + box.width + 1);
+  await action.click();
+  const submit = page.getByRole('dialog').getByRole('button', { name: 'Registrar entrada', exact: true });
+  await submit.scrollIntoViewIfNeeded();
+  await expect(submit).toBeInViewport();
+ });
 });
 
 test('nomes longos não criam rolagem horizontal da página em 320 px', async ({ page }) => {
