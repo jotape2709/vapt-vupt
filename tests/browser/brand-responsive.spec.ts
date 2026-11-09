@@ -55,6 +55,6 @@ test('preferências antigas migram para azul sem perder o saldo',async({page})=>
   }
   await select.selectOption('mercado');
   await page.getByRole('button',{name:/^Estoque/}).click();
-  await page.getByRole('textbox',{name:'Buscar produto'}).fill('AUR-001');
+  await page.getByRole('searchbox',{name:'Buscar produto'}).fill('AUR-001');
   await expect(page.getByRole('row').filter({hasText:'AUR-001'})).toContainText('71');
 });
