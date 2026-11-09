@@ -36,3 +36,83 @@ Prioridade: **P1** bloqueia ou confunde o fluxo principal; **P2** atrito relevan
 | Workflow "Next foundation checks" disparado na branch de fundação | Branch não existe mais como alvo | Workflow "Vapt-Vupt checks" em `main` e PRs para `main` |
 | "histórico só na sessão" | Saldo persistia sem histórico (problema 3) | Histórico demonstrativo persiste no navegador junto com os saldos |
 | Testes de navegador não mencionados em "Desenvolvimento" | `npm run test:browser` existe | Comando documentado |
+
+## 3. Duas composições da tela de estoque
+
+Ambas foram construídas sobre o mesmo código, dados e tokens, com o mesmo registro de entrada aplicado antes da captura. A variante B existiu só como prévia temporária (`?composicao=b`) e foi removida antes do commit; não há duas aplicações.
+
+| | A — tabela com ações na linha | B — lista + painel do produto |
+|---|---|---|
+| Desktop | `variant-a-d.png` | `variant-b-d.png` |
+| Celular | `variant-a-m.png` | `variant-b-m.png` |
+| Hierarquia | Todos os saldos e situações lado a lado; o que precisa de reposição salta pela coluna Situação e pelo filtro "Repor". | Um produto por vez em destaque; o saldo grande é ótimo para conferência individual, mas compara mal itens entre si. |
+| Legibilidade | Colunas alinhadas à direita para números; leitura em varredura. | Lista legível; no celular a situação some da lista para caber. |
+| Densidade | 6 produtos e ações na primeira dobra em 1440 px. | Mesma lista, mas metade da largura vai para um único produto. |
+| Operação | 1 toque: Entrada/Saída na própria linha abre o diálogo já preenchido. | 2 toques: selecionar o produto e depois Entrada/Saída. No celular o painel fica abaixo de toda a lista. |
+| Acessibilidade | Tabela semântica (`th scope=row`), ações nomeadas por produto, rolagem contida e focável. | Lista de botões com `aria-pressed`; exige gerenciar o foco entre lista e painel. |
+
+**Escolha: A.** O fluxo-alvo é operacional e repetitivo (receber mercadoria, dar saída), então o número de toques e a varredura de saldos pesam mais do que a ênfase num único produto. B só vence ao conferir o histórico de um item; esse ganho foi incorporado a A pelo botão "Ver histórico" da confirmação e pela coluna Histórico em Produtos, sem custar um passo extra no caso comum.
+
+Ajustes feitos depois da escolha, a partir das capturas:
+
+- No celular, a navegação ocupava ~1/3 da primeira tela. Módulos, Personalização e Criar empresa viraram **uma única faixa rolável**, e marca e empresa dividem a mesma linha.
+- A coluna de ações fica **fixa à direita** da tabela; o que rola é o meio.
+- Abaixo de 400 px, saldo, mínimo e "Repor" vão para a célula do produto e as colunas numéricas saem, para que as ações nunca cubram o saldo (`after-320-estoque.png`).
+
+## 4. O que mudou
+
+| Área | Mudança | Problemas tratados |
+|---|---|---|
+| Estoque | Saldo, mínimo e situação com Entrada/Saída por linha; filtros em chips com contagem; contagem de resultados anunciada (`role=status`); busca sem acento e por categoria; limpar busca. | 1, 4, 11 |
+| Busca sem resultado | "Nenhum produto para “termo”" com **Cadastrar “termo”** (nome ou código pré-preenchido) e Limpar busca. Filtro vazio oferece Mostrar todos. | 2 |
+| Produtos | Catálogo com categoria, unidade e Histórico por produto; Novo produto pré-preenche com a busca atual. | 1 |
+| Cadastro | Erros por campo, foco no primeiro inválido, código duplicado no próprio campo, categorias existentes sugeridas. Confirmação oferece **Registrar entrada** do produto recém-criado. | 7 |
+| Movimentação | Entrada/Saída como alternância; quantidade com unidade; **prévia do saldo** (atual → após); sugestões de motivo; botão "Registrar entrada/saída"; validação por campo com `aria-invalid`/`aria-describedby` e foco. | 5 |
+| Confirmação local | "Entrada registrada na demonstração: +24 un de X. Saldo 0 → 24 un." com Ver histórico. Nunca menciona envio ou sincronização. Se o navegador recusar o salvamento, a mensagem diz que a alteração vale só até recarregar. | 6 |
+| Histórico | Persiste com os saldos (últimos 200 por empresa); mostra operação, motivo, data/hora, quantidade e saldo antes → depois; filtros por produto e operação. | 3 |
+| Empresa ativa | Nome no cabeçalho de cada página e no diálogo; troca anunciada; faixa "Empresa fictícia · dados salvos só neste navegador / Nada é enviado a servidor". | 10 |
+| Diálogos | Herdam o tema claro/escuro da empresa; foco inicial no campo certo; foco volta para quem abriu, ou para o conteúdo se a origem sumiu. | 8, 9 |
+| Empresa vazia | Visão geral e diálogo orientam a cadastrar o primeiro produto. | 12 |
+| Restaurar | Personalização → Restaurar dados de exemplo, com confirmação. | — |
+| Código e CSS | `App.tsx` dividido em `pages.tsx`, `forms.tsx`, `components.tsx`, `inventory.ts`; regras de estoque testáveis. CSS com um único conjunto de breakpoints, tokens de perigo/marca no lugar certo, sem bloco de correções no fim. | 13, 14 |
+| Modo escuro | Nota do dia usa as superfícies do tema em vez do azul-claro luminoso. | 15 |
+
+Preservado: SVGs e logo VV em fitas, paletas Azul Royal/Marinho/Atlântico, Trebuchet/Georgia, claro/escuro, densidade, personalização e as três empresas.
+
+## 5. Verificação executada (09/11/2026, container Linux, Node 22.23.4, npm 10.9.9)
+
+| Comando | Resultado |
+|---|---|
+| `npm ci` (instalação limpa a partir do lockfile) | ok |
+| `npm audit` | 0 vulnerabilidades |
+| `npm run lint` | ok, sem avisos |
+| `npm run build` (tsc + vite) | ok |
+| `npm test` | 15 testes: 14 aprovados, **1 ignorado** (integração PostgreSQL, sem `TEST_ADMIN_DATABASE_URL` neste ambiente) |
+| `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npx playwright test` | **32 aprovados** (16 cenários × projetos desktop 1440 e mobile 390) |
+
+Cobertura de navegador: fluxo completo busca → cadastro → entrada → histórico → recarregar; código duplicado; teclado (Enter abre, validação foca, Esc fecha e devolve o foco); saída pela linha com prévia e bloqueio acima do saldo; empresa vazia; três empresas em claro e escuro com cor do diálogo igual à superfície do tema; zoom de 200% simulado em 720 × 500; nomes longos em 320 px; larguras 320, 360, 390, 768, 1024 e 1440 px sem rolagem horizontal da página; migração de aliases antigos de cor.
+
+Limitações desta verificação:
+
+- O Chromium do container é a revisão 1243; o `@playwright/test` resolvido (1.65.0) espera a 1254. Os testes rodaram apontando para o binário instalado. O CI usa `npx playwright install` com a revisão correta.
+- Zoom de 200% foi simulado por viewport equivalente, não pelo zoom do navegador.
+- Sem leitor de tela real nem auditoria automática de contraste (axe/Lighthouse). Foco, nomes acessíveis e descrições foram verificados pelos testes.
+- Safari/Firefox e dispositivos físicos não foram testados.
+- A integração PostgreSQL só roda no CI.
+
+## 6. O que funciona e o que continua demonstrativo
+
+Funciona na demonstração local: busca, filtros, cadastro, entrada/saída com regra de saldo do domínio, histórico persistido no navegador, três empresas com temas, empresa nova, restauração dos dados, claro/escuro e responsividade testada.
+
+Continua demonstrativo: tudo fica no `localStorage` do navegador; não há login, servidor, sincronização, multiusuário nem trilha de auditoria. Compras, cotações e equipe são telas de status planejado. A API Fastify/PostgreSQL existe, mas a UI ainda não a usa.
+
+## 7. Próximas etapas (backlog, não iniciadas)
+
+1. Conectar a UI à API: login OIDC, organização/unidade reais, produtos e movimentações persistidos, `expectedVersion` e idempotência reais, testes de isolamento entre empresas.
+2. Seletor de produto pesquisável no diálogo (catálogos grandes) e leitura de código de barras/GTIN.
+3. Quantidades fracionárias e embalagens (kg, caixa com N unidades).
+4. Desfazer/estornar movimentação com registro próprio (hoje não há estorno).
+5. Auditoria de acessibilidade com leitor de tela e axe; testes em Safari/Firefox.
+6. PWA/offline, política de conflitos e intranet (fase D).
+7. Compras, cotações, POS e integrações com caixa (fase E).
+8. Câmeras/visão computacional e IA de reposição: fora da primeira entrega.

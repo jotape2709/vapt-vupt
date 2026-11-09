@@ -57,16 +57,17 @@ João transmite os prompts e os resultados. Não há comunicação direta presum
 
 ## Registro de passagem
 
-Atualizar este bloco ao final de cada lote:
+Atualizar este bloco ao final de cada lote.
 
-- Responsável atual: Claude (após receber o prompt de João).
-- Lote: experiência operacional demonstrativa e base reproduzível.
-- Último commit de implementação deste ciclo: ainda não iniciado.
-- Arquivos alterados: somente este documento na abertura do ciclo.
-- Checks desta abertura: leitura do estado remoto e revisão documental; build/testes da aplicação não reexecutados para esta mudança apenas documental.
-- Checks da implementação: registrar comando, resultado, falhas/ignorados e link do CI.
-- Decisões e pendências: registrar antes de transferir a escrita para outro assistente.
-- Próxima revisão: João + ChatGPT, a partir do SHA informado pelo Claude.
+### Lote 1 — experiência operacional demonstrativa e base reproduzível (Claude, 09/11/2026)
+
+- Responsável: Claude. Estado: **concluído para revisão**; nenhuma escrita em andamento.
+- Último commit de implementação: ver o SHA final informado no PR #10 (este registro é o commit seguinte a ele).
+- Pedido adicional de João: o nome do produto é só **Vapt-Vupt**; o rótulo "Next" foi removido do pacote, site, app, README, docs e workflow. A branch deste ciclo continua `next/product-cycle-01` porque foi combinada assim; renomear depende de João.
+- Arquivos: `apps/web/{App,pages,forms,components}.tsx`, `apps/web/{inventory,demo}.ts`, `apps/web/styles.css`, `tests/inventory.test.ts`, `tests/browser/*.spec.ts`, `playwright.config.ts`, `.github/workflows/checks.yml` (antes `next-checks.yml`), `package.json`, `package-lock.json`, `README.md`, `docs/UX-CYCLE-01.md`, `docs/review/ux-cycle-01/*.png`, `docs/VALIDATION.md`.
+- Decisões: composição A (tabela com ações na linha) em vez de B (lista + painel); histórico demonstrativo passa a persistir no navegador junto com os saldos; justificativas em docs/UX-CYCLE-01.md §3–4.
+- Checks: `npm ci`, `npm audit` (0), lint, build, `npm test` (14 ok, 1 ignorado: PostgreSQL), Playwright 32/32. Detalhes e limitações em docs/UX-CYCLE-01.md §5. Resultado do CI: consultar o PR #10.
+- Pendências para João + ChatGPT: revisar a direção A e as capturas; decidir se a branch deve ser renomeada; priorizar o backlog de docs/UX-CYCLE-01.md §7 (próximo passo natural: integrar UI e API). Nenhum item do backlog foi iniciado.
 
 ## Perguntas para validar com o estabelecimento
 

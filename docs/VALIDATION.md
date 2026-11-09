@@ -1,4 +1,10 @@
-# Registro de validação — 2026-11-06
+# Registro de validação
+
+## Ciclo 01 — 2026-11-09
+
+Checks executados de fato em container Linux (Node 22.23.4, npm 10.9.9): `npm ci`, `npm audit` (0 vulnerabilidades), lint, build, `npm test` (14 aprovados, 1 ignorado por falta de PostgreSQL) e Playwright (32 aprovados, desktop e mobile). Comandos, cobertura e limitações em [UX-CYCLE-01.md](UX-CYCLE-01.md#5-verificação-executada-09112026-container-linux-node-22234-npm-1099).
+
+## Registro original — 2026-11-06
 
 ## Ambiente desta entrega
 
