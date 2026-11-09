@@ -740,6 +740,8 @@ table{min-width:620px}
  .inline-balance b{color:var(--ink);font-weight:700}
  .inline-balance.below{color:var(--warning);font-weight:700}
  .min-hint{display:none}
+ /* Em telas estreitas o saldo vai para a célula do produto; as colunas numéricas saem para caber a ação. */
+ .stock-table.inventory .num{display:none}
  .row-actions{gap:4px}
  .table-scroll .actions-col{padding-right:12px}
 }

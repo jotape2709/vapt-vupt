@@ -124,7 +124,7 @@ function ProductRow({ product: p, mode, actions }: { product: Product; mode: 'in
  const below = isBelowMinimum(p);
  return <tr>
   <th scope="row"><strong>{p.name}</strong><small>{p.sku}{mode === 'inventory' ? ` · ${p.category}` : ''}</small>
-   <span className={'inline-balance' + (below ? ' below' : '')} aria-hidden="true"><b>{formatQuantity(p.quantity)} {p.unit}</b> · mín. {formatQuantity(p.minimum)}{below ? ' · Repor' : ''}</span></th>
+   <span className={'inline-balance' + (below ? ' below' : '')}><b>{formatQuantity(p.quantity)} {p.unit}</b> · mín. {formatQuantity(p.minimum)}{below ? ' · Repor' : ''}</span></th>
   {mode === 'products' && <td>{p.category}</td>}
   {mode === 'products' && <td>{p.unit}</td>}
   <td className="num"><strong>{formatQuantity(p.quantity)}</strong> {p.unit}<small className={'min-hint' + (below ? ' below' : '')} aria-hidden="true">{below ? 'Repor · ' : ''}mín. {formatQuantity(p.minimum)}</small></td>

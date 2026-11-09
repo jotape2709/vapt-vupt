@@ -76,7 +76,9 @@ export function MovementForm({ products, initialProductId, initialKind = 'receip
    <Icon name="arrow" />
    <div className={projected !== null && projected < 0 ? 'invalid' : ''}>
     <span>Após {kind === 'receipt' ? 'a entrada' : 'a saída'}</span>
-    <strong>{projected === null ? '—' : formatQuantity(projected)} <small>{product.unit}</small></strong>
+    {projected !== null && projected < 0
+     ? <strong>Insuficiente</strong>
+     : <strong>{projected === null ? '—' : formatQuantity(projected)} <small>{product.unit}</small></strong>}
    </div>
   </div>}
 
