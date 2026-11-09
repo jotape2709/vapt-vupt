@@ -56,6 +56,14 @@ dc exec -T postgres psql -U postgres -d vapt_vupt -At -c \
 users=$(dc exec -T postgres psql -U postgres -d vapt_vupt -At -c "SELECT string_agg(DISTINCT usename, ',') FROM pg_stat_activity WHERE datname='vapt_vupt' AND application_name='' AND usename<>'postgres'")
 echo "conexões da aplicação: $users"; [ "$users" = vv_runtime ] || fail "a API deveria conectar só como vv_runtime"
 
+step "Queda do banco não derruba a API"
+started=$(docker inspect -f '{{.State.StartedAt}}' "$(dc ps -q app)")
+dc restart postgres
+for i in $(seq 1 60); do curl -sf "$APP/ready" >/dev/null && break; sleep 1; done
+curl -fsS "$APP/ready"; echo
+[ "$(docker inspect -f '{{.State.StartedAt}} {{.RestartCount}}' "$(dc ps -q app)")" = "$started 0" ] || fail "a API reiniciou depois da queda do banco"
+echo "API seguiu no mesmo processo e voltou a responder após reiniciar o PostgreSQL."
+
 step "Falha explícita sem configuração obrigatória"
 if msg=$(dc run --rm --no-deps -e OIDC_CLIENT_SECRET= app 2>&1); then fail "API iniciou sem OIDC_CLIENT_SECRET"; fi
 echo "$msg" | grep -m1 -E 'OIDC_CLIENT_SECRET' || fail "mensagem não cita a variável ausente"

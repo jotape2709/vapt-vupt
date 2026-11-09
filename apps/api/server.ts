@@ -9,6 +9,9 @@ import { SessionStore } from './sessions';
 
 const config = loadConfig();
 const pool = new Pool({ connectionString: config.databaseUrl, max: 10 });
+// Conexões ociosas recebem erro quando o PostgreSQL reinicia. Sem este ouvinte o processo inteiro
+// cairia; com ele, o pool descarta a conexão e as próximas requisições abrem outra.
+pool.on('error', err => { console.warn(`Conexão ociosa com o banco encerrada: ${err.message}`); });
 
 // A API recusa iniciar com papel privilegiado: RLS só protege se o runtime não puder ignorá-la.
 const privilege = await pool.query(`SELECT r.rolsuper, r.rolbypassrls,
