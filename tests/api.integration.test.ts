@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import type { Pool } from 'pg';
 import { buildApp } from '../apps/api/app';
-import { provision, grant, revokeSessions } from '../apps/api/admin';
+import { exportOrganization, provision, grant, revokeSessions } from '../apps/api/admin';
 import { Database } from '../apps/api/db';
 import { Operations } from '../apps/api/operations';
 import { SessionStore } from '../apps/api/sessions';
@@ -298,6 +298,25 @@ test('operação real: autenticação, isolamento, permissões, estoque, histór
    const bHistory = (await c.bob.get(b(`/units/${B.unitId}/movements`))).json();
    assert.equal(bHistory.total, 0);
    assert.equal((await c.bob.get(b(`/units/${B.unitId}/stock`))).json().counts.all, 1);
+  });
+
+  await t.test('exportação administrativa: só a empresa pedida, completa e auditada', async () => {
+   const out = await exportOrganization(admin, { org: A.organizationId });
+   const json = JSON.stringify(out);
+   assert.equal(out.organization.id, A.organizationId);
+   assert.ok(!json.includes(B.organizationId), 'nenhuma referência à outra empresa');
+   for (const [table, rows] of Object.entries(out.tables)) {
+    assert.ok((rows as Array<{ organization_id: string }>).every(r => r.organization_id === A.organizationId), table);
+   }
+   const db = await admin.query(`SELECT (SELECT count(*) FROM products WHERE organization_id=$1)::int AS products,
+    (SELECT count(*) FROM inventory_events WHERE organization_id=$1)::int AS events, (SELECT count(*) FROM memberships WHERE organization_id=$1)::int AS members`, [A.organizationId]);
+   assert.deepEqual([out.counts.products, out.counts.inventory_events, out.counts.memberships], [db.rows[0].products, db.rows[0].events, db.rows[0].members]);
+   assert.ok(out.counts.products > 0 && out.counts.inventory_events > 0);
+   const logo = (out.tables.organization_assets as Array<{ content: string; byte_size: number }>)[0];
+   if (logo) assert.equal(Buffer.from(logo.content, 'base64').length, logo.byte_size, 'logotipo em base64 íntegro');
+   const audit = await admin.query("SELECT count(*)::int AS n FROM audit_log WHERE organization_id=$1 AND action='org.exported'", [A.organizationId]);
+   assert.equal(audit.rows[0].n, 1);
+   await assert.rejects(exportOrganization(admin, { org: randomUUID() }), /não encontrada/);
   });
 
   await t.test('papel de runtime: sem RLS bypass, histórico imutável e saldo do cadastro congelado', async () => {

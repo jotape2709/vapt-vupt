@@ -14,6 +14,7 @@ import { roles, segments, settingsFromTemplate } from '../../packages/domain/con
  *   npm run admin -- grant --org <uuid> --issuer <iss> --subject <sub> --role operator
  *   npm run admin -- revoke --org <uuid> --issuer <iss> --subject <sub>
  *   npm run admin -- revoke-sessions --issuer <iss> --subject <sub>
+ *   npm run admin -- export --org <uuid> > empresa.json   (portabilidade/encerramento)
  */
 const actor = 'admin-cli:' + (process.env.VV_ADMIN_ACTOR || userInfo().username);
 const text = (min: number, max: number) => z.string().trim().min(min).max(max);
@@ -25,6 +26,7 @@ const ProvisionSchema = z.object({
 }).strict();
 const GrantSchema = z.object({ org: z.string().uuid(), issuer: identity.issuer, subject: identity.subject, role: z.enum(roles) }).strict();
 const RevokeSchema = z.object({ org: z.string().uuid(), issuer: identity.issuer, subject: identity.subject }).strict();
+const ExportSchema = z.object({ org: z.string().uuid() }).strict();
 const SessionsSchema = z.object({ issuer: identity.issuer, subject: identity.subject }).strict();
 
 async function inOrg<T>(pool: Pool, org: string, fn: (db: PoolClient) => Promise<T>) {
@@ -82,4 +84,31 @@ export async function revokeSessions(pool: Pool, input: z.input<typeof SessionsS
  const s = SessionsSchema.parse(input);
  const result = await pool.query("UPDATE sessions SET revoked_at=now(), revoked_reason='admin', id_token_hint=NULL WHERE issuer=$1 AND subject=$2 AND revoked_at IS NULL", [s.issuer, s.subject]);
  return result.rowCount ?? 0;
+}
+
+/**
+ * Exportação completa dos dados de UMA empresa, em JSON legível, para portabilidade ou encerramento
+ * do serviço. Cada consulta filtra explicitamente pela organização (além da RLS de app.org_id), então
+ * nenhuma linha de outra empresa entra no arquivo, mesmo com uma conta que ignore a RLS.
+ * Logotipos saem em base64. Sessões e transações de login (efêmeras) não são exportadas.
+ */
+const exportTables: Array<[table: string, orderBy: string]> = [
+ ['organization_settings', 'version'], ['units', 'id'], ['memberships', 'role, issuer, subject'],
+ ['products', 'sku'], ['stock_levels', 'unit_id, product_id'], ['inventory_events', 'created_at, id'],
+ ['organization_assets', 'created_at, id'], ['audit_log', 'id']
+];
+export async function exportOrganization(pool: Pool, input: z.input<typeof ExportSchema>) {
+ const e = ExportSchema.parse(input);
+ return inOrg(pool, e.org, async db => {
+  const org = await db.query('SELECT * FROM organizations WHERE id=$1', [e.org]);
+  if (!org.rowCount) throw new Error('Organização não encontrada.');
+  const tables: Record<string, unknown[]> = {};
+  for (const [table, orderBy] of exportTables) {
+   const rows = (await db.query(`SELECT * FROM ${table} WHERE organization_id=$1 ORDER BY ${orderBy}`, [e.org])).rows;
+   tables[table] = rows.map(r => (Buffer.isBuffer(r.content) ? { ...r, content: r.content.toString('base64') } : r));
+  }
+  const counts = Object.fromEntries(Object.entries(tables).map(([k, v]) => [k, v.length]));
+  await audit(db, e.org, 'org.exported', e.org, { counts });
+  return { format: 'vapt-vupt-organization-export', formatVersion: 1, exportedAt: new Date().toISOString(), organization: org.rows[0], counts, tables };
+ });
 }

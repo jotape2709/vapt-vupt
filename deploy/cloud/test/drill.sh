@@ -194,6 +194,14 @@ note "recuperação até a API pronta em $(( $(date +%s) - s ))s (sem contar pro
 check verify "$work/cloud-app-restored.png" || fail "login e dados após recuperação"
 note "login OIDC com a mesma conta e dados do backup após a recuperação"
 
+step "Exportação dos dados da empresa (portabilidade/encerramento)"
+org_id=$(grep -o '"organizationId":"[^"]*"' "$work/provision.log" | cut -d'"' -f4)
+dc --profile ops run --rm -T admin export --org "$org_id" > "$work/export.json" 2>"$work/export.err" || { cat "$work/export.err"; fail "export"; }
+python3 -I -c 'import json,sys
+d=json.load(open(sys.argv[1])); p=d["tables"]["products"]
+assert d["organization"]["id"]==sys.argv[2] and any(x["sku"]=="ENSAIO-01" for x in p), "exportação incompleta"
+print("    exportação JSON: " + ", ".join(f"{k}={v}" for k,v in d["counts"].items()))' "$work/export.json" "$org_id" | tee -a "$report"
+
 step "Logs sem segredos"
 dc logs --no-color > "$work/compose.log" 2>&1
 leaks=0
