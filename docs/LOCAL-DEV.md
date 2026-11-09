@@ -7,15 +7,30 @@ Requisitos: Docker com Compose v2, Node.js 22.12+ e npm.
 ## Opção A — tudo no Compose
 
 ```bash
-docker compose up -d --build          # postgres, keycloak, migrate e app
+docker compose up -d --build --wait   # postgres, keycloak, migrate e app; espera os healthchecks
 docker compose --profile tools run --rm seed   # duas empresas de exemplo (idempotente)
+```
+
+Para validar a instalação inteira de uma vez (apaga os volumes deste ambiente):
+
+```bash
+VV_COMPOSE_CLEAN=1 bash scripts/compose-validate.sh
+```
+
+O script sobe tudo do zero, roda seed duas vezes e um `provision` documentado, confere `/health`, `/ready`, `/`, `/demo` e `/app`, o emissor OIDC visto pelo navegador e pela API, os parâmetros do redirect (PKCE S256, `state`, `nonce`, `redirect_uri`), os papéis do banco e a conexão da API como `vv_runtime`, reinicia o PostgreSQL exigindo que a API continue no mesmo processo, e confirma que a API **não inicia** sem `OIDC_CLIENT_SECRET` nem com o papel dono das tabelas.
+
+Atrás de proxy que reemite TLS (rede corporativa), o `npm ci` do build precisa da cadeia de certificados. Passe-a como segredo de build (não fica na imagem) e suba sem reconstruir:
+
+```bash
+docker build --secret id=extra_ca,src=/caminho/ca.crt -t vapt-vupt-dev-app:local .
+VV_COMPOSE_BUILD=0 bash scripts/compose-validate.sh
 ```
 
 Abra <http://localhost:3001/app> e entre com um dos usuários abaixo. A demonstração fictícia continua em <http://localhost:3001/demo>.
 
 ## Opção B — banco e provedor no Compose, API e interface no host
 
-Útil para depurar. Foi a configuração usada na validação deste ciclo (o build da imagem não pôde ser executado no container de validação; veja [PRODUCT-CYCLE-02.md](PRODUCT-CYCLE-02.md#resultados)).
+Útil para depurar a API com recarga.
 
 ```bash
 npm ci

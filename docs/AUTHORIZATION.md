@@ -11,11 +11,11 @@ Fonte única: `roleMatrix` em `packages/domain/contracts.ts`, usada pela API (au
 | Ver contexto, estoque, catálogo e histórico (`stock.read`) | ✓ | ✓ | ✓ | ✓ |
 | Registrar entrada/saída (`stock.move`) | | ✓ | ✓ | ✓ |
 | Cadastrar produto (`product.create`) | | | ✓ | ✓ |
-| Aparência, módulos, navegação e visão geral (`settings.appearance`) | | | ✓ | ✓ |
-| Identidade da empresa: nome, segmento, logotipo (`settings.identity`, `logo.upload`) | | | | ✓ |
+| Aparência, navegação (página inicial), visão geral e categorias sugeridas (`settings.appearance`) | | | ✓ | ✓ |
+| Identidade da empresa: nome, segmento, logotipo e módulos do menu (`settings.identity`, `logo.upload`) | | | | ✓ |
 | Preferências pessoais (modo, densidade, fonte) | ✓ | ✓ | ✓ | ✓ |
 
-Preferências pessoais pertencem à pessoa (`users.preferences`), não à empresa, e não dão permissão nenhuma. Módulos ligados ou desligados mudam a navegação, **não** a autorização: desligar “Movimentações” não impede um operador de registrar pela API.
+Preferências pessoais pertencem à pessoa (`users.preferences`), não à empresa, e não dão permissão nenhuma. Módulos ligados ou desligados mudam a navegação, **não** a autorização: desligar “Movimentações” não impede um operador de registrar pela API, e nenhuma configuração aceita campos de função ou permissão (o esquema é fechado). Testado em `tests/api.integration.test.ts` (“personalização não concede acesso”). Até o lote 1 este documento atribuía os módulos ao gestor; o código sempre os tratou como identidade da empresa (só proprietário), e o documento foi corrigido.
 
 Edição direta do saldo não existe para nenhuma função: o saldo só muda por movimentação registrada.
 

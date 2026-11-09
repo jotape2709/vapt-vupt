@@ -48,9 +48,10 @@ npm run build
 npm test                 # integração PostgreSQL só roda com TEST_ADMIN_DATABASE_URL (banco descartável)
 npm run test:browser     # demonstração e regressões visuais (Playwright)
 npm run test:e2e-real    # fluxo real contra o ambiente local, com reinício dos serviços
+bash scripts/compose-validate.sh   # instalação do Compose: readiness, OIDC, papéis, falhas explícitas
 ```
 
-Em ambientes com Chromium já instalado, defina `PLAYWRIGHT_CHROMIUM_PATH`. O workflow `.github/workflows/checks.yml` roda `npm ci`, audit, lint, build, migração, `npm test` com PostgreSQL efêmero e `test:browser`. O fluxo real com Keycloak (`test:e2e-real`) **não** roda no CI. Resultados realmente executados ficam em [docs/VALIDATION.md](docs/VALIDATION.md) e [docs/PRODUCT-CYCLE-02.md](docs/PRODUCT-CYCLE-02.md).
+Em ambientes com Chromium já instalado, defina `PLAYWRIGHT_CHROMIUM_PATH`. O workflow `.github/workflows/checks.yml` roda `npm ci`, audit, lint, build, migração, `npm test` com PostgreSQL efêmero e `test:browser`. O job `e2e-real` constrói o Compose de desenvolvimento do zero, valida a instalação (`scripts/compose-validate.sh`) e roda `test:e2e-real` com Keycloak, API e PostgreSQL reais. Resultados realmente executados ficam em [docs/VALIDATION.md](docs/VALIDATION.md) e [docs/PRODUCT-CYCLE-02.md](docs/PRODUCT-CYCLE-02.md).
 
 O build publica somente o `index.html` transformado, o código compilado e `public/`. Não sirva a raiz do repositório: `legacy/` contém o código acadêmico antigo, inseguro, mantido só como referência.
 
