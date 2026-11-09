@@ -1,10 +1,11 @@
 # Vapt-Vupt em nuvem: comparação de custos e orçamento a aprovar
 
-> **Situação:** pesquisa feita em 2026-11-09, só nas páginas oficiais de cada provedor. **Nada foi contratado.**
+> **Situação:** pesquisa feita em 2026-11-09 e revisada no mesmo dia, depois da revisão do lote 3, só nas páginas oficiais de cada provedor. **Nada foi contratado.**
 >
 > - Os preços são os publicados nesse dia, sem impostos, salvo indicação.
 > - Valores **medidos** vêm do ensaio isolado ([OPERACAO.md](OPERACAO.md#resultados-do-ensaio-isolado)).
 > - Valores **estimados** são hipóteses e trazem a forma de validação.
+> - **Nenhum valor aqui é teto garantido.** Só o preço do plano da VPS é fixo por mês; os demais itens variam com o uso, e os alertas de cobrança avisam, mas não bloqueiam gasto ([alerta × limite](#alerta-de-cobrança-não-é-limite-de-gasto)).
 > - Não há aqui preço de venda, margem nem lucratividade: isso é [decisão de João](RESPONSABILIDADES.md#decisões-pendentes-de-joão).
 
 ## O que a instalação consome (medido)
@@ -75,7 +76,7 @@ A página diz que os planos de **São Paulo têm metade da franquia de transfer�
 
 **Outros itens:**
 
-- Snapshots (manuais e automáticos): US$ 0,05 por GB-mês.
+- Snapshots (manuais e automáticos): US$ 0,05 por GB-mês. Os automáticos são diários e o Lightsail guarda **os 7 mais recentes**; a documentação não mostra ajuste dessa quantidade (<https://docs.aws.amazon.com/lightsail/latest/userguide/amazon-lightsail-configuring-automatic-snapshots.html>). **Nem a página de preços nem a de snapshots dizem se a cobrança é pelo tamanho cheio ou só pelos blocos alterados** ([cálculo abaixo](#snapshots-do-provedor-cálculo-com-retenção)).
 - Object storage: US$ 1 (5 GB) / US$ 3 (100 GB).
 - Excedente de transferência em São Paulo, no object storage: US$ 0,15/GB.
 
@@ -90,7 +91,7 @@ A página diz que os planos de **São Paulo têm metade da franquia de transfer�
 
 - cobrança em dólar;
 - conta AWS exige cuidado de segurança (MFA, alerta de cobrança);
-- instâncias Lightsail são de CPU com "burst" (confirmar a linha de base do plano na documentação antes de contratar);
+- instâncias Lightsail têm CPU com "burst": a linha de base do plano de 4 GB é **20% por vCPU** (<https://docs.aws.amazon.com/lightsail/latest/userguide/baseline-cpu-performance.html>). Uso contínuo acima disso consome créditos e, esgotados, a CPU cai para a linha de base; o teste de carga precisa medir isso;
 - o 1 vCPU vale para instâncias criadas antes de 2023 (nota da página), o que não se aplica a uma conta nova.
 
 ### B. Hetzner Cloud — Alemanha/Finlândia — menor preço, com ressalvas
@@ -114,11 +115,12 @@ Fontes: <https://www.hetzner.com/cloud/cost-optimized/>, <https://www.hetzner.co
 
 **Ressalvas que impedem recomendar sem verificação:**
 
-1. **Na data da pesquisa, as páginas mostravam os planos compartilhados como "currently unavailable"** (indisponíveis para pedido).
-2. Os planos baratos (CX) só existem na UE. A latência do Brasil até lá é maior, ~200 ms de ida e volta: **estimativa, não medida**.
+1. **Disponibilidade por plano, não do provedor inteiro.** Na leitura de 2026-11-09, o HTML das páginas marcava **cada plano** com "This product is currently unavailable": todos os CX e CAX (*cost-optimized*, só UE) e também todos os CPX (*regular performance*, UE, EUA e Singapura). Nenhuma página declara um local esgotado nem a Hetzner inteira indisponível. Como a marcação aparece de forma idêntica em todos os planos, ela pode refletir estoque real ou um estado padrão da página: **só o console da Hetzner confirma**. Os planos dedicados (CCX) não foram consultados.
+2. Os planos baratos (CX/CAX) só existem na UE (Nuremberg, Falkenstein, Helsinque). Os CPX existem também nos EUA (Ashburn, Hillsboro) e em Singapura, por preços maiores (ex.: CPX21 nos EUA, 3 vCPU/4 GB, € 32,49). A latência do Brasil até a UE é maior, ~200 ms de ida e volta: **estimativa, não medida**.
 3. Os dados ficariam fora do Brasil: transferência internacional pela LGPD, a avaliar.
-4. Não há banco gerenciado na Hetzner Cloud. A alternativa com banco gerenciado exigiria outro provedor.
-5. A cobrança de IVA para cliente fora da UE não foi verificada.
+4. Não há banco gerenciado na Hetzner Cloud.
+5. Backups automáticos: 7 por servidor, "a partir de € 1,198/mês", com preço ligado ao plano. € 1,198 é 20% de € 5,99, mas **a página não declara o percentual**.
+6. A cobrança de IVA para cliente fora da UE não foi verificada.
 
 ### C. DigitalOcean — sem região no Brasil
 
@@ -155,7 +157,7 @@ As páginas oficiais carregam os preços por uma calculadora em JavaScript, que 
 
 | Serviço | Preço oficial (2026-11-09) | Uso proposto | Fonte |
 |---|---|---|---|
-| Backblaze B2 | US$ 6,95/TB-mês; 10 GB gratuitos; saída gratuita até 3× o armazenado; sem cobrança por duração mínima | **Destino externo dos backups** (outro provedor = falha independente da VPS). Piloto (2–6 GB) cabe na faixa gratuita | <https://www.backblaze.com/cloud-storage/pricing> |
+| Backblaze B2 | US$ 6,95/TB-mês; 10 GB gratuitos; saída gratuita até 3× o armazenado; sem cobrança por duração mínima. Regiões: EUA Oeste, EUA Leste, UE Central (Amsterdã) e Canadá Leste; **nenhuma na América do Sul**; a região da conta não muda depois de criada. Object Lock pela API S3, sem custo extra | **Destino externo dos backups** (outro provedor = falha independente da VPS). Piloto (2–6 GB) cabe na faixa gratuita | <https://www.backblaze.com/cloud-storage/pricing>, <https://www.backblaze.com/docs/cloud-storage-data-regions>, <https://www.backblaze.com/docs/cloud-storage-object-lock> |
 | Cloudflare R2 | US$ 0,015/GB-mês; 10 GB gratuitos; saída gratuita | Alternativa ao B2 | <https://developers.cloudflare.com/r2/pricing/> |
 | UptimeRobot (Free) | US$ 0; 50 monitores; intervalo de 5 min; uso comercial permitido na página | Monitor externo de `https://<app>/ready` e da página de login | <https://uptimerobot.com/pricing/> |
 | Healthchecks.io (Hobbyist) | US$ 0; 20 verificações | "Heartbeat" do backup diário (`VV_BACKUP_HEARTBEAT_URL`): alerta se o backup **não** rodar | <https://healthchecks.io/pricing/> |
@@ -168,6 +170,67 @@ O backup usa rclone, então qualquer armazenamento compatível com S3 serve. **O
 - Se a contratação for por CNPJ, pode haver tributos sobre importação de serviços (IRRF, PIS/COFINS-Importação, CIDE, ISS), conforme o enquadramento. **Isso depende de contador.**
 - **Câmbio:** a cotação PTAX do Banco Central não pôde ser lida nesta pesquisa (página só em JavaScript e API bloqueada pela rede do ambiente). Conversão: `R$ = valor_USD × PTAX_venda_do_dia × (1 + IOF)`. Para orçamento, sugiro usar uma folga de câmbio definida por João.
 
+## Residência dos dados
+
+A região do **banco principal** e a dos **backups** são decisões separadas ([etapa 1 das decisões](RESPONSABILIDADES.md#etapa-1-para-aprovar-orçamento-e-contratação), itens 1.1 e 1.2). Uma VPS no Brasil com backup fora do Brasil ainda é transferência internacional.
+
+| Dado | Onde fica na proposta | Alternativa no Brasil | Custo da alternativa |
+|---|---|---|---|
+| Banco principal (aplicação e Keycloak), sessões, logs | VPS Lightsail em São Paulo (`sa-east-1`) | já está | — |
+| Snapshots do provedor | mesma região da VPS (São Paulo) | já está | — |
+| Backups lógicos cifrados (externos) | Backblaze B2, região **EUA ou UE** (não há região na América do Sul) | Amazon S3 em São Paulo com Object Lock; Lightsail object storage em São Paulo; Magalu Cloud Object Storage ("hospedado integralmente no Brasil", com versionamento) | S3 São Paulo: preço não legível na página estática. Lightsail: pacote de US$ 1 com 5 GB, excedente de US$ 0,023/GB em São Paulo. Magalu: preço só na calculadora JavaScript, e a página não menciona bloqueio de objetos |
+
+**Troca a considerar:** backup no mesmo provedor da VPS (S3 ou Lightsail na AWS) mantém os dados no Brasil, mas perde parte da independência: um bloqueio ou erro na conta AWS atinge VPS e backup juntos. Mitigações possíveis são uma conta AWS separada só para backup, com Object Lock em modo *compliance*, ou a Magalu Cloud (outro provedor e no Brasil), desde que se confirme o bloqueio contra exclusão. **Decisão de João, com a revisão jurídica.**
+
+Os backups são cifrados com `age` antes de sair do servidor, e a chave privada não fica no provedor. A cifra reduz o risco de exposição, mas não muda o local dos dados para fins da LGPD.
+
+## Proteção dos backups contra exclusão
+
+- `rclone copy --immutable`, usado em `ops/backup.sh`, só faz o rclone **recusar sobrescrever** um arquivo que já existe no destino. A documentação do rclone diz que arquivos ainda podem ser apagados (<https://rclone.org/docs/#immutable>). **Não protege contra exclusão** por credencial vazada, erro de operação ou ransomware.
+- A proteção real é do provedor de armazenamento: **bloqueio de objetos (Object Lock)** em modo *compliance* com retenção igual à política aprovada (proposta: 35 dias), mais uma credencial de backup que só grava (sem permissão de apagar). O B2 e o S3 oferecem Object Lock. No B2, o bloqueio não pode ser desligado depois de ativado no bucket.
+- A expiração das cópias antigas fica a cargo de uma regra de ciclo de vida do bucket, não do script.
+- **Nada disso foi testado:** o ensaio usa o S3 simulado do rclone, que não implementa Object Lock. Configuração e teste ficam para o provedor real ([testado × dependente do provedor](#testado-no-s3-simulado--dependente-do-provedor-real)).
+
+## Snapshots do provedor: cálculo com retenção
+
+A versão anterior deste documento estimava "≤ US$ 4" como um único snapshot de 80 GB. Isso ignorava a retenção de **7 snapshots diários** e o crescimento dos blocos guardados. Refeito:
+
+- Premissa de uso do disco no piloto: sistema e Docker ~6 GB, mais o banco (até ~0,6 GB em 12 meses) e 7 backups locais (até ~1,2 GB): **~8 GB no início e ~10 GB após 12 meses**. É estimativa; o valor real sai de `df` na VPS.
+- Mudança diária estimada nos blocos: 0,3 a 1 GB (logs, backup local do dia, banco, atualizações).
+
+| Forma de cobrança | Conta | Piloto, início | Piloto, 12 meses |
+|---|---|---|---|
+| Incremental (só blocos alterados; é como snapshots de volumes EBS funcionam, mas **a página do Lightsail não afirma isso**) | uso + 6 × mudança diária | 9,8–14 GB → **US$ 0,49–0,70** | 11,8–16 GB → **US$ 0,59–0,80** |
+| Cada snapshot pelo uso cheio | 7 × uso | 56 GB → **US$ 2,80** | 70 GB → **US$ 3,50** |
+| Cada snapshot pelo disco provisionado (pior caso, improvável, não descartado pela documentação) | 7 × 80 GB | **US$ 28,00** | **US$ 28,00** |
+
+**Proposta:** orçar **US$ 4/mês** (cobre os dois primeiros casos) e **conferir a linha "snapshot" da primeira fatura semanal**. Se aparecer o pior caso, desligar os snapshots automáticos: os backups lógicos externos continuam sendo a cópia principal, e os snapshots são só complementares.
+
+## Alerta de cobrança não é limite de gasto
+
+- **AWS Budgets** envia avisos quando o gasto real ou previsto passa de um valor. A documentação diz que os dados são atualizados até três vezes por dia e que **o gasto pode continuar e passar do limite antes do aviso** (<https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-managing-costs.html>).
+- As **ações de orçamento** podem aplicar uma política de permissão ou agir sobre instâncias EC2 e RDS. **O Lightsail não é citado** (<https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-controls.html>), então não há, na AWS, desligamento automático da VPS por gasto. Mesmo que houvesse, desligar a VPS derrubaria todos os clientes.
+- **Backblaze B2:** não encontrei, nas páginas lidas, um limite de gasto que pare o serviço. A página de limites e alertas não abriu na pesquisa: **verificar no painel**.
+- **O que limita de fato:** o preço do plano da VPS é fixo por mês. A franquia de transferência só gera excedente acima de 2 TB em São Paulo, muito acima do previsto. Os itens variáveis (snapshots, armazenamento de backup, excedentes) **não têm limite**; só alerta e conferência mensal.
+
+## O que entra e o que não entra no orçamento
+
+| Situação | Itens |
+|---|---|
+| **Incluído** | VPS (preço fixo do plano); snapshots automáticos (estimativa acima); backup externo até a faixa gratuita do B2; monitores gratuitos |
+| **Excluído** (cobrado ou decidido à parte) | IOF e tributos de importação de serviço; domínio; envio de e-mail (SMTP); horas de implantação, manutenção, suporte e ensaios ([custos que não são infraestrutura](#custos-que-não-são-infraestrutura-separados)); VPS temporária de ensaio; banco gerenciado; plano pago de monitor |
+| **Incerto** (depende de confirmação no provedor) | preço exato em São Paulo no console; forma de cobrança dos snapshots; excedentes de transferência (improváveis); disponibilidade da Hetzner por plano; preços da Magalu Cloud; preço do S3 em São Paulo se o backup ficar no Brasil; câmbio (PTAX) e alíquota de IOF vigente |
+
+## Testado no S3 simulado × dependente do provedor real
+
+| Testado no ensaio isolado (`rclone serve s3` local) | Depende do provedor real (não testado) |
+|---|---|
+| Cifra com `age` antes do envio e ausência de texto claro nos arquivos | Credenciais, região e endpoint reais; latência e banda até o provedor |
+| Envio com `rclone copy`, conferência com `rclone check --one-way` | Object Lock, retenção e ciclo de vida do bucket |
+| Download e restauração em projeto separado, com verificação dos invariantes | Credencial que só grava, sem permissão de apagar |
+| Recusa com chave errada | Custo real de armazenamento, requisições e saída |
+| | Tempo de download de um backup grande no momento da recuperação |
+
 ## Comparação para o mesmo porte (4 GB, piloto)
 
 USD/mês, sem impostos.
@@ -175,10 +238,10 @@ USD/mês, sem impostos.
 | Item | A. Lightsail SP | B. Hetzner CX23 (UE) | C. DigitalOcean (EUA) |
 |---|---|---|---|
 | VPS 4 GB (com IPv4 e tráfego) | 24,00 | € 5,99 (indisponível na data) | 24,00 |
-| Cópias do provedor (snapshot/backup) | ≤ 4,00 (snapshot de até 80 GB × 0,05; real menor, incremental) | € 1,20+ (percentual não informado) | 7,20 (diário) |
+| Cópias do provedor (snapshot/backup) | ~4,00 (estimativa com 7 snapshots retidos; [cálculo](#snapshots-do-provedor-cálculo-com-retenção)) | € 1,20+ (percentual não informado) | 7,20 (diário) |
 | Backup externo (B2, ≤ 10 GB) | 0,00 | 0,00 | 0,00 |
 | Monitor externo e heartbeat | 0,00 | 0,00 | 0,00 |
-| **Total de infraestrutura** | **≤ 28,00** | **~€ 7,20** (se disponível) | **31,20** |
+| **Total de infraestrutura (estimativa)** | **~28,00** | **~€ 7,20** (se disponível) | **31,20** |
 | Dados no Brasil | sim | não | não |
 | Banco gerenciado disponível no mesmo provedor | sim | não | sim |
 
@@ -206,7 +269,7 @@ Para o piloto, o ganho do banco gerenciado não justifica de 2× a 3× o custo. 
 | Item | USD/mês | Observação |
 |---|---|---|
 | Lightsail 8 GB (São Paulo) | 44 | ou 4 GB + banco gerenciado 2 GB (54), se o banco passar dos critérios |
-| Snapshots | ≤ 8 | |
+| Snapshots | ~4 a 8 | estimativa, mesma conta acima com o disco maior |
 | Backup externo B2 (20–60 GB) | 0,07–0,35 | US$ 6,95/TB acima de 10 GB |
 | Monitor com intervalo de 1 min e mais recursos (opcional) | 12 | UptimeRobot Solo, cobrança anual |
 | **Total** | **~52 a ~64** | Hipótese. Depende do teste de carga |
@@ -227,14 +290,14 @@ Valores em horas são **estimativas iniciais minhas, a validar**. O preço da ho
 
 Proposta para João aprovar ou ajustar. **Nada será contratado sem essa aprovação.**
 
-| Item | Valor mensal | Base |
-|---|---|---|
-| VPS Lightsail 4 GB, São Paulo | US$ 24,00 | preço oficial, a confirmar no console |
-| Snapshots automáticos (teto) | US$ 4,00 | 80 GB × US$ 0,05 |
-| Backup externo Backblaze B2 (teto no piloto) | US$ 1,00 | faixa gratuita de 10 GB, com folga |
-| Monitoramento (UptimeRobot e Healthchecks, gratuitos) | US$ 0,00 | planos gratuitos |
-| **Teto mensal de infraestrutura do piloto** | **US$ 29,00 + IOF/tributos** | |
-| Domínio (anual) | a cotar | registro.br |
-| VPS temporária para ensaio de restauração | < US$ 1 por ensaio | cobrança por hora |
+| Item | Valor mensal | Natureza | Base |
+|---|---|---|---|
+| VPS Lightsail 4 GB, São Paulo | US$ 24,00 | **fixo** pelo plano | preço oficial, a confirmar no console |
+| Snapshots automáticos (7 retidos) | US$ 4,00 | **estimativa**, variável | [cálculo](#snapshots-do-provedor-cálculo-com-retenção); conferir na primeira fatura |
+| Backup externo Backblaze B2 | US$ 1,00 | **estimativa**, variável | faixa gratuita de 10 GB, com folga |
+| Monitoramento (UptimeRobot e Healthchecks, gratuitos) | US$ 0,00 | gratuito enquanto o plano existir | planos gratuitos |
+| **Estimativa mensal de infraestrutura do piloto** | **~US$ 29,00 + IOF/tributos** | **não é teto** | |
+| Domínio (anual) | a cotar | excluído | registro.br |
+| VPS temporária para ensaio de restauração | < US$ 1 por ensaio | excluído, por hora | cobrança por hora |
 
-Também precisam de aprovação: a política de retenção (7 locais e 35 externos), o alerta de cobrança na conta (sugestão: 120% do teto) e quem guarda as credenciais ([decisões 2, 7, 8 e 11](RESPONSABILIDADES.md#decisões-pendentes-de-joão)).
+Também precisam de aprovação: a política de retenção (7 locais e 35 externos), o valor do alerta de cobrança (que **avisa, não bloqueia**; sugestão técnica: 120% da estimativa, mais um alerta de previsão) e quem guarda as credenciais ([etapa 1 das decisões](RESPONSABILIDADES.md#etapa-1-para-aprovar-orçamento-e-contratação)).

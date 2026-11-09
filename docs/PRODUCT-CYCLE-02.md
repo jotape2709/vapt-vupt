@@ -211,7 +211,56 @@ Também executados: `npm test` com PostgreSQL 17 descartável, com 40 aprovados 
 - **Exclusão definitiva de empresa:** não existe comando. Movimentações e auditoria são append-only. É necessário antes do primeiro encerramento real.
 - **Exportação:** só por comando administrativo. Não há botão nem planilha.
 - **Preços e câmbio:** Magalu Cloud não foi cotada (calculadora em JavaScript). Preço do Lightsail em São Paulo, câmbio PTAX e alíquota de IOF vigente a confirmar.
-- **Decisões de João:** as 14 decisões estão em [RESPONSABILIDADES.md](cloud/RESPONSABILIDADES.md#decisões-pendentes-de-joão), e o orçamento (teto proposto de US$ 29/mês de infraestrutura no piloto, mais IOF e tributos) em [CUSTOS.md](cloud/CUSTOS.md#orçamento-a-aprovar-antes-de-qualquer-contratação).
+- **Decisões de João:** reorganizadas em quatro etapas em [RESPONSABILIDADES.md](cloud/RESPONSABILIDADES.md#decisões-pendentes-de-joão) (revisão do lote 3), e o orçamento (estimativa de ~US$ 29/mês de infraestrutura no piloto, mais IOF e tributos; não é teto) em [CUSTOS.md](cloud/CUSTOS.md#orçamento-a-aprovar-antes-de-qualquer-contratação).
+
+## Revisão do lote 3 — achados de João e correções
+
+Revisão feita sobre `93d1124`. Cada achado foi confirmado, reproduzido quando aplicável e corrigido com teste. Mesma branch e mesmo PR #11.
+
+| # | Achado | Reprodução | Correção | Teste |
+|---|---|---|---|---|
+| 1 | Senhas interpoladas em `DATABASE_URL`, `MIGRATION_DATABASE_URL` e `ADMIN_DATABASE_URL` quebram com `/`, `@`, `:` e `%` | `pg` recusa a URL (`Invalid URL`) ou autentica com outra senha; reproduzido em `tests/pg-connection.test.ts` | URL sem senha mais `*_PASSWORD` à parte; a aplicação monta a conexão com a senha codificada (`apps/api/pg-connection.ts`). `.env` com aspas simples, `ops/gen-secret.sh` com caracteres reservados, preflight confere aspas e paridade sem imprimir valores | `tests/pg-connection.test.ts` (papel real no PostgreSQL com senha `/@:%?#&=+ '"$\`); ensaio inteiro com todos os segredos contendo `/@:%`: criação de papéis, migrations, admin, restauração e recuperação |
+| 2 | Contagens e metadados do backup tirados antes dos dumps, fora do snapshot | Método de `93d1124` executado sob carga no ensaio: manifesto e cópia divergem, e a cópia está íntegra (falsa reprovação) | Snapshot exportado por banco; manifesto e `pg_dump --snapshot` no mesmo snapshot; invariantes de saldo, eventos, empresas e identidade; consistência entre os dois bancos definida (online não atômico, medido; `--maintenance` atômico na prática) | Ensaio: backup online com movimentações, usuários e empresas sendo criados, restaurado em projeto separado e aprovado |
+| 3 | "Migration aditiva" tratada como prova de compatibilidade; atualização anunciava sucesso com falha pública | `update.sh` antigo registrava a imagem nova antes da verificação pública e só avisava se ela falhasse | Declaração `compatibilidade-anterior` por migration, teste da versão anterior sobre o schema novo, trava na API, `update.sh` com verificação pública antes e depois, falhas diferenciadas, sem reversão de imagem quando incompatível | `tests/migrations.test.ts`, `scripts/compat-previous.sh` (CI), oito cenários no ensaio |
+| 4 | "Teto garantido" sem mecanismo; snapshot sem retenção; alerta confundido com limite | Revisão do documento contra páginas oficiais | [CUSTOS.md](cloud/CUSTOS.md) refeito: estimativa, 7 snapshots retidos, alerta × limite, incluído/excluído/incerto, residência separada de banco e backup, `--immutable` × Object Lock, simulado × real | Fontes oficiais citadas, lidas em 2026-11-09 |
+| 5 | Decisões de João sem ordem de necessidade | — | Quatro etapas com campos em branco para preço, subsídio, garantias e suporte ([RESPONSABILIDADES.md](cloud/RESPONSABILIDADES.md#decisões-pendentes-de-joão)) | — |
+
+### Defeitos encontrados pelo próprio ensaio durante a correção
+
+- A carga contínua bateu no limite de 300 requisições/minuto da API, como previsto no código; o gerador passou a respeitar o limite.
+- A primeira versão do novo `update.sh` religava a imagem anterior ao chamar `docker compose up caddy` antes de registrar a nova, e a verificação pública aprovava a versão errada. O cenário "saudável por dentro, inacessível por fora" pegou o defeito; a troca agora usa `--no-deps` e nada recria a aplicação depois dela.
+- O registro do backup dentro do `update.sh` truncava o próprio log (`tee /dev/stderr`). Corrigido.
+
+### Resultados
+
+Ensaio completo `bash deploy/cloud/test/drill.sh` na imagem reconstruída de `d567c87`, todos os segredos com `/`, `@`, `:`, `%` e `$`: **aprovado em 610 s** ([relatório](review/cycle-02/cloud/drill-report.txt)).
+
+| Verificação | Resultado |
+|---|---|
+| Backup em janela de manutenção | login e operação parados por 19 s; backup com envio em 21 s |
+| Backup online com 32 movimentações pela API, 6 usuários e 6 empresas criados durante a cópia | restaurado em projeto separado em 54 s; contagens, somas, saldo = último evento, cadeia de eventos, empresas, RLS, donos, usuários do realm e funções sem usuário iguais ao manifesto |
+| Método anterior (`93d1124`) sob a mesma carga | manifesto diverge da cópia em 6 tabelas (ex.: `inventory_events` 19 × 25) com a cópia íntegra: falsa reprovação reproduzida |
+| Atualização normal | saída 0, verificada publicamente |
+| Imagem que não inicia | saída 1, revertida e verificada |
+| Saudável por dentro, 502 pelo domínio | saída 1, revertida e verificada |
+| Keycloak fora antes da atualização | saída 3, nada alterado |
+| Keycloak cai durante a atualização | saída 2: "falha fora da nova versão; reverter não resolve" |
+| Migration 003 declarada compatível | saída 0; a versão anterior iniciou sobre o schema 003 e passou login, saldo e histórico no navegador |
+| Migration 004 declarada incompatível, sem plano | saída 4, nada alterado |
+| Migration 004 com `--sem-reversao` e plano | saída 0; a versão anterior **recusa iniciar** sobre o schema 004 |
+| Perda total, ensaio de restauração e recuperação | restauração verificada em 33 s; recuperação com login em 42 s; chave errada recusada |
+
+Outros resultados:
+
+- `npm test` com PostgreSQL: **50 aprovados**, 0 falhas. Lint e `tsc` sem erros.
+- `scripts/compat-previous.sh 93d1124`: 40 testes da versão anterior aprovados sobre o schema desta versão. Com uma migration extra que renomeia `products.category`, o mesmo script falha, como esperado.
+- CI do PR #11: os dois jobs verdes em `9f71580`, incluindo a nova etapa de compatibilidade (resultado do HEAD final na descrição do PR).
+
+### Pendente de ambiente real ou de decisão comercial
+
+- **Ambiente real:** preço no console da AWS em São Paulo e forma de cobrança dos snapshots (conferir na primeira fatura); disponibilidade da Hetzner por plano no console; preços da Magalu Cloud; Object Lock, ciclo de vida e credencial sem exclusão no armazenamento real; tempo de restauração e de download no provedor; teste de carga; certificado ACME e DNS; e-mail; monitores.
+- **Decisão de João:** as quatro etapas de [RESPONSABILIDADES.md](cloud/RESPONSABILIDADES.md#decisões-pendentes-de-joão), em especial a região dos backups (1.2), que é separada da região do banco.
+- **Limite conhecido:** a trava de compatibilidade só existe nas imagens construídas a partir deste código. A primeira release com uma migration 003 precisa registrar o ref anterior no CI (`scripts/compat-previous.sh`).
 
 ## Limitações
 
@@ -254,3 +303,8 @@ Também executados: `npm test` com PostgreSQL 17 descartável, com 40 aprovados 
 - Entregue: ADR, responsabilidades, custos com fontes oficiais, `deploy/cloud/` ensaiado em isolamento, exportação por empresa e manual de operação e continuidade (seção [Lote 3](#lote-3--preparação-para-hospedagem-em-nuvem)).
 - Para revisar primeiro: `deploy/cloud/compose.yaml`, `deploy/cloud/ops/backup.sh`, `deploy/cloud/ops/restore.sh`, [CUSTOS.md](cloud/CUSTOS.md) e as decisões pendentes.
 - Próximo passo, só com aprovação de João: contratar conforme o orçamento e repetir o ensaio no provedor real. O próximo lote funcional continua sendo a gestão de equipe e acessos pela interface.
+
+### Revisão do lote 3 — corrigida, pronta para nova revisão (Claude, 09/11/2026)
+
+- Mesma branch e mesmo PR #11; cinco achados tratados ([seção](#revisão-do-lote-3--achados-de-joão-e-correções)). Nenhum módulo novo.
+- Para revisar primeiro: `apps/api/pg-connection.ts`, `deploy/cloud/ops/backup.sh`, `deploy/cloud/ops/update.sh`, `apps/api/migrations.ts`, [CUSTOS.md](cloud/CUSTOS.md) e as quatro etapas de decisão.

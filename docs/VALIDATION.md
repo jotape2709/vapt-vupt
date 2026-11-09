@@ -1,5 +1,9 @@
 # Registro de validação
 
+## Ciclo 02, revisão do lote 3 — 2026-11-09
+
+Executado de fato: ensaio completo `deploy/cloud/test/drill.sh` na imagem reconstruída de `d567c87`, com todos os segredos contendo `/@:%$` (aprovado em 610 s): backup em manutenção; backup online sob carga real (movimentações pela API, usuários e empresas sendo criados) restaurado em projeto separado com invariantes iguais; reprodução da falsa reprovação do método anterior; oito cenários de atualização (normal, imagem que não inicia, inacessível pelo domínio, Keycloak fora antes e durante, migration compatível com a versão anterior iniciando sobre o schema novo, migration incompatível recusada sem plano e com a versão anterior recusando iniciar); perda total, restauração e recuperação. `npm test` com PostgreSQL: 50 aprovados. `scripts/compat-previous.sh 93d1124`: aprovado (e reprovado, como esperado, com migration incompatível). **Não executado:** provedor real, Object Lock real, teste de carga. Detalhes em [PRODUCT-CYCLE-02.md](PRODUCT-CYCLE-02.md#revisão-do-lote-3--achados-de-joão-e-correções).
+
 ## Ciclo 02, lote 3 (hospedagem em nuvem) — 2026-11-09
 
 Executado de fato: build da imagem de produção (`deploy/cloud/Dockerfile`) e ensaio isolado `deploy/cloud/test/drill.sh` com essa imagem reconstruída do zero. O ensaio cobriu:

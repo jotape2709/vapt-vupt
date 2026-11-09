@@ -53,7 +53,7 @@ Legenda:
 
 - **Durante o serviço,** o cliente acessa seus dados pela aplicação, conforme as funções de cada pessoa. O fornecedor tem acesso técnico ao banco **somente** para operação, suporte pedido pelo cliente, backup e restauração. Esse acesso se dá pela conta administrativa, e as ações administrativas ficam em `audit_log`.
 - **Exportação sob pedido:** o comando `npm run admin -- export --org <id>` gera um arquivo JSON legível. O arquivo contém configuração, unidades, funções, produtos, saldos, movimentações, logotipo e auditoria da empresa, sem nenhuma linha de outra empresa. O teste está em `tests/api.integration.test.ts`, e o ensaio em nuvem também exporta. **Ainda não há botão de exportação na interface nem exportação em planilha.** É uma evolução sugerida, não prometida.
-- **Prazo de entrega da exportação:** decisão de João. Sugestão: até 5 dias úteis após o pedido do proprietário da empresa.
+- **Prazo de entrega da exportação:** decisão de João (campo pendente na [etapa 2](#etapa-2-antes-de-receber-dados-reais)). Dado técnico: o comando leva segundos; o prazo depende da disponibilidade de quem opera e do canal seguro de entrega.
 - O que **não** está na exportação: senhas (ficam no Keycloak e nunca são exportáveis), sessões e tokens.
 
 ## Encerramento do serviço (proposto)
@@ -61,8 +61,8 @@ Legenda:
 1. O proprietário da empresa pede o encerramento.
 2. O fornecedor entrega a exportação JSON por canal seguro e confirma o recebimento.
 3. O acesso dos usuários da empresa é revogado (`revoke` e `revoke-sessions`), e as contas no Keycloak são desativadas.
-4. Depois de um **prazo de carência** para o cliente conferir a exportação (sugestão: 30 dias, decisão de João), os dados da empresa são excluídos do banco ativo.
-5. Os backups antigos **não são editados**: são cifrados e expiram pela retenção do armazenamento externo. Sugestão de retenção: 35 dias, decisão de João. O cliente deve ser informado de que cópias cifradas persistem até expirar.
+4. Depois de um **prazo de carência** para o cliente conferir a exportação (decisão de João, [etapa 3](#etapa-3-antes-de-cobrar-pelo-serviço)), os dados da empresa são excluídos do banco ativo.
+5. Os backups antigos **não são editados**: são cifrados e expiram pela retenção do armazenamento externo (proposta técnica: 35 dias, que entra no orçamento; aprovação de João na [etapa 1](#etapa-1-para-aprovar-orçamento-e-contratação)). O cliente deve ser informado de que cópias cifradas persistem até expirar.
 
 **Limitação atual:** ainda não existe um comando de **exclusão definitiva** de empresa. Movimentações e auditoria são append-only, protegidas por gatilho. A exclusão exige um procedimento administrativo próprio, a desenhar e testar antes do primeiro encerramento real. **Registrado como pendente; não prometer exclusão em prazo curto até que exista.**
 
@@ -77,7 +77,10 @@ Legenda:
   - correção de dados digitados errado pelo cliente (a reversão é feita por movimentação);
   - integrações;
   - novos módulos.
-- **Janelas de atualização:** avisadas com antecedência e fora do horário de pico (horário: decisão de João). Normalmente levam minutos e incluem backup antes. A reversão é automática se a nova versão não iniciar (testado).
+- **Janelas de atualização:** avisadas com antecedência e fora do horário de pico (horário: decisão de João). Incluem backup antes e uma verificação pública obrigatória depois (aplicação, banco e página de login).
+  - Se a **nova versão** falha, a imagem anterior volta automaticamente, **desde que** as migrations da versão tenham sido declaradas e testadas como compatíveis com a anterior (ensaiado).
+  - Se a falha é **externa** (rede, DNS, Keycloak, provedor), reverter não resolve, e o procedimento diz isso em vez de anunciar sucesso (ensaiado).
+  - Se a versão traz mudança **incompatível**, não há reversão de imagem: a atualização exige janela com o serviço parado e um plano de recuperação escrito, normalmente a restauração do backup tirado na própria atualização ([OPERACAO.md](OPERACAO.md#atualização-e-reversão)).
 
 ## Condições hoje contratadas
 
@@ -85,19 +88,59 @@ Legenda:
 
 ## Decisões pendentes de João
 
-| # | Decisão | Por que importa |
+### Proposta curta
+
+**Modelo, mantido:** o Vapt-Vupt roda numa infraestrutura padrão, contratada e administrada pelo fornecedor e financiada pela cobrança do serviço. O estabelecimento não precisa de servidor: usa navegador e internet.
+
+O que falta decidir está agrupado pelo momento em que cada decisão bloqueia o próximo passo. Os campos `____` são de João. Onde há **proposta técnica**, ela é só técnica: preço de venda, subsídio, garantias e horário de suporte ficam em branco de propósito.
+
+| Etapa | Libera | Decisões |
 |---|---|---|
-| 1 | Provedor e plano da VPS, dentre as opções de [CUSTOS.md](CUSTOS.md) | Define custo, latência, região dos dados e LGPD |
-| 2 | Aprovar o [orçamento mensal de infraestrutura](CUSTOS.md#orçamento-a-aprovar-antes-de-qualquer-contratação) e quem paga o cartão | Nada é contratado sem isso |
-| 3 | Preço ao cliente, separação hospedagem × manutenção, reajuste e moeda | Sem isso não há proposta comercial |
-| 4 | Subsídio de piloto: teto, prazo e critério de encerramento | Exigido para qualquer piloto subsidiado |
-| 5 | Horário e canal de suporte, e prazo de primeira resposta | Limita o compromisso ao que um operador consegue cumprir |
-| 6 | Prazos de exportação, de carência no encerramento e de retenção de backup | Itens de contrato e LGPD |
-| 7 | Domínio da marca (ex.: `.com.br`) e subdomínios da aplicação e do login | Necessário para TLS e para a instalação |
-| 8 | Região dos dados: Brasil ou exterior | Latência, LGPD e custo |
-| 9 | Recuperação de senha por e-mail: provedor de envio (SMTP) e remetente | Hoje desligada. Sem ela, quem esquece a senha precisa do fornecedor |
-| 10 | MFA obrigatório para proprietários e administradores do Keycloak | Segurança × atrito de uso |
-| 11 | Onde guardar a chave privada de backup e o `.env` (cofre de senhas), e quem mais tem acesso de emergência | Sem isso, uma restauração pode ficar impossível |
-| 12 | Revisão jurídica: LGPD, contrato e política de privacidade | Antes da primeira venda |
-| 13 | Procedimento de exclusão definitiva de empresa | Necessário antes do primeiro encerramento real |
-| 14 | Manter Keycloak próprio ou usar provedor de identidade gerenciado | Custo × operação |
+| 1 | Contratar a infraestrutura (sem dados de clientes) | 7 |
+| 2 | Receber dados reais, mesmo de um piloto gratuito | 6 |
+| 3 | Cobrar pelo serviço | 6 |
+| 4 | Evoluções posteriores, por critério medido | 5 |
+
+### Etapa 1: para aprovar orçamento e contratação
+
+| # | Decisão | Campo | Impacto | Proposta técnica |
+|---|---|---|---|---|
+| 1.1 | Provedor, plano e **região do banco principal** (a VPS) | `____` | Custo, latência, LGPD | Lightsail São Paulo 4 GB, depois de cotar a Magalu Cloud ([CUSTOS.md](CUSTOS.md)) |
+| 1.2 | Provedor e **região dos backups externos** (decisão separada da 1.1) | `____` | Se ficar fora do Brasil, há transferência internacional mesmo com a VPS no Brasil | Ver [residência dos dados](CUSTOS.md#residência-dos-dados) |
+| 1.3 | **Orçamento mensal estimado** e valor do **alerta** de cobrança | `US$ ____` / alerta em `____` | Alerta avisa, não bloqueia gasto | [Orçamento](CUSTOS.md#orçamento-a-aprovar-antes-de-qualquer-contratação) |
+| 1.4 | Titular da conta e do cartão; folga de câmbio para o orçamento em reais | `____` / `____ %` | Cobrança em dólar com IOF | — |
+| 1.5 | Domínio da marca e subdomínios da aplicação e do login | `____` | Necessário para TLS e instalação | — |
+| 1.6 | Cofre da chave privada de backup e do `.env`; quem tem acesso de emergência | `____` | Sem isso, uma restauração pode ficar impossível | Cofre de senhas com dois titulares |
+| 1.7 | Retenção dos backups externos | `____ dias` | Custo de armazenamento e prazo em que dados excluídos ainda existem em cópias cifradas | 35 dias diários |
+
+### Etapa 2: antes de receber dados reais
+
+| # | Decisão | Campo | Impacto |
+|---|---|---|---|
+| 2.1 | Revisão jurídica: papéis na LGPD, transferência internacional (se 1.1 ou 1.2 fora do Brasil), termo de uso e política de privacidade | responsável `____` | Sem ela, não há base para tratar dados de clientes |
+| 2.2 | MFA obrigatório para proprietários e para a administração do Keycloak | `sim / não / só administração` | Segurança × atrito de uso |
+| 2.3 | Recuperação de senha: e-mail (provedor SMTP e remetente) ou atendimento manual | `____` | Hoje desligada; quem esquece a senha depende do fornecedor |
+| 2.4 | Aprovar o primeiro ensaio de restauração **no provedor real** como condição para receber dados | `sim / não` | O ensaio atual é em máquina isolada; o tempo no provedor não foi medido |
+| 2.5 | Prazo e canal seguro para entregar a exportação a pedido do cliente | `____` | Compromisso que o cliente vai cobrar |
+| 2.6 | Quem pode pedir criação de contas e funções em nome do cliente | `____` | Evita conceder acesso a quem não deveria |
+
+### Etapa 3: antes de cobrar pelo serviço
+
+| # | Decisão | Campo | Impacto |
+|---|---|---|---|
+| 3.1 | Preço ao cliente, moeda, reajuste e se hospedagem e manutenção aparecem separadas | `R$ ____` | Precisa cobrir infraestrutura ([CUSTOS.md](CUSTOS.md)), horas de operação e suporte |
+| 3.2 | Subsídio de piloto: existe? Se sim, teto de valor, prazo e critério de encerramento | `____` / `R$ ____` / `____` / `____` | Sem os três, não há subsídio |
+| 3.3 | Horário, canal e prazo de **primeira resposta** do suporte | `____` | Precisa caber no que um operador consegue cumprir |
+| 3.4 | Garantias oferecidas: disponibilidade, perda máxima de dados (RPO) e tempo de volta (RTO) | `____` | Hoje só há **metas internas não medidas no provedor**; não há base para garantia contratual |
+| 3.5 | Carência no encerramento e horário das janelas de atualização | `____ dias` / `____` | Itens de contrato |
+| 3.6 | Procedimento de exclusão definitiva de empresa, desenhado e testado | aprovar | Hoje não existe; não prometer prazo de exclusão antes disso |
+
+### Etapa 4: evoluções posteriores
+
+| # | Decisão | Gatilho |
+|---|---|---|
+| 4.1 | Manter Keycloak próprio ou usar provedor de identidade gerenciado | Custo × horas de operação medidas |
+| 4.2 | Banco gerenciado com recuperação a um ponto no tempo (PITR) | [Critérios do ADR](../adr/0001-hospedagem-em-nuvem.md#critérios-para-evoluir-medidos-não-presumidos) |
+| 4.3 | Exportação pela interface e em planilha | Pedidos de clientes |
+| 4.4 | Monitor pago com intervalo de 1 minuto | Contrato que exija |
+| 4.5 | Modalidades opcionais: instalação local ou hospedagem dedicada por cliente | Pedido com orçamento próprio |
