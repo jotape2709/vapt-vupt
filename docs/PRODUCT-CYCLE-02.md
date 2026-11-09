@@ -128,6 +128,8 @@ Revisados sem alteração: cookies e CSRF (sincronizador + origem), expiração 
 
 ### Desenvolvimento × piloto local
 
+> **Atualização do lote 3:** a modalidade padrão proposta passou a ser a **nuvem administrada pelo fornecedor**. Os itens 1 a 6 abaixo foram atendidos para essa modalidade em `deploy/cloud/` ([Lote 3](#lote-3--preparação-para-hospedagem-em-nuvem)). A instalação local fica como opção futura.
+
 O `compose.yaml` continua sendo **apenas de desenvolvimento**. Falta para um piloto instalado numa loja:
 
 1. **TLS e certificados**: proxy reverso com HTTPS para a aplicação e o provedor de identidade, nomes internos, cadeia confiável instalada nos dispositivos, renovação e alerta de expiração. Com `APP_ORIGIN` HTTPS os cookies passam a `Secure`/`__Host-` e `TRUST_PROXY=true` deve ser usado só atrás desse proxy.
@@ -154,6 +156,63 @@ O `compose.yaml` continua sendo **apenas de desenvolvimento**. Falta para um pil
 - O CI usa as credenciais descartáveis de exemplo do Compose e do realm local; não há segredos do GitHub envolvidos.
 - Ver também [Limitações](#limitações). Nada de PWA/offline, câmeras, IA, fiscal, POS, compras, várias unidades ou novos módulos foi iniciado.
 
+## Lote 3 — preparação para hospedagem em nuvem
+
+Pedido de João (09/11/2026): a modalidade padrão proposta passa a ser o Vapt-Vupt **hospedado em nuvem e administrado pelo fornecedor**, numa base multiempresa, sem servidor no estabelecimento. A orientação foi preparar sem contratar, publicar ou fazer merge. Mesmo PR #11 e mesma branch.
+
+### Entregas
+
+| Entrega | Onde |
+|---|---|
+| Decisão de arquitetura (VPS única como primeira etapa, declarada ponto único de falha; critérios para crescer) | [docs/adr/0001-hospedagem-em-nuvem.md](adr/0001-hospedagem-em-nuvem.md) |
+| Matriz de responsabilidades, termos propostos (acesso, exportação, encerramento, suporte) e 14 decisões pendentes de João | [docs/cloud/RESPONSABILIDADES.md](cloud/RESPONSABILIDADES.md) |
+| Comparação de custos com fontes oficiais (Lightsail SP, Hetzner, DigitalOcean, Magalu, B2, R2, monitores), medições, cenários e orçamento a aprovar | [docs/cloud/CUSTOS.md](cloud/CUSTOS.md) |
+| Instalação, operação, backup, restauração, atualização, RPO/RTO e continuidade | [docs/cloud/OPERACAO.md](cloud/OPERACAO.md) |
+| Arquivos de instalação separados do desenvolvimento | `deploy/cloud/` (imagem de produção, Compose, Caddy, init do banco, realm sem usuários, `ops/`, `test/`) |
+| Exportação dos dados de uma empresa | `npm run admin -- export --org <id>` (teste de integração) |
+
+### Ensaio isolado (`bash deploy/cloud/test/drill.sh`, 09/11/2026, imagem reconstruída do zero)
+
+Executado neste container, sem domínio, provedor ou custo. A execução final, aprovada em 281 s, usou a imagem construída do zero a partir de `f34f763`. Antes dela, uma execução completa sem a etapa de exportação também foi aprovada. Os resultados ficaram em [`docs/review/cycle-02/cloud/drill-report.txt`](review/cycle-02/cloud/drill-report.txt), e as capturas da aplicação ficaram em `docs/review/cycle-02/cloud/` (após a instalação e após a recuperação). O ensaio **não roda no CI**: o CI continua com os jobs `check` e `e2e-real`.
+
+| Etapa | Resultado |
+|---|---|
+| Recusas | O `preflight` recusou o `.env.example` (21 problemas). O init do PostgreSQL recusou a senha `dev-only-…` |
+| Instalação limpa (`ops/install.sh`) | ~50 s, incluindo o primeiro start do Keycloak. Emissor OIDC correto; `/admin` dá 404 no domínio público |
+| Exposição | Só o Caddy publica porta (no ensaio, 127.0.0.1:8443) e o console do Keycloak escuta em 127.0.0.1. Banco e API não publicam porta. A API conecta só como `vv_runtime`. O banco `keycloak` tem dono próprio |
+| Navegador (Chromium) | HSTS e CSP presentes. Redirect para o login HTTPS e retorno. Cookie `__Host-vv_session` Secure, HttpOnly e Lax. Nenhum token no armazenamento. Produto e entrada criados e listados. Logout encerra a sessão |
+| Memória em repouso | Keycloak ~620 MiB (limite 1 GiB), PostgreSQL ~68 MiB, API ~45 MiB, Caddy ~22 MiB |
+| Falhas | Reiniciar o PostgreSQL não derruba a API. Encerrar o processo da API faz o restart subir de novo. Reiniciar todos os contêineres preserva login e dados |
+| Backup | Arquivos cifrados com `age`, sem texto claro dos dados, enviados por rclone a um S3 falso e conferidos por `rclone check` |
+| Atualização | Nova imagem aplicada com backup prévio e migrations. Imagem que não inicia: reversão automática para a anterior, com dados intactos |
+| Perda total | `down -v` do projeto. Ensaio de restauração em projeto separado, com segredos descartáveis, em ~55 s: contagens por tabela, schema, RLS, donos, usuários do realm, `/ready` e emissor conferidos, e ambiente destruído ao fim. Chave errada recusada |
+| Recuperação | Com o `.env` "do cofre", a API ficou pronta em ~65 s (sem contar criar VPS, DNS e download). Novo login OIDC com a mesma conta, e produto, saldo e histórico presentes |
+| Exportação | JSON da empresa recuperada com contagens por tabela |
+| Logs | Nenhuma senha, segredo de cliente ou código OIDC nos logs dos 4 serviços |
+
+Também executados: `npm test` com PostgreSQL 17 descartável, com 40 aprovados (novo teste de exportação, que falha se o filtro por empresa for removido), `npm run lint` e `npm run build`. Houve também uma medição de crescimento: 200 mil movimentações sintéticas ocupam ~1,0 KB por movimentação no banco.
+
+**Não executado (depende de contratação ou decisão):**
+
+- certificado ACME público e DNS;
+- latência a partir do Brasil;
+- teste de carga;
+- provedor real, com seus créditos de CPU, snapshots e bloqueio de objetos;
+- monitores e alertas reais;
+- e-mail de recuperação de senha;
+- units `systemd` ativadas;
+- revisão jurídica.
+
+**A instalação de produção não foi feita.**
+
+### Limitações e decisões abertas deste lote
+
+- **Ponto único de falha:** não há alta disponibilidade nem atendimento 24 horas. RPO de 24 h e RTO de até 1 dia útil são **metas propostas**, não garantias.
+- **Exclusão definitiva de empresa:** não existe comando. Movimentações e auditoria são append-only. É necessário antes do primeiro encerramento real.
+- **Exportação:** só por comando administrativo. Não há botão nem planilha.
+- **Preços e câmbio:** Magalu Cloud não foi cotada (calculadora em JavaScript). Preço do Lightsail em São Paulo, câmbio PTAX e alíquota de IOF vigente a confirmar.
+- **Decisões de João:** as 14 decisões estão em [RESPONSABILIDADES.md](cloud/RESPONSABILIDADES.md#decisões-pendentes-de-joão), e o orçamento (teto proposto de US$ 29/mês de infraestrutura no piloto, mais IOF e tributos) em [CUSTOS.md](cloud/CUSTOS.md#orçamento-a-aprovar-antes-de-qualquer-contratação).
+
 ## Limitações
 
 - Uma unidade por empresa; sem transferência, saldo consolidado ou escolha de unidade.
@@ -162,7 +221,7 @@ O `compose.yaml` continua sendo **apenas de desenvolvimento**. Falta para um pil
 - Sem back-channel logout do provedor; rate limit em memória de um processo.
 - A tela de outra sessão não se atualiza sozinha: Ana só vê a mudança de Bruno ao recarregar a lista ou ao receber o conflito.
 - O logotipo do tema v1 não é migrado.
-- `compose.yaml` é só de desenvolvimento; não há backup, TLS, observabilidade nem imagem fixada por digest.
+- `compose.yaml` é só de desenvolvimento. A instalação em nuvem (`deploy/cloud/`, lote 3) tem TLS, backup e restauração, mas foi ensaiada só em ambiente isolado. Não há observabilidade além de healthchecks e monitor externo, nem imagem fixada por digest.
 - `/app` no deploy estático da Vercel (só frontend) não funciona, porque lá não há API: mostra uma tela de erro. A demonstração `/demo` continua funcionando.
 
 ## Próximos contratos (registrados, não implementados)
@@ -188,3 +247,10 @@ O `compose.yaml` continua sendo **apenas de desenvolvimento**. Falta para um pil
 - Mesma branch `product/cycle-02` e mesmo PR #11; nenhuma branch ou PR novo, nenhum merge, nenhuma branch excluída.
 - Entregue: 5 correções com regressão, build da imagem, Compose validado do zero, job `e2e-real` no CI com Keycloak real, isolamento A/B e celular no e2e, requisitos do piloto e inventário de branches (seção [Lote 2](#lote-2--validação-reproduzível)).
 - Próximo lote funcional, após revisão: gestão de equipe e acessos pela interface. Não iniciado.
+
+### Lote 3 — hospedagem em nuvem preparada, pronto para revisão (Claude, 09/11/2026)
+
+- Mesma branch `product/cycle-02` e mesmo PR #11. Nada contratado, publicado ou integrado.
+- Entregue: ADR, responsabilidades, custos com fontes oficiais, `deploy/cloud/` ensaiado em isolamento, exportação por empresa e manual de operação e continuidade (seção [Lote 3](#lote-3--preparação-para-hospedagem-em-nuvem)).
+- Para revisar primeiro: `deploy/cloud/compose.yaml`, `deploy/cloud/ops/backup.sh`, `deploy/cloud/ops/restore.sh`, [CUSTOS.md](cloud/CUSTOS.md) e as decisões pendentes.
+- Próximo passo, só com aprovação de João: contratar conforme o orçamento e repetir o ensaio no provedor real. O próximo lote funcional continua sendo a gestão de equipe e acessos pela interface.

@@ -40,6 +40,8 @@ docker compose --profile tools run --rm seed
 
 O `compose.yaml` é **apenas para desenvolvimento** (HTTP, senhas de exemplo, Keycloak em modo dev).
 
+**Hospedagem em nuvem (proposta, não contratada):** a modalidade padrão proposta é o serviço hospedado e administrado pelo fornecedor, numa base multiempresa ([ADR 0001](docs/adr/0001-hospedagem-em-nuvem.md)). Os arquivos de instalação ficam em `deploy/cloud/`, separados do desenvolvimento, e foram ensaiados só em ambiente isolado (`bash deploy/cloud/test/drill.sh`). Veja [operação e continuidade](docs/cloud/OPERACAO.md), [custos](docs/cloud/CUSTOS.md) e [responsabilidades](docs/cloud/RESPONSABILIDADES.md). Não há instalação de produção.
+
 ## Verificações
 
 ```bash
@@ -61,6 +63,7 @@ O build publica somente o `index.html` transformado, o código compilado e `publ
 - `apps/api`: Fastify como BFF. OIDC (`openid-client`), sessões, CSRF, rotas `/api/orgs/:orgId/...`, logotipos, serve o build do frontend no mesmo domínio. `admin-cli.ts` para provisionamento.
 - `packages/domain`: contratos Zod compartilhados (`contracts.ts`), matriz de permissões, modelos de segmento.
 - `db/migrations` e `db/grants`: SQL versionado (001 do ciclo anterior, intocado; 002 aditiva com migração dos dados) e grants mínimos do runtime.
+- `deploy/cloud`: instalação em nuvem (imagem de produção, Compose com Caddy/TLS, Keycloak `start`, PostgreSQL sem porta pública, backup cifrado, restauração, atualização e ensaio isolado).
 - `tests`: unidade, API, integração com PostgreSQL real e papel restrito, navegador (demo) e `tests/e2e-real` (fluxo real).
 - `docs`: [autenticação](docs/AUTH.md), [permissões](docs/AUTHORIZATION.md), [ambiente local](docs/LOCAL-DEV.md), [arquitetura](docs/ARCHITECTURE.md), [segurança](docs/SECURITY.md), [ciclo 02](docs/PRODUCT-CYCLE-02.md).
 
@@ -72,7 +75,7 @@ Tokens nunca chegam ao navegador; a sessão é um cookie opaco HttpOnly com hash
 
 - A–B: auditoria, contratos, nova identidade e demonstração (ciclos anteriores e ciclo 01).
 - C: **ciclo 02** entregou o fluxo real ponta a ponta. Pendentes: convites e gestão de membros na interface, várias unidades, quantidades fracionárias, back-channel logout, observabilidade.
-- D: PWA, política offline, fila local, instalação em intranet com TLS, backup e restauração ensaiada.
+- D: hospedagem em nuvem administrada pelo fornecedor (preparada e ensaiada no ciclo 02, lote 3; não contratada). Depois: PWA, política offline, fila local; instalação em intranet ou dedicada como modalidades opcionais.
 - E: fornecedores, compras/cotações, POS, fiscal, rastreabilidade e inteligência com dados reais.
 
 Nenhum deploy público de produção deve ocorrer sem autorização do responsável.

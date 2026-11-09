@@ -1,5 +1,23 @@
 # Registro de validação
 
+## Ciclo 02, lote 3 (hospedagem em nuvem) — 2026-11-09
+
+Executado de fato: build da imagem de produção (`deploy/cloud/Dockerfile`) e ensaio isolado `deploy/cloud/test/drill.sh` com essa imagem reconstruída do zero. O ensaio cobriu:
+
+- recusas de modelo e de senha de desenvolvimento;
+- instalação limpa com proxy TLS (CA de teste);
+- login OIDC real no navegador;
+- cadastro e entrada;
+- exposição de rede;
+- reinício do banco, da API e de todos os contêineres;
+- backup cifrado enviado a um S3 falso;
+- atualização com reversão automática;
+- perda total do servidor;
+- ensaio de restauração em projeto separado, recuperação com novo login e exportação da empresa;
+- logs sem segredos.
+
+Também passaram: `npm test` com PostgreSQL (40 aprovados, incluindo a exportação), lint e build. **Não executado** (depende de contratação): ACME/DNS reais, provedor real, teste de carga, e-mail e monitores reais. Detalhes em [PRODUCT-CYCLE-02.md](PRODUCT-CYCLE-02.md#lote-3--preparação-para-hospedagem-em-nuvem).
+
 ## Ciclo 02, lote 2 — 2026-11-09
 
 Executado de fato: build da imagem Docker, `scripts/compose-validate.sh` do zero (readiness, migração, seed, provisionamento, emissor e redirects OIDC, papéis do banco, queda do banco sem derrubar a API, falha explícita sem configuração e com papel privilegiado), `test:e2e-real` contra o Compose (12 aprovados + 1 após reinício), `npm test` com PostgreSQL (39 aprovados), sem banco (22 aprovados, 1 ignorado), lint, build e Playwright da demo (32 aprovados). O CI ganhou o job `e2e-real`. Detalhes, correções e o que segue não executado em [PRODUCT-CYCLE-02.md](PRODUCT-CYCLE-02.md#lote-2--validação-reproduzível).
