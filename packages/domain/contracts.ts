@@ -140,13 +140,13 @@ export const StockQuerySchema = z.object({
  cursor: z.string().max(400).optional(),
  limit: z.coerce.number().int().min(1).max(100).default(50)
 }).strict();
-export type StockQuery = z.input<typeof StockQuerySchema>;
+export type StockQuery = Partial<z.infer<typeof StockQuerySchema>>;
 
 export const StockPageSchema = z.object({
  organizationId: uuid, unitId: z.string(),
  items: z.array(StockItemSchema),
  nextCursor: z.string().nullable(),
- counts: z.object({ all: z.number().int(), critical: z.number().int(), ok: z.number().int() }).strict()
+ counts: z.object({ all: z.number().int(), critical: z.number().int(), ok: z.number().int(), catalog: z.number().int() }).strict()
 }).strict();
 export type StockPage = z.infer<typeof StockPageSchema>;
 
@@ -165,7 +165,7 @@ export const MovementQuerySchema = z.object({
  cursor: z.string().max(400).optional(),
  limit: z.coerce.number().int().min(1).max(100).default(50)
 }).strict();
-export type MovementQuery = z.input<typeof MovementQuerySchema>;
+export type MovementQuery = Partial<z.infer<typeof MovementQuerySchema>>;
 
 export const MovementPageSchema = z.object({
  organizationId: uuid, unitId: z.string(),

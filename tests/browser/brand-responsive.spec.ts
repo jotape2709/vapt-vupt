@@ -48,7 +48,7 @@ test('preferências antigas migram para azul sem perder o saldo',async({page})=>
     data[1].theme.accent='wine';data[2].theme.accent='copper';
     localStorage.setItem('vv-demo-v1',JSON.stringify(data));
   });
-  await page.reload();await page.getByRole('button',{name:'Explorar demonstração',exact:true}).click();
+  await page.reload();
   const select=page.getByLabel('Selecionar empresa demonstrativa');
   for(const [id,accent] of [['mercado','blue'],['adega','navy'],['bar','sky']]){
     await select.selectOption(id);await expect(page.locator('.workspace')).toHaveAttribute('data-accent',accent);

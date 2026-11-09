@@ -1,5 +1,7 @@
 import { z } from 'zod';
-import { ThemeSchema, ProductSchema, type Theme, type Product } from '../../packages/domain';
+import { ThemeSchema, ProductSchema, modules, type Theme, type Product } from '../../packages/domain';
+import { overviewBlocks } from '../../packages/domain/contracts';
+import type { DemoExtras } from './theme';
 
 /** Registro do histórico demonstrativo. Fica só no navegador e não é trilha de auditoria. */
 export const DemoMovementSchema = z.object({
@@ -15,7 +17,12 @@ export const DemoMovementSchema = z.object({
  at: z.string().datetime()
 }).strict();
 export type DemoMovement = z.infer<typeof DemoMovementSchema>;
-export type Business = { id: string; segment: string; theme: Theme; products: Product[]; movements: DemoMovement[] };
+/** Navegação e composição da visão geral na demonstração (opcional; ausente usa o padrão). */
+const ExtrasSchema = z.object({
+ navigation: z.object({ landing: z.enum(modules) }).strict(),
+ overview: z.object({ blocks: z.array(z.enum(overviewBlocks)).max(overviewBlocks.length) }).strict()
+}).strict();
+export type Business = { id: string; segment: string; theme: Theme; products: Product[]; movements: DemoMovement[]; extras?: DemoExtras };
 
 /** Limites para manter o armazenamento local pequeno e previsível. */
 export const MAX_BUSINESSES = 10;
@@ -79,7 +86,8 @@ export function parseStoredDemo(data: unknown): Business[] {
     segment: typeof raw.segment === 'string' ? raw.segment.slice(0, 40) : 'Comércio',
     theme: ThemeSchema.parse({ ...raw.theme, accent }),
     products: ProductSchema.array().max(1000).parse(raw.products),
-    movements: parseMovements(raw.movements)
+    movements: parseMovements(raw.movements),
+    ...(ExtrasSchema.safeParse(raw.extras).success ? { extras: ExtrasSchema.parse(raw.extras) } : {})
    };
   });
  } catch {

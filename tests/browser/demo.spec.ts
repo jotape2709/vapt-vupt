@@ -25,8 +25,9 @@ test('três empresas, personalização e operação demonstrativa',async({page},
  await page.getByRole('button',{name:'Personalização',exact:true}).click();
  await page.getByLabel('Nome exibido',{exact:true}).fill('Aurora Teste');
  await page.getByRole('button',{name:'Salvar personalização'}).click();
+ // A demonstração tem endereço próprio (/demo): recarregar volta direto a ela.
+ await expect(page).toHaveURL(/\/demo$/);
  await page.reload();
- await page.getByRole('button',{name:'Explorar demonstração',exact:true}).click();
  await expect(page.locator('.topbar')).toContainText('Aurora Teste');
  await expect(page.locator('.workspace')).toHaveAttribute('data-accent','blue');
  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth);

@@ -190,13 +190,14 @@ export class Operations {
     after ? [org, unitId, pattern, after[0], after[1]] : [org, unitId, pattern]);
    const counts = (await db.query<{ all: number; critical: number }>(
     `SELECT count(*)::int AS all, count(*) FILTER (WHERE coalesce(s.quantity,0) < p.minimum)::int AS critical ${base}`, [org, unitId, pattern])).rows[0];
+   const catalog = (await db.query<{ n: number }>('SELECT count(*)::int AS n FROM products WHERE organization_id=$1', [org])).rows[0].n;
    const page = rows.rows.slice(0, query.limit);
    const last = page[page.length - 1];
    return {
     organizationId: org, unitId,
     items: page.map((r): StockItem => ({ id: r.id, name: r.name, sku: r.sku, unit: r.unit, minimum: r.minimum, category: r.category, quantity: r.quantity, stockVersion: r.stock_version, catalogVersion: r.catalog_version })),
     nextCursor: rows.rows.length > query.limit && last ? encodeCursor([last.sort_name, last.id]) : null,
-    counts: { all: counts.all, critical: counts.critical, ok: counts.all - counts.critical }
+    counts: { all: counts.all, critical: counts.critical, ok: counts.all - counts.critical, catalog }
    };
   });
  }
