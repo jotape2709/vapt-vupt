@@ -1,5 +1,9 @@
 # Registro de validação
 
+## Ciclo 02 — 2026-11-09
+
+Executado de fato em container Linux (Node 22.23.4, npm 10.9.9, Docker com PostgreSQL 17 e Keycloak 26.4): `npm ci`, `npm audit` (0 vulnerabilidades), lint, build, migração, `npm test` com PostgreSQL real e papel restrito (36 aprovados), sem banco (21 aprovados, 1 ignorado), Playwright da demonstração (32 aprovados) e fluxo real com Keycloak (11 aprovados + 1 após reinício dos serviços). **Não executados**: build da imagem Docker da aplicação, fluxo real no CI, leitores de tela, Safari/Firefox, zoom real do navegador. Detalhes em [PRODUCT-CYCLE-02.md](PRODUCT-CYCLE-02.md#resultados).
+
 ## Ciclo 01 — 2026-11-09
 
 Checks executados de fato em container Linux (Node 22.23.4, npm 10.9.9): `npm ci`, `npm audit` (0 vulnerabilidades), lint, build, `npm test` (14 aprovados, 1 ignorado por falta de PostgreSQL) e Playwright (32 aprovados, desktop e mobile). Comandos, cobertura e limitações em [UX-CYCLE-01.md](UX-CYCLE-01.md#5-verificação-executada-09112026-container-linux-node-22234-npm-1099).

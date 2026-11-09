@@ -29,7 +29,7 @@ try {
   await db.query(await readFile(new URL('../../db/grants/runtime.sql', import.meta.url), 'utf8'));
   console.info('Grants de runtime aplicados ao papel vv_app.');
  } else {
-  console.info('Papel vv_app ausente: grants de runtime não aplicados (ver docs/OPERATIONS.md).');
+  console.info('Papel vv_app ausente: grants de runtime não aplicados (ver docs/LOCAL-DEV.md).');
  }
  await db.query('COMMIT');
  console.info('Schema atualizado.');
